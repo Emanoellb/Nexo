@@ -1,0 +1,5 @@
+# Testes golden (test/goldens/): imagens de referência geradas no Windows.
+# Atualizar: flutter test --update-goldens test/goldens
+# Pular, ex. em CI de outro sistema: flutter test --exclude-tags golden
+tags:
+  golden:
