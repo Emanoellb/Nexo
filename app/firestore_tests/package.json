@@ -1,0 +1,16 @@
+{
+  "name": "nexo-firestore-rules-tests",
+  "private": true,
+  "description": "Testes das Security Rules do Firestore do Nexo no emulador. Rode a partir de app/: firebase emulators:exec --only firestore --project demo-nexo \"npm --prefix firestore_tests test\"",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 rules.test.js"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.0.0"
+  }
+}
