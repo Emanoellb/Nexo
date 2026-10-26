@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "956300519140",
+    "project_id": "nexo-app-gestao-f97bb",
+    "storage_bucket": "nexo-app-gestao-f97bb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:956300519140:android:7792abfff1061daa6b6ef1",
+        "android_client_info": {
+          "package_name": "dev.emanoelbarbosa.nexo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "956300519140-77jso2ioeg4ndleupm6og7ho17hcrn47.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "dev.emanoelbarbosa.nexo",
+            "certificate_hash": "e15c177671241212398bedbe663b409a50d0c207"
+          }
+        },
+        {
+          "client_id": "956300519140-7jmmi4auj1q0q7e1li349m48om4pp952.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPYZJz9pDgeUSmJhg6uJRXs-jCLYbsE2w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "956300519140-7jmmi4auj1q0q7e1li349m48om4pp952.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "956300519140-cqm41tvs5e95quna3v7rd1no4uhm4r0d.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.nexo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
