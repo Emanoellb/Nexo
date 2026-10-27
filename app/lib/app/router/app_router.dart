@@ -2,29 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/ui/ui.dart';
+import '../../core/theme/nexo_theme.dart';
 import '../../features/auth/application/auth_providers.dart';
 import '../../features/auth/domain/entry_status.dart';
+import '../../features/splash/application/splash_providers.dart';
+import '../../features/splash/presentation/splash_page.dart';
 import '../shell/nexo_shell.dart';
 import '../shell/under_construction_page.dart';
 import 'entry_redirect.dart';
 import 'routes.dart';
 
 /// Roteador do app. Reavalia o redirecionamento sempre que o status de
-/// entrada muda (login, verificação, perfil, tutorial).
+/// entrada muda (login, verificação, perfil, tutorial) ou a splash termina.
 final routerProvider = Provider<GoRouter>((ref) {
-  final status = ValueNotifier<EntryStatus>(ref.read(entryStatusProvider));
-  ref.listen(entryStatusProvider, (_, next) => status.value = next);
+  final gate = ValueNotifier<(EntryStatus, bool)>((
+    ref.read(entryStatusProvider),
+    ref.read(splashFinishedProvider),
+  ));
+  ref.listen(
+    entryStatusProvider,
+    (_, next) => gate.value = (next, gate.value.$2),
+  );
+  ref.listen(
+    splashFinishedProvider,
+    (_, next) => gate.value = (gate.value.$1, next),
+  );
 
   final router = GoRouter(
     initialLocation: AppRoutes.splash,
-    refreshListenable: status,
-    redirect: (context, state) =>
-        entryRedirect(status.value, state.matchedLocation),
+    refreshListenable: gate,
+    redirect: (context, state) => entryRedirect(
+      gate.value.$1,
+      state.matchedLocation,
+      splashFinished: gate.value.$2,
+    ),
     routes: [
       GoRoute(
         path: AppRoutes.splash,
-        builder: (context, state) => const _SplashPlaceholder(),
+        builder: (context, state) => const SplashPage(),
       ),
       for (final (path, title) in const [
         (AppRoutes.login, 'Entrar'),
@@ -36,14 +51,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       ])
         GoRoute(
           path: path,
-          builder: (context, state) => UnderConstructionPage(
-            title: title,
-            block: 'bloco 12 · fluxo de entrada',
+          // Saída da splash sem sessão: o símbolo "voa" até a logo do Login
+          // (Hero `nexoLogoHeroTag`, quando a tela real de Login existir).
+          pageBuilder: (context, state) => _fadePage(
+            context,
+            state,
+            UnderConstructionPage(
+              title: title,
+              block: 'bloco 12 · fluxo de entrada',
+            ),
+            long: true,
           ),
         ),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) =>
-            NexoShell(navigationShell: navigationShell),
+        // Saída da splash com sessão: esmaece até o Início.
+        pageBuilder: (context, state, navigationShell) => _fadePage(
+          context,
+          state,
+          NexoShell(navigationShell: navigationShell),
+        ),
         branches: [
           for (final (path, title, block) in const [
             (AppRoutes.home, 'Início', 'bloco 6 · Início'),
@@ -68,18 +94,33 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   ref.onDispose(() {
     router.dispose();
-    status.dispose();
+    gate.dispose();
   });
   return router;
 });
 
-/// Splash provisória: símbolo estático enquanto o auth carrega. A animação
-/// do "x" entra no bloco 12, depois de você aprovar o roteiro.
-class _SplashPlaceholder extends StatelessWidget {
-  const _SplashPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: NexoLogoSymbol(size: 96)));
-  }
+/// Transição em esmaecimento com os tokens de movimento: `Medium` (250 ms)
+/// ou, com [long], `Long` (350 ms, tempo do Hero da logo). Sem movimento com
+/// "reduzir movimento".
+Page<void> _fadePage(
+  BuildContext context,
+  GoRouterState state,
+  Widget child, {
+  bool long = false,
+}) {
+  final motion = context.motion;
+  final duration = MediaQuery.disableAnimationsOf(context)
+      ? Duration.zero
+      : (long ? motion.long : motion.medium);
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: duration,
+    reverseTransitionDuration: duration,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+        FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: motion.standard),
+          child: child,
+        ),
+  );
 }

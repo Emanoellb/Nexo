@@ -3,8 +3,17 @@ import 'routes.dart';
 
 /// Função pura do redirecionamento de entrada. Devolve o caminho para onde
 /// ir, ou `null` para ficar onde está.
-String? entryRedirect(EntryStatus status, String location) {
+///
+/// [splashFinished]: enquanto a animação da splash não termina, o app fica
+/// nela, qualquer que seja o status.
+String? entryRedirect(
+  EntryStatus status,
+  String location, {
+  bool splashFinished = true,
+}) {
   String? goTo(String target) => location == target ? null : target;
+
+  if (!splashFinished) return goTo(AppRoutes.splash);
 
   switch (status) {
     case EntryStatus.loading:

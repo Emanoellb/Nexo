@@ -9,6 +9,12 @@ Fonte: variáveis de `pen.dev/nexo.lib.pen` (fora do repositório), lidas em 21/
 3. **Fonte da verdade, regra temporária [D] (26/10/2026):** com o Pencil indisponível, tokens e componentes novos ou ajustados nascem no Flutter (`app/lib/core/`). Cada mudança é anotada em [`sincronizar-lib.md`](sincronizar-lib.md). Em 28/10/2026, essas mudanças vão para o `nexo.lib.pen`. Fora isso, vale a regra de sempre: mudou um token na lib, atualize aqui.
 4. **Dark mode (futuro):** criar `NexoColors.dark` e `NexoElevation.dark` com os mesmos campos e passar para `NexoTheme.build(brightness: Brightness.dark, ...)`. Nenhum widget muda, porque todos leem os papéis semânticos.
 
+**Exceção à regra 1 (26/10/2026):** a splash nativa do Android (`android/app/src/main/res/values/colors.xml`) precisa de cor em hex, porque o XML do Android não lê os tokens do Flutter.
+- `nexo_splash_background` = `Surface` (`#FAFAFB`);
+- `nexo_splash_symbol` = `Primary` (`#567792`).
+
+Se esses tokens mudarem, atualize também esse arquivo.
+
 ## Acesso no código
 
 | Token da lib | Flutter |

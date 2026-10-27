@@ -110,5 +110,20 @@ void main() {
         expect(entryRedirect(EntryStatus.ready, tab), isNull, reason: tab);
       }
     });
+
+    test('splash em andamento: fica na splash qualquer que seja o status', () {
+      for (final status in EntryStatus.values) {
+        expect(
+          entryRedirect(status, AppRoutes.splash, splashFinished: false),
+          isNull,
+          reason: status.name,
+        );
+        expect(
+          entryRedirect(status, AppRoutes.home, splashFinished: false),
+          AppRoutes.splash,
+          reason: status.name,
+        );
+      }
+    });
   });
 }

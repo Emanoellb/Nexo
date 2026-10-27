@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ (API 31): splash do sistema (SplashScreen API) com o símbolo
+     estático e fundo Surface. Sem animação nativa e sem espera extra; a
+     animação do "x" acontece no Flutter. O app é só claro: o tema noturno é
+     igual (values-night-v31). -->
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/nexo_splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_symbol_android12</item>
+        <item name="android:windowBackground">@color/nexo_splash_background</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@color/nexo_splash_background</item>
+    </style>
+</resources>
