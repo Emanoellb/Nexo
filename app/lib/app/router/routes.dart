@@ -1,0 +1,32 @@
+/// Caminhos do app. Identificadores internos em inglês; a interface é pt-BR.
+abstract final class AppRoutes {
+  // Entrada (telas no bloco do fluxo de entrada).
+  static const splash = '/splash';
+  static const login = '/login';
+  static const forgotPassword = '/login/forgot-password';
+  static const signUp = '/sign-up';
+  static const googleFirstAccess = '/sign-up/google';
+  static const verifyEmail = '/verify-email';
+  static const welcome = '/welcome';
+
+  // Abas da barra de navegação.
+  static const home = '/home';
+  static const tasks = '/tasks';
+  static const plans = '/plans';
+  static const calendar = '/calendar';
+  static const profile = '/profile';
+
+  /// Telas que só fazem sentido antes de o usuário estar pronto.
+  static const entryLocations = {
+    splash,
+    login,
+    forgotPassword,
+    signUp,
+    googleFirstAccess,
+    verifyEmail,
+    welcome,
+  };
+
+  /// Telas abertas sem login.
+  static const signedOutLocations = {login, forgotPassword, signUp};
+}

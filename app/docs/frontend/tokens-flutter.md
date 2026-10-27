@@ -6,7 +6,7 @@ Fonte: variáveis de `pen.dev/nexo.lib.pen` (fora do repositório), lidas em 21/
 
 1. **Widgets nunca usam cor literal nem primitiva.** As cores vêm de `Theme.of(context).colorScheme` (papéis do Material 3) ou de `context.nexoColors` (papéis do Nexo que o `ColorScheme` não tem).
 2. **Os valores ficam num lugar só.** Cores em `nexo_colors.dart`, com os valores copiados da lib. Espaçamento, forma, sombra e movimento em `nexo_dimensions.dart`. Texto em `nexo_typography.dart`.
-3. **Mudou um token na lib?** Atualize o valor aqui. A lib é a fonte da verdade.
+3. **Fonte da verdade, regra temporária [D] (26/10/2026):** com o Pencil indisponível, tokens e componentes novos ou ajustados nascem no Flutter (`app/lib/core/`). Cada mudança é anotada em [`sincronizar-lib.md`](sincronizar-lib.md). Em 28/10/2026, essas mudanças vão para o `nexo.lib.pen`. Fora isso, vale a regra de sempre: mudou um token na lib, atualize aqui.
 4. **Dark mode (futuro):** criar `NexoColors.dark` e `NexoElevation.dark` com os mesmos campos e passar para `NexoTheme.build(brightness: Brightness.dark, ...)`. Nenhum widget muda, porque todos leem os papéis semânticos.
 
 ## Acesso no código
@@ -20,6 +20,7 @@ Fonte: variáveis de `pen.dev/nexo.lib.pen` (fora do repositório), lidas em 21/
 | `Shape/*` | `context.shape.xs … full` |
 | `Elevation/0..5` | `context.elevation.level(n)` (lista de `BoxShadow`) |
 | `Motion/*` | `context.motion.short`, `.standard` (`Cubic`), `.distanceSmall`… |
+| `Glass/Blur` | `context.glass.blur` (24). As cores `Colors/Semantic/Glass/*` ficam em `context.nexoColors.glass*` |
 | `typeface` (Manrope) | `nexoFontFamily`, empacotada em `assets/fonts/` (SIL OFL 1.1) |
 
 ## ColorScheme (Material 3)

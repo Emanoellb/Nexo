@@ -9,6 +9,7 @@ export 'feedback/nexo_snackbar.dart';
 export 'feedback/nexo_spinner.dart';
 export 'foundation/nexo_tappable.dart';
 export 'inputs/nexo_text_field.dart';
+export 'navigation/nexo_navigation_bar.dart';
 export 'navigation/nexo_page_control.dart';
 export 'navigation/nexo_top_app_bar.dart';
 export 'selection/nexo_checkbox.dart';

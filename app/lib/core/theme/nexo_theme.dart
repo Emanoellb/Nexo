@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'nexo_colors.dart';
 import 'nexo_dimensions.dart';
+import 'nexo_glass.dart';
 import 'nexo_typography.dart';
 
 export 'nexo_colors.dart';
 export 'nexo_dimensions.dart';
+export 'nexo_glass.dart';
 export 'nexo_typography.dart';
 
 /// Monta o ThemeData do Nexo a partir dos tokens.
@@ -39,6 +41,7 @@ abstract final class NexoTheme {
         NexoSpacing.standard,
         NexoShape.standard,
         NexoMotion.standardMotion,
+        NexoGlass.standard,
       ],
     );
   }
@@ -78,7 +81,8 @@ abstract final class NexoTheme {
       outlineVariant: c.outlineVariant,
       shadow: c.onSurface, // a cor-base das sombras da lib é Neutral/900
       scrim: c.scrim,
-      inverseSurface: c.onSurface, // botão Apple: OnSurface com texto Surface
+      inverseSurface:
+          c.onSurface, // superfície invertida: OnSurface com texto Surface
       onInverseSurface: c.surface,
       inversePrimary: c.primaryContainer, // alias
       surfaceTint: Colors.transparent, // o Nexo usa sombra, não tinta
@@ -93,4 +97,5 @@ extension NexoThemeContext on BuildContext {
   NexoShape get shape => Theme.of(this).extension<NexoShape>()!;
   NexoElevation get elevation => Theme.of(this).extension<NexoElevation>()!;
   NexoMotion get motion => Theme.of(this).extension<NexoMotion>()!;
+  NexoGlass get glass => Theme.of(this).extension<NexoGlass>()!;
 }
