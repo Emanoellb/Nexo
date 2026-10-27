@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/nexo_app.dart';
+import 'app/prototype/sample_data.dart';
 import 'core/data/local_flags.dart';
 import 'firebase_options.dart';
 
@@ -27,12 +28,15 @@ Future<void> main() async {
   // Marcas locais (ex.: primeira abertura), lidas antes do primeiro quadro.
   final localFlags = await SharedPreferencesLocalFlags.create();
 
-  // Na prototipação, os repositórios são fake (sem login nem banco). A troca
-  // pelo Firebase é feita nos providers de cada feature.
+  // Na prototipação, os repositórios são fake (sem login nem banco) e
+  // começam com dados de exemplo fictícios. A troca pelo Firebase é feita
+  // nos providers de cada feature; aí estes dados saem.
+  final container = ProviderContainer(
+    overrides: [localFlagsProvider.overrideWithValue(localFlags)],
+  );
+  await container.read(prototypeSampleDataProvider.future);
+
   runApp(
-    ProviderScope(
-      overrides: [localFlagsProvider.overrideWithValue(localFlags)],
-      child: const NexoApp(),
-    ),
+    UncontrolledProviderScope(container: container, child: const NexoApp()),
   );
 }
