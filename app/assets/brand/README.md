@@ -22,12 +22,27 @@ Tipografia do nome: Manrope 700, com espaçamento levemente negativo.
 
 | Pasta | Conteúdo |
 |---|---|
-| `logo/svg/` | Símbolo vetorial: claro, escuro, mono grafite, mono claro (viewBox 160, com respiro de 4%) |
+| `logo/svg/` | Símbolo vetorial: claro, escuro, mono grafite, mono claro (viewBox 160, com respiro de 4%). Nome integrado `ne×o`: `nexo-nome-integrado-claro.svg` e `nexo-nome-integrado-escuro.svg`, com as letras em contorno (ver abaixo) |
 | `logo/png/` | Símbolo, assinatura horizontal e nome integrado (`ne×o`), para fundo claro e escuro, a 4x |
 | `logo/pdf/` | Assinatura horizontal e nome integrado em vetor (para impressão e apresentações) |
 | `app-icon/ios/` | `AppIcon-1024.png`: sem transparência e sem cantos (o iOS aplica a máscara) |
 | `app-icon/android/` | Camadas do ícone adaptativo a 432 px (108 dp a 4x): background, foreground e monochrome |
 | `favicon/` | 16, 32 e 64 px |
+
+## Nome integrado em SVG (27/10/2026)
+
+Convertido do PDF exportado pelo Pencil (`logo/pdf/nexo-nome-integrado-fundo-*.pdf`), sem redesenho. As letras já vêm em contorno: o arquivo não depende da fonte instalada. Conferido no Edge por sobreposição com o PNG oficial: só o serrilhado das bordas difere.
+
+- **viewBox:** `0 0 162.65 45.891`, recortado no conteúdo, **sem** a área de proteção. Ela fica por conta do layout: pelo menos 25% da largura do símbolo, ou seja, cerca de 9,25 unidades do viewBox de cada lado.
+- **Grupos:** `<g id="letras">` (n, e, o) e `<g id="simbolo">` (os 3 traços), cada um com o seu `fill`. Isso permite trocar a cor do símbolo pelo tema.
+- **Cores:**
+  - claro: letras `#1D2127`, símbolo `#567792`;
+  - escuro: letras `#FAFAFB`, símbolo `#6E92AE`.
+- **Símbolo no viewBox:**
+  - traços: x 82.025–119.025, y 0–36.638;
+  - caixa de 37 do Pencil: origem (82.025, −0.181);
+  - quadrado equivalente ao viewBox 160 com 4% de respiro: origem (80.416, −1.790), lado 40.217.
+- **De/para com o PNG @4x (744×352):** `svg = png ÷ 4 − (12.975, 27.181)`.
 
 ## Regras de uso
 
