@@ -5,6 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/nexo_theme.dart';
 import '../../features/auth/application/auth_providers.dart';
 import '../../features/auth/domain/entry_status.dart';
+import '../../features/auth/presentation/forgot_password_page.dart';
+import '../../features/auth/presentation/google_first_access_page.dart';
+import '../../features/auth/presentation/login_page.dart';
+import '../../features/auth/presentation/sign_up_page.dart';
+import '../../features/auth/presentation/verify_email_page.dart';
+import '../../features/legal/presentation/legal_document_page.dart';
 import '../../features/splash/application/splash_providers.dart';
 import '../../features/splash/presentation/splash_page.dart';
 import '../shell/nexo_shell.dart';
@@ -41,28 +47,54 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.splash,
         builder: (context, state) => const SplashPage(),
       ),
-      for (final (path, title) in const [
-        (AppRoutes.login, 'Entrar'),
-        (AppRoutes.forgotPassword, 'Esqueci minha senha'),
-        (AppRoutes.signUp, 'Criar conta'),
-        (AppRoutes.googleFirstAccess, 'Primeiro acesso'),
-        (AppRoutes.verifyEmail, 'Verifique seu e-mail'),
-        (AppRoutes.welcome, 'Boas-vindas'),
+      GoRoute(
+        path: AppRoutes.login,
+        // Saída da splash sem sessão: o símbolo "voa" até a logo do Login
+        // (Hero `nexoLogoHeroTag`).
+        pageBuilder: (context, state) => _fadePage(
+          context,
+          state,
+          LoginPage(initialEmail: state.extra as String?),
+          long: true,
+        ),
+      ),
+      for (final (path, page) in [
+        (
+          AppRoutes.forgotPassword,
+          (GoRouterState state) =>
+              ForgotPasswordPage(initialEmail: state.extra as String?),
+        ),
+        (AppRoutes.signUp, (GoRouterState _) => const SignUpPage()),
+        (
+          AppRoutes.googleFirstAccess,
+          (GoRouterState _) => const GoogleFirstAccessPage(),
+        ),
+        (AppRoutes.verifyEmail, (GoRouterState _) => const VerifyEmailPage()),
+        (
+          AppRoutes.terms,
+          (GoRouterState _) =>
+              const LegalDocumentPage(document: LegalDocument.terms),
+        ),
+        (
+          AppRoutes.privacy,
+          (GoRouterState _) =>
+              const LegalDocumentPage(document: LegalDocument.privacy),
+        ),
       ])
         GoRoute(
           path: path,
-          // Saída da splash sem sessão: o símbolo "voa" até a logo do Login
-          // (Hero `nexoLogoHeroTag`, quando a tela real de Login existir).
-          pageBuilder: (context, state) => _fadePage(
-            context,
-            state,
-            UnderConstructionPage(
-              title: title,
-              block: 'bloco 12 · fluxo de entrada',
-            ),
-            long: true,
-          ),
+          pageBuilder: (context, state) =>
+              _fadePage(context, state, page(state)),
         ),
+      GoRoute(
+        path: AppRoutes.welcome,
+        pageBuilder: (context, state) => _fadePage(
+          context,
+          state,
+          const UnderConstructionPage(title: 'Boas-vindas', block: 'tutorial'),
+          long: true,
+        ),
+      ),
       StatefulShellRoute.indexedStack(
         // Saída da splash com sessão: esmaece até o Início.
         pageBuilder: (context, state, navigationShell) => _fadePage(

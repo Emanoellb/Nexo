@@ -10,7 +10,16 @@ void main() {
   testWidgets('usuário pronto abre no Início e navega pelas abas', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: NexoApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            FakeAuthRepository.signedIn(),
+          ),
+        ],
+        child: const NexoApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Em construção · bloco 6 · Início'), findsOneWidget);
@@ -33,11 +42,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      find.text('Em construção · bloco 12 · fluxo de entrada'),
-      findsOneWidget,
-    );
-    expect(find.text('Entrar'), findsOneWidget);
+    expect(find.text('Entre na sua conta'), findsOneWidget);
 
     auth.setUser(FakeAuthRepository.prototypeUser);
     await tester.pumpAndSettle();
@@ -48,7 +53,11 @@ void main() {
     tester,
   ) async {
     final auth = FakeAuthRepository(
-      initialUser: const AuthUser(uid: 'u2', emailVerified: false),
+      initialUser: const AuthUser(
+        uid: 'u2',
+        emailVerified: false,
+        email: 'nova.conta@email.com',
+      ),
     );
     await tester.pumpWidget(
       ProviderScope(
@@ -57,7 +66,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Verifique seu e-mail'), findsOneWidget);
+    expect(find.text('Confirme seu e-mail'), findsOneWidget);
   });
 
   testWidgets('Google sem perfil vai ao primeiro acesso; tutorial depois', (
@@ -67,6 +76,7 @@ void main() {
       uid: 'g1',
       emailVerified: true,
       signedInWithGoogle: true,
+      email: FakeAuthRepository.googleEmail,
     );
     final auth = FakeAuthRepository(initialUser: user);
     final profiles = FakeUserProfileRepository();
@@ -80,7 +90,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Primeiro acesso'), findsOneWidget);
+    expect(find.text('Falta pouco'), findsOneWidget);
 
     profiles.setProfile(user.uid, const UserProfile(displayName: 'Ana'));
     await tester.pumpAndSettle();

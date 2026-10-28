@@ -13,6 +13,8 @@ dependencies:
   firebase_crashlytics: ^6.0.0
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_riverpod: ^3.4.3
   flutter_svg: ^2.3.0
   go_router: ^18.1.1
@@ -30,10 +32,13 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Só o símbolo vetorial entra no app. O resto de assets/brand/ (PNG, PDF,
-  # ícones de launcher, favicons) é material de build e de marca.
+  # No app entram só os vetores: o símbolo e o nome integrado ("ne×o"). O
+  # resto de assets/brand/ (PNG, PDF, ícones de launcher, favicons) é material
+  # de build e de marca.
   assets:
     - assets/brand/logo/svg/nexo-simbolo-claro.svg
+    - assets/brand/logo/svg/nexo-nome-integrado-claro.svg
+    - assets/brand/logo/svg/nexo-nome-integrado-escuro.svg
     - assets/icons/google-g.svg
 
   fonts:

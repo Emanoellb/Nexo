@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/nexo_theme.dart';
@@ -14,6 +15,10 @@ class NexoApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: NexoTheme.light(),
       themeMode: ThemeMode.light,
+      // MVP só em pt-BR: calendário, menus de texto e leitor de tela.
+      locale: const Locale('pt', 'BR'),
+      supportedLocales: const [Locale('pt', 'BR')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: ref.watch(routerProvider),
     );
   }

@@ -5,13 +5,19 @@ import '../data/fake_auth_repository.dart';
 import '../domain/auth_user.dart';
 import '../domain/entry_status.dart';
 
-/// Repositório de auth. Na prototipação, o fake (sem Firebase); a troca pelo
-/// `FirebaseAuthRepository` é feita aqui, no bloco de integração.
+/// Repositório de auth. Na prototipação, o fake (sem Firebase), que começa
+/// sem sessão; a troca pelo `FirebaseAuthRepository` é feita aqui, no bloco
+/// de integração.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final repository = FakeAuthRepository.prototype();
   ref.onDispose(repository.dispose);
   return repository;
 });
+
+/// Fuso IANA do aparelho, gravado em `users/{uid}.timeZone`. Fixo na
+/// prototipação: ler o fuso real pede um pacote novo (ex. flutter_timezone),
+/// a aprovar no bloco de integração.
+final deviceTimeZoneProvider = Provider<String>((ref) => 'America/Sao_Paulo');
 
 final userProfileRepositoryProvider = Provider<UserProfileRepository>((ref) {
   final repository = FakeUserProfileRepository.prototype();

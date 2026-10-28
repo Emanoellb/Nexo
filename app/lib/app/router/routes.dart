@@ -9,6 +9,10 @@ abstract final class AppRoutes {
   static const verifyEmail = '/verify-email';
   static const welcome = '/welcome';
 
+  // Documentos legais, abertos pelos links do aceite.
+  static const terms = '/legal/terms';
+  static const privacy = '/legal/privacy';
+
   // Abas da barra de navegação.
   static const home = '/home';
   static const tasks = '/tasks';
@@ -29,4 +33,7 @@ abstract final class AppRoutes {
 
   /// Telas abertas sem login.
   static const signedOutLocations = {login, forgotPassword, signUp};
+
+  /// Abertas em qualquer etapa (o aceite fica no Cadastro e na 03b).
+  static const anytimeLocations = {terms, privacy};
 }

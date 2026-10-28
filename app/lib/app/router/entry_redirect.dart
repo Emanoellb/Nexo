@@ -14,6 +14,7 @@ String? entryRedirect(
   String? goTo(String target) => location == target ? null : target;
 
   if (!splashFinished) return goTo(AppRoutes.splash);
+  if (AppRoutes.anytimeLocations.contains(location)) return null;
 
   switch (status) {
     case EntryStatus.loading:
