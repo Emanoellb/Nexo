@@ -49,6 +49,16 @@ O `nexo.app.pen` (tela 06) e o `AGENTS.md` §2 descrevem o tutorial antigo. Os p
 
 Também mudam: "Começar" no passo 5 e o botão "Repetir animação" (escondido com "reduzir movimento"). A tela entra depois de 28/10, com os componentes reais.
 
+### Input: erro em campo com ação própria (decidido em 27/10/2026)
+
+`Input/TextField` e `Input/Date` (`d:ds8UE`): no estado Error, um campo com ação própria (olho da senha, calendário) **mantém a ação** e não mostra o ícone de erro. O erro fica na borda Error de 2 px e no texto de apoio. Campo sem ação própria segue com o ícone de erro. No Flutter: `NexoTextField` (`trailing`, `obscurable`) e o `NexoDateField`, novo.
+
+### Telas de entrada (app, não a lib; decidido em 27/10/2026)
+
+Para a sessão de prototipação levar ao `nexo.app.pen`:
+- Login: o "ne×o" (`nexo-nome-integrado-claro.svg`) no topo, com 24 px de altura e 24 px abaixo da barra de status; o formulário fica centralizado na altura livre.
+- 03b: seta de voltar no topo no lugar de "Cancelar e sair" (mesma ação).
+
 ## Sincronizado
 
 (nada ainda)

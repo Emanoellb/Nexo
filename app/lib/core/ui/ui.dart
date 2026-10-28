@@ -2,12 +2,14 @@
 library;
 
 export 'brand/nexo_logo.dart';
+export 'brand/nexo_wordmark.dart';
 export 'buttons/nexo_button.dart';
 export 'buttons/nexo_icon_button.dart';
 export 'feedback/nexo_alert.dart';
 export 'feedback/nexo_snackbar.dart';
 export 'feedback/nexo_spinner.dart';
 export 'foundation/nexo_tappable.dart';
+export 'inputs/nexo_date_field.dart';
 export 'inputs/nexo_text_field.dart';
 export 'navigation/nexo_navigation_bar.dart';
 export 'navigation/nexo_page_control.dart';

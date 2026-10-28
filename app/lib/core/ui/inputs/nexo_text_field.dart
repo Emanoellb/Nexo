@@ -9,8 +9,9 @@ import '../buttons/nexo_icon_button.dart';
 /// 48 px e texto de apoio abaixo.
 ///
 /// Estados: Default, Focused (borda Primary 2 px), Filled, Disabled,
-/// Error ([errorText] preenchido: borda Error 2 px, ícone e texto de erro) e
-/// ReadOnly (fundo SurfaceContainer, cadeado).
+/// Error ([errorText] preenchido: borda Error 2 px e texto de erro; o ícone
+/// de erro só aparece em campo sem ação própria) e ReadOnly (fundo
+/// SurfaceContainer, cadeado).
 class NexoTextField extends StatefulWidget {
   const NexoTextField({
     super.key,
@@ -24,6 +25,7 @@ class NexoTextField extends StatefulWidget {
     this.readOnly = false,
     this.obscurable = false,
     this.leadingIcon,
+    this.trailing,
     this.keyboardType,
     this.textInputAction,
     this.textCapitalization = TextCapitalization.none,
@@ -51,6 +53,10 @@ class NexoTextField extends StatefulWidget {
   /// Campo de senha: esconde o texto e mostra o botão de exibir/ocultar.
   final bool obscurable;
   final IconData? leadingIcon;
+
+  /// Ação no fim do campo (ex.: o calendário do [NexoDateField]), num alvo
+  /// de 48 px. Dá lugar ao ícone de erro e ao cadeado.
+  final Widget? trailing;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
@@ -103,12 +109,13 @@ class _NexoTextFieldState extends State<NexoTextField> {
         ? c.error
         : c.onSurfaceVariant;
 
+    // Campo com ação própria (olho da senha, calendário) mantém a ação no
+    // erro: o erro fica na borda e no texto (pedido do usuário, 27/10/2026).
+    // Sem ação própria, o erro ganha o ícone.
+    final suffixIsButton =
+        !readOnly && (widget.obscurable || widget.trailing != null);
     Widget? suffix;
-    if (hasError) {
-      suffix = Icon(LucideIcons.circleAlert, size: 20, color: c.iconError);
-    } else if (readOnly) {
-      suffix = Icon(LucideIcons.lockKeyhole, size: 20, color: c.iconSecondary);
-    } else if (widget.obscurable) {
+    if (suffixIsButton && widget.obscurable) {
       suffix = NexoIconButton(
         icon: _obscured ? LucideIcons.eye : LucideIcons.eyeOff,
         tooltip: _obscured ? 'Mostrar senha' : 'Ocultar senha',
@@ -117,6 +124,12 @@ class _NexoTextFieldState extends State<NexoTextField> {
             ? null
             : () => setState(() => _obscured = !_obscured),
       );
+    } else if (suffixIsButton) {
+      suffix = widget.trailing;
+    } else if (hasError) {
+      suffix = Icon(LucideIcons.circleAlert, size: 20, color: c.iconError);
+    } else if (readOnly) {
+      suffix = Icon(LucideIcons.lockKeyhole, size: 20, color: c.iconSecondary);
     }
 
     final supportText = widget.errorText ?? widget.helperText;
@@ -190,9 +203,7 @@ class _NexoTextFieldState extends State<NexoTextField> {
                   ? null
                   : Padding(
                       padding: EdgeInsets.only(
-                        right: widget.obscurable && !hasError && !readOnly
-                            ? 0
-                            : spacing.lg,
+                        right: suffixIsButton ? 0 : spacing.lg,
                       ),
                       child: suffix,
                     ),

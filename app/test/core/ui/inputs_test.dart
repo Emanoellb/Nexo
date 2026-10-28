@@ -39,6 +39,37 @@ void main() {
       expect(find.byIcon(LucideIcons.circleAlert), findsOneWidget);
     });
 
+    testWidgets('campo com ação própria mantém a ação no erro', (tester) async {
+      await tester.pumpWidget(
+        nexoTestApp(
+          const NexoTextField(
+            label: 'Senha',
+            obscurable: true,
+            errorText: 'Crie uma senha.',
+          ),
+        ),
+      );
+      expect(find.byIcon(LucideIcons.circleAlert), findsNothing);
+      expect(find.byTooltip('Mostrar senha'), findsOneWidget);
+      expect(find.text('Crie uma senha.'), findsOneWidget);
+    });
+
+    testWidgets('data com erro mantém o calendário', (tester) async {
+      await tester.pumpWidget(
+        nexoTestApp(
+          NexoDateField(
+            label: 'Data de nascimento',
+            controller: TextEditingController(text: '14/05/2011'),
+            firstDate: DateTime(1900),
+            lastDate: DateTime(2026, 10, 27),
+            errorText: 'Você precisa ter 16 anos ou mais para usar o Nexo.',
+          ),
+        ),
+      );
+      expect(find.byIcon(LucideIcons.circleAlert), findsNothing);
+      expect(find.byTooltip('Abrir calendário'), findsOneWidget);
+    });
+
     testWidgets('senha começa oculta e o botão alterna', (tester) async {
       await tester.pumpWidget(
         nexoTestApp(const NexoTextField(label: 'Senha', obscurable: true)),

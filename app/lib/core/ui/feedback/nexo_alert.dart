@@ -15,6 +15,7 @@ class NexoAlert extends StatelessWidget {
     required this.tone,
     required this.message,
     this.title,
+    this.icon,
     this.actionLabel,
     this.onAction,
   });
@@ -22,6 +23,9 @@ class NexoAlert extends StatelessWidget {
   final NexoAlertTone tone;
   final String? title;
   final String message;
+
+  /// Troca o ícone padrão do tom (ex.: wifi cortado em "sem conexão").
+  final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
 
@@ -31,7 +35,7 @@ class NexoAlert extends StatelessWidget {
     final spacing = context.spacing;
     final textTheme = Theme.of(context).textTheme;
 
-    final (container, onContainer, iconColor, icon) = switch (tone) {
+    final (container, onContainer, iconColor, toneIcon) = switch (tone) {
       NexoAlertTone.info => (
         c.infoContainer,
         c.onInfoContainer,
@@ -70,7 +74,9 @@ class NexoAlert extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ExcludeSemantics(child: Icon(icon, size: 20, color: iconColor)),
+            ExcludeSemantics(
+              child: Icon(icon ?? toneIcon, size: 20, color: iconColor),
+            ),
             SizedBox(width: spacing.md),
             Expanded(
               child: Column(
