@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/startup/app_startup.dart';
 import '../../../core/data/local_flags.dart';
 import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/brand/nexo_animated_symbol.dart';
@@ -9,21 +10,37 @@ import '../application/splash_providers.dart';
 /// Splash do Flutter, logo depois da splash nativa (mesmo símbolo, mesmo
 /// tamanho e posição).
 ///
-/// Roteiro aprovado em 26/10/2026:
-/// - traço reto 0–380 ms e traço curvo 250–700 ms, `Motion/Easing/Emphasized`;
+/// Roteiro aprovado em 26/10/2026, alongado em +2 s em 27/10/2026 (traço
+/// mais lento + pausa com o símbolo pronto):
+/// - traço reto 0–800 ms e traço curvo 550–1500 ms, `Motion/Easing/Emphasized`;
+/// - símbolo pronto na tela até 2,7 s;
 /// - só na 1ª abertura: "Bem-vindo ao Nexo" e "Do objetivo à ação do dia."
-///   entram de 500 a 750 ms (`Enter`, subindo `distanceMedium`), com ~600 ms
-///   para leitura;
-/// - com "reduzir movimento": símbolo e texto estáticos.
+///   entram de 1100 a 1500 ms (`Enter`, subindo `distanceMedium`), com mais
+///   ~600 ms para leitura (3,3 s no total);
+/// - com "reduzir movimento": símbolo e texto estáticos, sem a pausa extra.
+///
+/// Sai quando a animação termina **e** a carga inicial ([appStartupProvider])
+/// também, o que vier por último.
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   /// Tamanho do símbolo: igual ao da splash nativa (128 dp).
   static const double symbolSize = 128;
 
-  static const drawDuration = Duration(milliseconds: 700);
+  // Linha do tempo, em ms.
+  static const _straightEnd = 800;
+  static const _curveStart = 550;
+  static const _textStart = 1100;
+  static const _drawEnd = 1500;
+
+  /// Desenho do símbolo (e entrada do texto, que termina junto).
+  static const drawDuration = Duration(milliseconds: _drawEnd);
+
+  /// Símbolo pronto na tela antes de seguir.
+  static const holdPause = Duration(milliseconds: 1200);
+
+  /// Leitura das boas-vindas, só na 1ª abertura.
   static const readingPause = Duration(milliseconds: 600);
-  static const textIn = Duration(milliseconds: 750);
 
   @override
   ConsumerState<SplashPage> createState() => _SplashPageState();
@@ -53,9 +70,9 @@ class _SplashPageState extends ConsumerState<SplashPage>
     // Sem movimento, só sobra a pausa de leitura (na 1ª abertura).
     final total = reduceMotion
         ? (_firstOpen ? SplashPage.readingPause : Duration.zero)
-        : (_firstOpen
-              ? SplashPage.textIn + SplashPage.readingPause
-              : SplashPage.drawDuration);
+        : SplashPage.drawDuration +
+              SplashPage.holdPause +
+              (_firstOpen ? SplashPage.readingPause : Duration.zero);
     if (total == Duration.zero) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _finish());
     } else {
@@ -66,6 +83,19 @@ class _SplashPageState extends ConsumerState<SplashPage>
   }
 
   Future<void> _finish() async {
+    if (!mounted) return;
+    try {
+      await ref.read(appStartupProvider.future);
+    } catch (error, stack) {
+      // A splash não pode prender o usuário: registra e segue.
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stack,
+          library: 'nexo startup',
+        ),
+      );
+    }
     if (!mounted) return;
     if (_firstOpen) await ref.read(localFlagsProvider).markFirstOpenDone();
     if (mounted) ref.read(splashFinishedProvider.notifier).finish();
@@ -101,11 +131,21 @@ class _SplashPageState extends ConsumerState<SplashPage>
         builder: (context, _) {
           final straight = reduceMotion
               ? 1.0
-              : _phase(0, 380, motion.emphasized);
+              : _phase(0, SplashPage._straightEnd, motion.emphasized);
           final curve = reduceMotion
               ? 1.0
-              : _phase(250, 700, motion.emphasized);
-          final text = reduceMotion ? 1.0 : _phase(500, 750, motion.enter);
+              : _phase(
+                  SplashPage._curveStart,
+                  SplashPage._drawEnd,
+                  motion.emphasized,
+                );
+          final text = reduceMotion
+              ? 1.0
+              : _phase(
+                  SplashPage._textStart,
+                  SplashPage._drawEnd,
+                  motion.enter,
+                );
 
           return LayoutBuilder(
             builder: (context, constraints) {
