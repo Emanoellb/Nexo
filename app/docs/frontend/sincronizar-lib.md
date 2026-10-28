@@ -47,7 +47,12 @@ O `nexo.app.pen` (tela 06) e o `AGENTS.md` §2 descrevem o tutorial antigo. Os p
 4. Sessão de foco;
 5. Progresso + Pontos.
 
-Também mudam: "Começar" no passo 5 e o botão "Repetir animação" (escondido com "reduzir movimento"). A tela entra depois de 28/10, com os componentes reais.
+Também mudam (implementado no app em 28/10/2026, branch `feat/tutorial`):
+- títulos: Objetivo e plano · Tarefas e calendário · Seu dia no Início · Sessão de foco · Seu progresso; o passo 1 traz "Boas-vindas, {nome}";
+- topo com o "ne×o" (24 px) e "Pular"; rodapé com o PageControl de 5 pontos e "Próximo";
+- botão "Repetir animação" (ícone `rotate-ccw`) no canto da ilustração, escondido com "reduzir movimento";
+- **tela de fechamento "Tudo pronto"** depois do passo 5 (não conta como passo): só o símbolo do Nexo, que se desenha; "Seu objetivo e a ação do dia, no mesmo lugar."; botão "Começar" (grava `tutorialSeen` e leva ao Início);
+- "Pular" (passos 1–5) leva ao "Tudo pronto". As 3 saídas antigas do passo 5 (Criar uma tarefa, Criar um plano, Explorar o app) saíram; `firestore-rules.md` §4 ainda cita "as 3 saídas do passo 5".
 
 ### Input: erro em campo com ação própria (decidido em 27/10/2026)
 

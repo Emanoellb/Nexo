@@ -311,7 +311,7 @@ void main() {
 
       // 2º "Já confirmei": confirmado, segue para o tutorial.
       await _tap(tester, find.widgetWithText(NexoButton, 'Já confirmei'));
-      expect(find.text('Boas-vindas'), findsOneWidget);
+      expect(find.text('Objetivo e plano'), findsOneWidget);
     });
 
     testWidgets('"Usar outro e-mail" volta ao Cadastro', (tester) async {
@@ -387,7 +387,7 @@ void main() {
       await _tap(tester, find.byType(NexoCheckbox));
       await _tap(tester, find.widgetWithText(NexoButton, 'Continuar'));
 
-      expect(find.text('Boas-vindas'), findsOneWidget);
+      expect(find.text('Objetivo e plano'), findsOneWidget);
       expect(app.profiles.created.values.single.displayName, 'Ana Souza');
     });
 

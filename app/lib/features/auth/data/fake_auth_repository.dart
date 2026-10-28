@@ -288,5 +288,12 @@ class FakeUserProfileRepository implements UserProfileRepository {
     setProfile(uid, UserProfile(displayName: profile.displayName));
   }
 
+  @override
+  Future<void> markTutorialSeen(String uid) async {
+    final profile = _profiles[uid];
+    if (profile == null) return;
+    setProfile(uid, profile.copyWith(tutorialSeen: true));
+  }
+
   void dispose() => _controller.close();
 }

@@ -46,4 +46,7 @@ abstract interface class UserProfileRepository {
 
   /// Cria `users/{uid}` no Cadastro e na 03b, com o aceite.
   Future<void> createProfile(String uid, NewUserProfile profile);
+
+  /// Grava `tutorialSeen: true` ("Começar" no fim do tutorial).
+  Future<void> markTutorialSeen(String uid);
 }

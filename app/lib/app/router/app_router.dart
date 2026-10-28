@@ -11,6 +11,7 @@ import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/sign_up_page.dart';
 import '../../features/auth/presentation/verify_email_page.dart';
 import '../../features/legal/presentation/legal_document_page.dart';
+import '../../features/tutorial/presentation/tutorial_page.dart';
 import '../../features/splash/application/splash_providers.dart';
 import '../../features/splash/presentation/splash_page.dart';
 import '../shell/nexo_shell.dart';
@@ -88,12 +89,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       GoRoute(
         path: AppRoutes.welcome,
-        pageBuilder: (context, state) => _fadePage(
-          context,
-          state,
-          const UnderConstructionPage(title: 'Boas-vindas', block: 'tutorial'),
-          long: true,
-        ),
+        pageBuilder: (context, state) =>
+            _fadePage(context, state, const TutorialPage(), long: true),
       ),
       StatefulShellRoute.indexedStack(
         // Saída da splash com sessão: esmaece até o Início.

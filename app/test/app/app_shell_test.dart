@@ -94,6 +94,6 @@ void main() {
 
     profiles.setProfile(user.uid, const UserProfile(displayName: 'Ana'));
     await tester.pumpAndSettle();
-    expect(find.text('Boas-vindas'), findsOneWidget);
+    expect(find.text('Objetivo e plano'), findsOneWidget);
   });
 }
