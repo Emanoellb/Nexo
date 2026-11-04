@@ -331,12 +331,13 @@ O Flutter e o design estão pausados até o fim da configuração do Firebase (d
 Painel aberto pelo sino no topo das abas, com os avisos dos últimos 30 dias. O design é da sessão de prototipação; os itens abaixo ficam para quando o app ligar o Firestore.
 
 1. **Regras (sessão das regras):** coleção nova `users/{uid}/notifications`, só do dono com e-mail verificado.
-   - Contrato a definir. Proposta: `type` (`dueSoon`, `overdue`, `dailyGoal`, `achievement`), o item ligado (`taskId`, `planId` + `day` ou `achievementId`), `createdAt` (servidor), `readAt` (servidor ou null) e o campo de expiração do TTL.
+   - Contrato a definir. Proposta: `type` (`dueSoon`, `overdue`, `dailyGoal`, `achievement`), o item ligado (`taskId`, `planId` + `day` ou `achievementId`), `createdAt` (servidor) e `readAt` (servidor ou null).
+   - **Sem campo de expiração próprio** (decisão do usuário de 04/11/2026: "opção a, createdAt + 30 dias"). O TTL usa o próprio `createdAt` com deslocamento de 30 dias. Por isso as regras devem exigir `createdAt` **obrigatório e igual a `request.time`** (data/hora do servidor) no create, e imutável no update: documento sem esse campo, ou com outro tipo, nunca expira.
    - No update, só `readAt` muda. Testes no `firestore_tests/` e índice por `createdAt` decrescente.
 2. **Quem grava:** o app, sem Cloud Function. O aviso entra no histórico quando o app detecta o evento, ou seja, quando é aberto; a notificação local continua saindo na hora certa. Id fixo por evento (ex.: tarefa + tipo) para não duplicar.
 3. **Leitura:** um ícone no painel marca todos os avisos como lidos. Abrir o painel não marca nada. Ainda falta decidir se tocar num aviso o marca como lido.
 4. **Excluir conta (item 12 da lista do nexo-flutter):** incluir `notifications` na limpeza, e nas regras liberar o delete com `userDeleting()` ou sempre para o dono.
-5. **Guarda de 30 dias:** apagar sozinho pelo TTL do Firestore (`firebase-setup.md` §11, A13).
+5. **Guarda de 30 dias:** apagar sozinho pelo TTL do Firestore (`firebase-setup.md` §11, A13–A15). Política criada pelo usuário no console: collection group `notifications`, campo `createdAt`, deslocamento de 30 dias. O TTL apaga com atraso (não no minuto exato): o app filtra os avisos com mais de 30 dias ao exibir [NC: prazo de remoção do TTL].
 6. **LGPD:** nova categoria no inventário e na Política (`docs/legal/pendencias.md`, B13).
 
 **Futuro (evolução do app):** levar o cálculo de pontos para funções no servidor (decisão do usuário de 24/10).
