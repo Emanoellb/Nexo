@@ -7,8 +7,8 @@ import '../../legal/data/legal_documents_repository.dart';
 import '../domain/auth_failure.dart';
 import '../domain/auth_rules.dart';
 import '../domain/auth_user.dart';
-import 'auth_messages.dart';
 import 'auth_providers.dart';
+import 'entry_alerts.dart';
 import 'login_controller.dart';
 import 'profile_form.dart';
 
@@ -60,28 +60,30 @@ class GoogleFirstAccessState {
 /// Estado da tela 03b: data de nascimento (16+) e aceite no primeiro login
 /// Google. A conta do Auth já existe; quem tem menos de 16 anos tem a conta
 /// apagada ao tocar em Continuar (firestore-rules.md §7, item 4).
-class GoogleFirstAccessController extends Notifier<GoogleFirstAccessState> {
-  final _alertTimer = AlertTimer();
-
+class GoogleFirstAccessController extends Notifier<GoogleFirstAccessState>
+    with EntryAlerts<GoogleFirstAccessState, GoogleFirstAccessAlert> {
   @override
   GoogleFirstAccessState build() {
-    ref.onDispose(_alertTimer.cancel);
+    ref.onDispose(disposeAlerts);
     return GoogleFirstAccessState(
       name: ref.read(authRepositoryProvider).currentUser?.displayName ?? '',
     );
   }
 
-  /// Tira o alerta depois de 5 s, se ainda for o mesmo (decisão do usuário,
-  /// 27/10/2026).
-  void _expireAlert() {
-    final alert = state.alert;
-    if (alert == null) return;
-    _alertTimer.start(() {
-      if (ref.mounted && state.alert == alert) {
-        state = state.copyWith(alert: () => null);
-      }
-    });
-  }
+  @override
+  GoogleFirstAccessAlert? alertOf(GoogleFirstAccessState state) => state.alert;
+
+  @override
+  GoogleFirstAccessState withAlert(
+    GoogleFirstAccessState state,
+    GoogleFirstAccessAlert? alert,
+  ) => state.copyWith(alert: () => alert);
+
+  /// Voltar e cancelar ficam bloqueados enquanto o perfil é gravado ou a
+  /// conta é apagada (achado [1] da revisão, 04/11/2026): apagar a conta no
+  /// meio da gravação deixaria `users/{uid}` órfão, com dado pessoal que as
+  /// regras não deixam apagar.
+  bool get canLeave => !state.submitting && !state.leaving;
 
   LocalDate get _today => LocalDate.fromDateTime(ref.read(clockProvider)());
 
@@ -164,21 +166,22 @@ class GoogleFirstAccessController extends Notifier<GoogleFirstAccessState> {
       );
       await profiles.createProfile(auth.currentUser!.uid, profile);
       // O roteador segue para o tutorial assim que o perfil existe.
-    } on AuthFailure catch (failure) {
+    } catch (error, stack) {
+      final code = failureCodeOf(error, stack);
       if (!ref.mounted) return;
-      state = state.copyWith(
-        submitting: false,
-        alert: () => failure.code == AuthFailureCode.network
+      state = state.copyWith(submitting: false);
+      showAlert(
+        code == AuthFailureCode.network
             ? GoogleFirstAccessAlert.offline
             : GoogleFirstAccessAlert.generic,
       );
-      _expireAlert();
     }
   }
 
-  /// Voltar: sem perfil, a conta do Auth não serve para nada.
+  /// Voltar: sem perfil, a conta do Auth não serve para nada. Ignorado
+  /// enquanto o perfil é gravado ([canLeave]).
   Future<void> cancel() async {
-    if (state.leaving) return;
+    if (!canLeave) return;
     await _deleteAccount();
   }
 
@@ -187,8 +190,9 @@ class GoogleFirstAccessController extends Notifier<GoogleFirstAccessState> {
     state = state.copyWith(leaving: true, alert: () => null);
     try {
       await auth.deleteCurrentUser();
-    } on AuthFailure {
+    } catch (error, stack) {
       // Sem conseguir apagar, ao menos encerra a sessão.
+      failureCodeOf(error, stack);
       await auth.signOut();
     }
   }

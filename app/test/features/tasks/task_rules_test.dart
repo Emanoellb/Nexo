@@ -9,6 +9,7 @@ void main() {
         DeliveryStatus.awaitingGrade,
       );
       expect(DeliveryStatus.fromValue(null), isNull);
+      expect(DeliveryStatus.fromValue('valorQueNaoExiste'), isNull);
       expect(DeliveryStatus.delivered.label, 'Entregue');
     });
 

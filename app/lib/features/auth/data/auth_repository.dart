@@ -39,7 +39,8 @@ abstract interface class AuthRepository {
   Future<void> signOut();
 }
 
-/// Documento `users/{uid}`.
+/// Documento `users/{uid}`. Os métodos lançam `DataFailure`
+/// (core/data/data_failure.dart) nos erros de leitura ou gravação.
 abstract interface class UserProfileRepository {
   /// `null` enquanto o documento não existe (ex.: primeiro login Google).
   Stream<UserProfile?> watchProfile(String uid);

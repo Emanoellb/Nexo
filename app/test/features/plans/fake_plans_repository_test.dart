@@ -121,6 +121,29 @@ void main() {
     expect((await repo.watchDays(plan.id).first).single.isFinalized, isFalse);
   });
 
+  test('desfazer o dia também respeita a janela de 7 dias', () async {
+    var now = _now;
+    final repo = FakePlansRepository(clock: () => now);
+    addTearDown(repo.dispose);
+    final plan = await repo.createPlan(
+      Plan(
+        id: '',
+        name: 'Concurso Banco Horizonte',
+        startDate: _today.addDays(-20),
+        endDate: _today.addDays(100),
+        frequency: const DailyFrequency(),
+        dailyGoalMinutes: 90,
+      ),
+    );
+    final day = _today.addDays(-6);
+    await repo.finalizeDay(plan.id, day);
+
+    // Dois dias depois, o dia saiu da janela.
+    now = _now.add(const Duration(days: 2));
+    await expectLater(repo.undoFinalizeDay(plan.id, day), throwsStateError);
+    expect((await repo.watchDays(plan.id).first).single.isFinalized, isTrue);
+  });
+
   test('a lista avisa quem escuta quando um plano muda', () async {
     final (repo, plan) = await _withPlan();
     final emitted = <String>[];

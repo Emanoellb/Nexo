@@ -92,6 +92,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       title: 'Conta não criada',
       message: AuthMessages.underage,
     ),
+    // O Cadastro criou a conta, mas não gravou o perfil e a desfez.
+    LoginAlert.signUpFailed => const NexoAlert(
+      tone: NexoAlertTone.error,
+      title: 'Não foi possível criar sua conta',
+      message: 'Confira sua conexão e faça o cadastro de novo.',
+    ),
   };
 
   @override

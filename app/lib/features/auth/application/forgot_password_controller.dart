@@ -2,9 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/auth_failure.dart';
-import '../domain/auth_rules.dart';
 import 'auth_messages.dart';
 import 'auth_providers.dart';
+import 'entry_alerts.dart';
+import 'profile_form.dart';
 
 enum ForgotPasswordAlert { offline, tooManyRequests, generic }
 
@@ -51,45 +52,34 @@ class ForgotPasswordState {
 
 /// Estado da tela 04 Esqueci minha senha (spec auth-redefinicao-senha.md §7).
 /// A mensagem de sucesso é neutra: não diz se a conta existe.
-class ForgotPasswordController extends Notifier<ForgotPasswordState> {
+class ForgotPasswordController extends Notifier<ForgotPasswordState>
+    with EntryAlerts<ForgotPasswordState, ForgotPasswordAlert> {
   late final Countdown _resend;
-  late final Countdown _lock;
-  final _alertTimer = AlertTimer();
 
   @override
   ForgotPasswordState build() {
     _resend = Countdown((s) {
       if (ref.mounted) state = state.copyWith(resendIn: s);
     });
-    _lock = Countdown((s) {
-      if (!ref.mounted) return;
-      // Fim do bloqueio: o "Muitas tentativas" sai junto.
-      state = state.copyWith(
-        lockedFor: s,
-        alert: s <= 0 && state.alert == ForgotPasswordAlert.tooManyRequests
-            ? () => null
-            : null,
-      );
-    });
     ref.onDispose(() {
       _resend.cancel();
-      _lock.cancel();
-      _alertTimer.cancel();
+      disposeAlerts();
     });
     return const ForgotPasswordState();
   }
 
-  /// Tira o alerta depois de 5 s, se ainda for o mesmo (decisão do usuário,
-  /// 27/10/2026).
-  void _expireAlert() {
-    final alert = state.alert;
-    if (alert == null) return;
-    _alertTimer.start(() {
-      if (ref.mounted && state.alert == alert) {
-        state = state.copyWith(alert: () => null);
-      }
-    });
-  }
+  @override
+  ForgotPasswordAlert? alertOf(ForgotPasswordState state) => state.alert;
+
+  @override
+  ForgotPasswordState withAlert(
+    ForgotPasswordState state,
+    ForgotPasswordAlert? alert,
+  ) => state.copyWith(alert: () => alert);
+
+  @override
+  ForgotPasswordState withLock(ForgotPasswordState state, int seconds) =>
+      state.copyWith(lockedFor: seconds);
 
   /// Editar tira o erro do campo e o erro genérico.
   void emailChanged() {
@@ -104,17 +94,17 @@ class ForgotPasswordController extends Notifier<ForgotPasswordState> {
   /// Envia o link. Devolve `true` quando enviou.
   Future<bool> send(String email) async {
     if (state.sending || state.lockedFor > 0) return false;
-    final trimmed = email.trim();
-    final error = trimmed.isEmpty
-        ? AuthMessages.resetEmailEmpty
-        : !AuthRules.isValidEmail(trimmed)
-        ? AuthMessages.resetEmailInvalid
-        : null;
+    final error = ProfileForm.emailError(
+      email,
+      empty: AuthMessages.resetEmailEmpty,
+      invalid: AuthMessages.resetEmailInvalid,
+    );
     if (error != null) {
       state = state.copyWith(emailError: () => error, alert: () => null);
       return false;
     }
 
+    final trimmed = email.trim();
     final auth = ref.read(authRepositoryProvider);
     state = state.copyWith(sending: true, alert: () => null);
     try {
@@ -123,34 +113,21 @@ class ForgotPasswordController extends Notifier<ForgotPasswordState> {
       state = state.copyWith(sending: false, sentTo: trimmed);
       _resend.start(resendCooldownSeconds);
       return true;
-    } on AuthFailure catch (failure) {
+    } catch (error, stack) {
+      final code = failureCodeOf(error, stack);
       if (!ref.mounted) return false;
-      switch (failure.code) {
+      state = state.copyWith(sending: false);
+      switch (code) {
         case AuthFailureCode.invalidEmail:
           state = state.copyWith(
-            sending: false,
             emailError: () => AuthMessages.resetEmailInvalid,
           );
         case AuthFailureCode.network:
-          state = state.copyWith(
-            sending: false,
-            alert: () => ForgotPasswordAlert.offline,
-          );
-          _expireAlert();
+          showAlert(ForgotPasswordAlert.offline);
         case AuthFailureCode.tooManyRequests:
-          state = state.copyWith(
-            sending: false,
-            alert: () => ForgotPasswordAlert.tooManyRequests,
-          );
-          // Fica os 60 s do bloqueio, não os 5 s.
-          _alertTimer.cancel();
-          _lock.start(tooManyRequestsLockSeconds);
+          startLock(ForgotPasswordAlert.tooManyRequests);
         default:
-          state = state.copyWith(
-            sending: false,
-            alert: () => ForgotPasswordAlert.generic,
-          );
-          _expireAlert();
+          showAlert(ForgotPasswordAlert.generic);
       }
       return false;
     }

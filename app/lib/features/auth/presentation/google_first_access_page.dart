@@ -87,7 +87,8 @@ class _GoogleFirstAccessPageState extends ConsumerState<GoogleFirstAccessPage> {
         if (!didPop) controller.cancel();
       },
       child: AuthScaffold(
-        onBack: controller.cancel,
+        // Sem voltar enquanto o perfil é gravado (achado [1]).
+        onBack: controller.canLeave ? controller.cancel : null,
         children: [
           const AuthHeader(
             title: 'Falta pouco',

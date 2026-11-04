@@ -2,9 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/auth_failure.dart';
-import '../domain/auth_rules.dart';
 import 'auth_messages.dart';
 import 'auth_providers.dart';
+import 'entry_alerts.dart';
+import 'profile_form.dart';
 
 /// Avisos da tela 02 (Alert no topo do formulário). Ficam 5 s na tela
 /// ([alertDuration]); "Muitas tentativas" fica os 60 s do bloqueio, com a
@@ -18,6 +19,9 @@ enum LoginAlert {
 
   /// A 03b recusou a idade e apagou a conta Google.
   underage,
+
+  /// O Cadastro criou a conta, mas não conseguiu gravar o perfil.
+  signUpFailed,
 }
 
 @immutable
@@ -63,42 +67,29 @@ class LoginState {
 
 /// Estado da tela 02 Login. Valida ao tocar em Entrar (como no .pen); a
 /// navegação depois do login fica com o redirecionamento do roteador.
-class LoginController extends Notifier<LoginState> {
-  late final Countdown _lock;
-  final _alertTimer = AlertTimer();
-
+class LoginController extends Notifier<LoginState>
+    with EntryAlerts<LoginState, LoginAlert> {
   @override
   LoginState build() {
-    _lock = Countdown((remaining) {
-      if (!ref.mounted) return;
-      // Fim do bloqueio: Entrar volta e o alerta sai.
-      state = state.copyWith(
-        lockedFor: remaining,
-        alert: remaining <= 0 && state.alert == LoginAlert.tooManyRequests
-            ? () => null
-            : null,
-      );
-    });
-    ref.onDispose(() {
-      _lock.cancel();
-      _alertTimer.cancel();
-    });
+    ref.onDispose(disposeAlerts);
     return const LoginState();
   }
 
-  /// Mostra [alert] e o tira depois de 5 s, se ainda for o mesmo.
-  void _showAlert(LoginAlert alert) {
-    state = state.copyWith(alert: () => alert);
-    _alertTimer.start(() {
-      if (ref.mounted && state.alert == alert) {
-        state = state.copyWith(alert: () => null);
-      }
-    });
-  }
+  @override
+  LoginAlert? alertOf(LoginState state) => state.alert;
+
+  @override
+  LoginState withAlert(LoginState state, LoginAlert? alert) =>
+      state.copyWith(alert: () => alert);
+
+  @override
+  LoginState withLock(LoginState state, int seconds) =>
+      state.copyWith(lockedFor: seconds);
 
   /// Aviso vindo de outra tela (ex.: a 03b apagou a conta).
-  void showEntryNotice(EntryNoticeKind notice) => _showAlert(switch (notice) {
+  void showEntryNotice(EntryNoticeKind notice) => showAlert(switch (notice) {
     EntryNoticeKind.underage => LoginAlert.underage,
+    EntryNoticeKind.signUpFailed => LoginAlert.signUpFailed,
   });
 
   /// Editar um campo tira o erro dele e os alertas que pedem correção.
@@ -117,12 +108,7 @@ class LoginController extends Notifier<LoginState> {
   Future<void> submit({required String email, required String password}) async {
     if (state.busy || state.locked) return;
 
-    final trimmed = email.trim();
-    final emailError = trimmed.isEmpty
-        ? AuthMessages.emailEmpty
-        : !AuthRules.isValidEmail(trimmed)
-        ? AuthMessages.emailInvalid
-        : null;
+    final emailError = ProfileForm.emailError(email);
     final passwordError = password.isEmpty
         ? AuthMessages.passwordEmptyLogin
         : null;
@@ -138,13 +124,15 @@ class LoginController extends Notifier<LoginState> {
     final auth = ref.read(authRepositoryProvider);
     state = state.copyWith(submitting: true, alert: () => null);
     try {
-      await auth.signInWithEmail(email: trimmed, password: password);
+      await auth.signInWithEmail(email: email.trim(), password: password);
       if (ref.mounted) state = state.copyWith(submitting: false);
-    } on AuthFailure catch (failure) {
-      _fail(failure.code);
+    } catch (error, stack) {
+      _fail(failureCodeOf(error, stack));
     }
   }
 
+  /// O bloqueio de "Muitas tentativas" vale só para e-mail e senha: o Google
+  /// é outro caminho de entrada (decisão do usuário, 04/11/2026).
   Future<void> signInWithGoogle() async {
     if (state.busy) return;
     final auth = ref.read(authRepositoryProvider);
@@ -152,8 +140,8 @@ class LoginController extends Notifier<LoginState> {
     try {
       await auth.signInWithGoogle();
       if (ref.mounted) state = state.copyWith(googleLoading: false);
-    } on AuthFailure catch (failure) {
-      _fail(failure.code);
+    } catch (error, stack) {
+      _fail(failureCodeOf(error, stack));
     }
   }
 
@@ -161,12 +149,10 @@ class LoginController extends Notifier<LoginState> {
     if (!ref.mounted) return;
     state = state.copyWith(submitting: false, googleLoading: false);
     if (code == AuthFailureCode.tooManyRequests) {
-      _alertTimer.cancel();
-      state = state.copyWith(alert: () => LoginAlert.tooManyRequests);
-      _lock.start(tooManyRequestsLockSeconds);
+      startLock(LoginAlert.tooManyRequests);
       return;
     }
-    _showAlert(switch (code) {
+    showAlert(switch (code) {
       AuthFailureCode.invalidCredential => LoginAlert.invalidCredential,
       AuthFailureCode.network => LoginAlert.offline,
       _ => LoginAlert.generic,
@@ -184,6 +170,10 @@ final loginControllerProvider =
 enum EntryNoticeKind {
   /// A 03b recusou a idade e apagou a conta Google.
   underage,
+
+  /// O Cadastro criou a conta no Auth, mas o perfil não foi gravado; a conta
+  /// foi desfeita (achado [2] da revisão, 04/11/2026).
+  signUpFailed,
 }
 
 class EntryNotice extends Notifier<EntryNoticeKind?> {

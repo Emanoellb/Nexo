@@ -14,9 +14,9 @@ enum DeliveryStatus {
   /// Texto da interface.
   final String label;
 
-  static DeliveryStatus? fromValue(String? value) => value == null
-      ? null
-      : DeliveryStatus.values.firstWhere((s) => s.value == value);
+  /// `null` sem valor ou com um valor desconhecido (achado [15]).
+  static DeliveryStatus? fromValue(String? value) =>
+      DeliveryStatus.values.where((s) => s.value == value).firstOrNull;
 
   /// Situações possíveis de uma tarefa pendente.
   bool get isPending => this == notStarted || this == inProgress;

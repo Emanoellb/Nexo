@@ -22,6 +22,7 @@ class LegalDocumentPage extends ConsumerWidget {
     final c = context.nexoColors;
     final spacing = context.spacing;
     final textTheme = Theme.of(context).textTheme;
+    final versions = ref.watch(currentLegalVersionsProvider);
     final title = switch (document) {
       LegalDocument.terms => 'Termos de Uso',
       LegalDocument.privacy => 'Política de Privacidade',
@@ -30,35 +31,34 @@ class LegalDocumentPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: c.surface,
       appBar: NexoTopAppBar(title: title, onBack: () => context.pop()),
-      body: FutureBuilder(
-        future: ref.read(legalDocumentsRepositoryProvider).currentVersions(),
-        builder: (context, snapshot) {
-          final versions = snapshot.data;
-          final version = versions == null
-              ? null
-              : switch (document) {
-                  LegalDocument.terms => versions.termsVersion,
-                  LegalDocument.privacy => versions.privacyVersion,
-                };
-          return ListView(
-            padding: EdgeInsets.all(spacing.lg),
-            children: [
-              if (version != null)
-                Text(
-                  'Versão vigente: $version',
-                  style: textTheme.labelMedium!.copyWith(
-                    color: c.onSurfaceVariant,
-                  ),
-                ),
-              SizedBox(height: spacing.md),
-              Text(
-                'O texto completo aparece aqui quando o documento for '
-                'publicado.',
-                style: textTheme.bodyLarge!.copyWith(color: c.onSurface),
-              ),
-            ],
-          );
-        },
+      body: ListView(
+        padding: EdgeInsets.all(spacing.lg),
+        children: [
+          // A leitura fica no provider, fora do build (achado [12]).
+          switch (versions) {
+            AsyncData(:final value) => Text(
+              'Versão vigente: ${switch (document) {
+                LegalDocument.terms => value.termsVersion,
+                LegalDocument.privacy => value.privacyVersion,
+              }}',
+              style: textTheme.labelMedium!.copyWith(color: c.onSurfaceVariant),
+            ),
+            AsyncError() => NexoAlert(
+              tone: NexoAlertTone.error,
+              message:
+                  'Não conseguimos carregar a versão agora. Tente de novo em '
+                  'instantes.',
+              actionLabel: 'Tentar de novo',
+              onAction: () => ref.invalidate(currentLegalVersionsProvider),
+            ),
+            _ => const SizedBox.shrink(),
+          },
+          SizedBox(height: spacing.md),
+          Text(
+            'O texto completo aparece aqui quando o documento for publicado.',
+            style: textTheme.bodyLarge!.copyWith(color: c.onSurface),
+          ),
+        ],
       ),
     );
   }

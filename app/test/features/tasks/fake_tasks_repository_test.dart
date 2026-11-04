@@ -95,5 +95,19 @@ void main() {
         expect(await repo.setCompleted(task.id, false), 0);
       },
     );
+
+    test('apagar tarefa concluída desconta 1 ponto; pendente, 0', () async {
+      final feita = await repo.createTask(
+        NexoTask(id: '', title: 'Lista 3', dueAt: _now),
+      );
+      final pendente = await repo.createTask(
+        NexoTask(id: '', title: 'Resumo', dueAt: _now),
+      );
+      await repo.setCompleted(feita.id, true);
+
+      expect(await repo.deleteTask(feita.id), -1);
+      expect(await repo.deleteTask(pendente.id), 0);
+      expect(await repo.watchTasks().first, isEmpty);
+    });
   });
 }

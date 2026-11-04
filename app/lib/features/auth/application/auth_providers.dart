@@ -42,7 +42,10 @@ final entryStatusProvider = Provider<EntryStatus>((ref) {
   return resolveEntryStatus(
     authLoading: auth.isLoading && !auth.hasValue,
     user: auth.value,
-    profileLoading: profile.isLoading && !profile.hasValue,
+    // Recarregando conta como carregando, mesmo com valor anterior: na troca
+    // de usuário o Riverpod mantém o perfil antigo (`null`), que seria lido
+    // como "sem perfil" e levaria à 03b (achado [3] da revisão, 04/11/2026).
+    profileLoading: profile.isLoading,
     profile: profile.value,
   );
 });

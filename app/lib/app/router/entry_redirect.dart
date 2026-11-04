@@ -5,7 +5,8 @@ import 'routes.dart';
 /// ir, ou `null` para ficar onde está.
 ///
 /// [splashFinished]: enquanto a animação da splash não termina, o app fica
-/// nela, qualquer que seja o status.
+/// nela, qualquer que seja o status. Depois dela, `loading` mantém a tela
+/// atual.
 String? entryRedirect(
   EntryStatus status,
   String location, {
@@ -18,7 +19,9 @@ String? entryRedirect(
 
   switch (status) {
     case EntryStatus.loading:
-      return goTo(AppRoutes.splash);
+      // A splash já terminou (ex.: perfil recarregando no login): fica onde
+      // está até o status se resolver, sem repetir a splash.
+      return null;
     case EntryStatus.signedOut:
       return AppRoutes.signedOutLocations.contains(location)
           ? null

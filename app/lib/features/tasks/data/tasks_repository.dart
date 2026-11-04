@@ -14,7 +14,9 @@ abstract interface class TasksRepository {
   /// gravar. Devolve a variação de pontos (+1, −1 ou 0) para `users.points`.
   Future<int> setCompleted(String taskId, bool completed);
 
-  Future<void> deleteTask(String taskId);
+  /// Apaga a tarefa. Devolve a variação de pontos: −1 se ela estava
+  /// concluída, como ao reabrir (decisão do usuário, 04/11/2026); senão 0.
+  Future<int> deleteTask(String taskId);
 }
 
 class FakeTasksRepository implements TasksRepository {
@@ -68,7 +70,12 @@ class FakeTasksRepository implements TasksRepository {
   }
 
   @override
-  Future<void> deleteTask(String taskId) async => _tasks.remove(taskId);
+  Future<int> deleteTask(String taskId) async {
+    final task = _tasks.get(taskId);
+    if (task == null) return 0;
+    _tasks.remove(taskId);
+    return taskPointsDelta(wasCompleted: task.completed, isCompleted: false);
+  }
 
   void dispose() => _tasks.dispose();
 }

@@ -38,10 +38,15 @@ abstract final class ProfileForm {
     return null;
   }
 
-  static String? emailError(String value) {
+  /// Erro do e-mail. A tela 04 troca os textos pelos da spec dela.
+  static String? emailError(
+    String value, {
+    String empty = AuthMessages.emailEmpty,
+    String invalid = AuthMessages.emailInvalid,
+  }) {
     final trimmed = value.trim();
-    if (trimmed.isEmpty) return AuthMessages.emailEmpty;
-    if (!AuthRules.isValidEmail(trimmed)) return AuthMessages.emailInvalid;
+    if (trimmed.isEmpty) return empty;
+    if (!AuthRules.isValidEmail(trimmed)) return invalid;
     return null;
   }
 

@@ -6,8 +6,10 @@ import '../../../core/domain/local_date.dart';
 import '../../legal/data/legal_documents_repository.dart';
 import '../domain/auth_failure.dart';
 import '../domain/auth_user.dart';
-import 'auth_messages.dart';
+import '../data/auth_repository.dart';
 import 'auth_providers.dart';
+import 'entry_alerts.dart';
+import 'login_controller.dart';
 import 'profile_form.dart';
 
 enum SignUpField { name, birthDate, email, password }
@@ -66,27 +68,24 @@ class SignUpState {
 
 /// Estado da tela 03 Cadastro. O botão fica desabilitado até tudo estar
 /// válido e o aceite marcado; os erros aparecem quando o campo perde o foco.
-class SignUpController extends Notifier<SignUpState> {
-  late final Countdown _lock;
-  final _alertTimer = AlertTimer();
-
+class SignUpController extends Notifier<SignUpState>
+    with EntryAlerts<SignUpState, SignUpAlert> {
   @override
   SignUpState build() {
-    _lock = Countdown((remaining) {
-      if (!ref.mounted) return;
-      state = state.copyWith(
-        lockedFor: remaining,
-        alert: remaining <= 0 && state.alert == SignUpAlert.tooManyRequests
-            ? () => null
-            : null,
-      );
-    });
-    ref.onDispose(() {
-      _lock.cancel();
-      _alertTimer.cancel();
-    });
+    ref.onDispose(disposeAlerts);
     return const SignUpState();
   }
+
+  @override
+  SignUpAlert? alertOf(SignUpState state) => state.alert;
+
+  @override
+  SignUpState withAlert(SignUpState state, SignUpAlert? alert) =>
+      state.copyWith(alert: () => alert);
+
+  @override
+  SignUpState withLock(SignUpState state, int seconds) =>
+      state.copyWith(lockedFor: seconds);
 
   LocalDate get _today => LocalDate.fromDateTime(ref.read(clockProvider)());
 
@@ -125,8 +124,10 @@ class SignUpController extends Notifier<SignUpState> {
           ? 'Preencha os campos para criar a conta.'
           : 'Preencha os campos e marque o aceite para criar a conta.';
     }
+    // Tudo preenchido, mas algum campo inválido ainda sem foco (sem erro à
+    // vista): sem falar em "campos marcados" (achado [11]).
     return state.accepted
-        ? 'Corrija os campos marcados.'
+        ? 'Confira os campos para criar a conta.'
         : 'Marque o aceite para criar a conta.';
   }
 
@@ -159,12 +160,14 @@ class SignUpController extends Notifier<SignUpState> {
     final auth = ref.read(authRepositoryProvider);
     final profiles = ref.read(userProfileRepositoryProvider);
     final legal = ref.read(legalDocumentsRepositoryProvider);
+    final notice = ref.read(entryNoticeProvider.notifier);
     final timeZone = ref.read(deviceTimeZoneProvider);
     final today = _today;
     state = state.copyWith(submitting: true, alert: () => null);
 
+    final NewUserProfile profile;
     try {
-      final profile = NewUserProfile(
+      profile = NewUserProfile(
         displayName: state.valueOf(SignUpField.name),
         birthDate: ProfileForm.parseBirthDate(
           state.valueOf(SignUpField.birthDate),
@@ -174,58 +177,86 @@ class SignUpController extends Notifier<SignUpState> {
         consents: await legal.currentVersions(),
         today: today,
       );
+      // Cria a conta, entra e envia a verificação (um envio só, achado [5]).
+      // O roteador leva à tela 05 assim que a conta existe.
       await auth.createAccount(
         email: state.valueOf(SignUpField.email).trim(),
         password: state.valueOf(SignUpField.password),
       );
-      await profiles.createProfile(auth.currentUser!.uid, profile);
-      try {
-        await auth.sendEmailVerification();
-      } on AuthFailure {
-        // A tela 05 tem "Reenviar e-mail".
-      }
-      // O roteador leva à tela 05 assim que a conta existe.
-      if (ref.mounted) state = state.copyWith(submitting: false);
-    } on AuthFailure catch (failure) {
-      _fail(failure.code);
+    } catch (error, stack) {
+      _fail(failureCodeOf(error, stack));
+      return;
     }
+
+    final uid = auth.currentUser!.uid;
+    final failure = await _createProfile(profiles, uid, profile);
+    if (failure != null) {
+      // Conta no Auth sem perfil: desfaz a conta (o login é recente), para a
+      // pessoa refazer o Cadastro (achado [2]). Se nem isso der, a sessão
+      // sai; no próximo login, a 03b pede os dados de novo.
+      // O aviso vai para o Login, aonde o roteador leva; se o Cadastro ainda
+      // estiver na tela, fica nele, com os dados digitados.
+      notice.show(EntryNoticeKind.signUpFailed);
+      try {
+        await auth.deleteCurrentUser();
+      } catch (error, stack) {
+        failureCodeOf(error, stack);
+        await auth.signOut();
+      }
+      if (ref.mounted) {
+        notice.clear();
+        _fail(failure);
+      }
+      return;
+    }
+    if (ref.mounted) state = state.copyWith(submitting: false);
   }
 
-  /// "Continuar com o Google": sem perfil, o roteador leva à 03b.
+  /// Grava `users/{uid}`, com uma nova tentativa. Devolve o código da falha,
+  /// ou `null` se gravou.
+  Future<AuthFailureCode?> _createProfile(
+    UserProfileRepository profiles,
+    String uid,
+    NewUserProfile profile,
+  ) async {
+    AuthFailureCode? failure;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        await profiles.createProfile(uid, profile);
+        return null;
+      } catch (error, stack) {
+        failure = failureCodeOf(error, stack);
+      }
+    }
+    return failure;
+  }
+
+  /// "Continuar com o Google": sem perfil, o roteador leva à 03b. O
+  /// bloqueio de "Muitas tentativas" não vale para o Google (decisão do
+  /// usuário, 04/11/2026).
   Future<void> signInWithGoogle() async {
-    if (state.busy || state.lockedFor > 0) return;
+    if (state.busy) return;
     final auth = ref.read(authRepositoryProvider);
     state = state.copyWith(googleLoading: true, alert: () => null);
     try {
       await auth.signInWithGoogle();
       if (ref.mounted) state = state.copyWith(googleLoading: false);
-    } on AuthFailure catch (failure) {
-      _fail(failure.code);
+    } catch (error, stack) {
+      _fail(failureCodeOf(error, stack));
     }
   }
 
   void _fail(AuthFailureCode code) {
     if (!ref.mounted) return;
-    final alert = switch (code) {
-      AuthFailureCode.emailAlreadyInUse => SignUpAlert.emailInUse,
-      AuthFailureCode.network => SignUpAlert.offline,
-      AuthFailureCode.tooManyRequests => SignUpAlert.tooManyRequests,
-      _ => SignUpAlert.generic,
-    };
-    state = state.copyWith(
-      submitting: false,
-      googleLoading: false,
-      alert: () => alert,
-    );
-    if (alert == SignUpAlert.tooManyRequests) {
-      _alertTimer.cancel();
-      _lock.start(tooManyRequestsLockSeconds);
+    state = state.copyWith(submitting: false, googleLoading: false);
+    if (code == AuthFailureCode.tooManyRequests) {
+      startLock(SignUpAlert.tooManyRequests);
       return;
     }
-    _alertTimer.start(() {
-      if (ref.mounted && state.alert == alert) {
-        state = state.copyWith(alert: () => null);
-      }
+    showAlert(switch (code) {
+      AuthFailureCode.emailAlreadyInUse => SignUpAlert.emailInUse,
+      AuthFailureCode.network => SignUpAlert.offline,
+      _ => SignUpAlert.generic,
     });
   }
 }

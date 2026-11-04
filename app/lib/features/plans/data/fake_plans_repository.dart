@@ -229,6 +229,11 @@ class FakePlansRepository implements PlansRepository {
 
   @override
   Future<void> undoFinalizeDay(String planId, LocalDate day) async {
+    _requirePlan(planId);
+    // Mesma janela das regras para desfazer (achado [13], 04/11/2026).
+    if (!isWithinEditWindow(day, today: _today)) {
+      throw StateError('Dias só podem ser desfeitos até 7 dias atrás.');
+    }
     final current = _days.get('$planId/${day.toIso()}')?.day;
     if (current == null) return;
     _days.put((planId: planId, day: current.copyWith(clearFinalized: true)));

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/auth_failure.dart';
 import 'auth_messages.dart';
 import 'auth_providers.dart';
+import 'entry_alerts.dart';
 
 enum VerifyEmailAlert { notConfirmedYet, offline, generic }
 
@@ -35,9 +36,9 @@ class VerifyEmailState {
 }
 
 /// Estado da tela 05 Verifique seu e-mail (só contas de e-mail e senha).
-class VerifyEmailController extends Notifier<VerifyEmailState> {
+class VerifyEmailController extends Notifier<VerifyEmailState>
+    with EntryAlerts<VerifyEmailState, VerifyEmailAlert> {
   late final Countdown _resend;
-  final _alertTimer = AlertTimer();
 
   @override
   VerifyEmailState build() {
@@ -46,22 +47,17 @@ class VerifyEmailController extends Notifier<VerifyEmailState> {
     });
     ref.onDispose(() {
       _resend.cancel();
-      _alertTimer.cancel();
+      disposeAlerts();
     });
     return const VerifyEmailState();
   }
 
-  /// Tira o alerta depois de 5 s, se ainda for o mesmo (decisão do usuário,
-  /// 27/10/2026).
-  void _expireAlert() {
-    final alert = state.alert;
-    if (alert == null) return;
-    _alertTimer.start(() {
-      if (ref.mounted && state.alert == alert) {
-        state = state.copyWith(alert: () => null);
-      }
-    });
-  }
+  @override
+  VerifyEmailAlert? alertOf(VerifyEmailState state) => state.alert;
+
+  @override
+  VerifyEmailState withAlert(VerifyEmailState state, VerifyEmailAlert? alert) =>
+      state.copyWith(alert: () => alert);
 
   /// "Já confirmei": reload + token novo. Confirmado, o roteador segue.
   Future<void> confirm() async {
@@ -71,13 +67,10 @@ class VerifyEmailController extends Notifier<VerifyEmailState> {
     try {
       final verified = await auth.refreshEmailVerified();
       if (!ref.mounted) return;
-      state = state.copyWith(
-        checking: false,
-        alert: () => verified ? null : VerifyEmailAlert.notConfirmedYet,
-      );
-      _expireAlert();
-    } on AuthFailure catch (failure) {
-      _fail(failure.code);
+      state = state.copyWith(checking: false);
+      if (!verified) showAlert(VerifyEmailAlert.notConfirmedYet);
+    } catch (error, stack) {
+      _fail(failureCodeOf(error, stack));
     }
   }
 
@@ -92,8 +85,8 @@ class VerifyEmailController extends Notifier<VerifyEmailState> {
       state = state.copyWith(resending: false);
       _resend.start(resendCooldownSeconds);
       return true;
-    } on AuthFailure catch (failure) {
-      _fail(failure.code);
+    } catch (error, stack) {
+      _fail(failureCodeOf(error, stack));
       return false;
     }
   }
@@ -103,14 +96,12 @@ class VerifyEmailController extends Notifier<VerifyEmailState> {
 
   void _fail(AuthFailureCode code) {
     if (!ref.mounted) return;
-    state = state.copyWith(
-      checking: false,
-      resending: false,
-      alert: () => code == AuthFailureCode.network
+    state = state.copyWith(checking: false, resending: false);
+    showAlert(
+      code == AuthFailureCode.network
           ? VerifyEmailAlert.offline
           : VerifyEmailAlert.generic,
     );
-    _expireAlert();
   }
 }
 

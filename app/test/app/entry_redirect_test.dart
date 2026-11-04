@@ -50,12 +50,18 @@ void main() {
   });
 
   group('entryRedirect', () {
-    test('loading leva à Splash e fica nela', () {
+    test('loading: na splash fica nela; depois dela, fica onde está', () {
       expect(
-        entryRedirect(EntryStatus.loading, AppRoutes.home),
+        entryRedirect(
+          EntryStatus.loading,
+          AppRoutes.login,
+          splashFinished: false,
+        ),
         AppRoutes.splash,
       );
       expect(entryRedirect(EntryStatus.loading, AppRoutes.splash), isNull);
+      // Ex.: perfil recarregando no login (achado [3]): sem voltar à splash.
+      expect(entryRedirect(EntryStatus.loading, AppRoutes.login), isNull);
     });
 
     test('sem login: Login, Cadastro e Esqueci a senha ficam; o resto vai ao Login', () {
