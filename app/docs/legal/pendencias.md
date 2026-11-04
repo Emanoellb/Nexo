@@ -65,6 +65,8 @@ Guia de configuração: `docs/backend/firebase-setup.md` (decisões F1–F7, 21/
     - Efeito no design: os botões e fluxos de login Apple saem do MVP (sessão de prototipação).
     - Efeito na spec de redefinição de senha: ela ainda cita a Apple (Email Sources, testes). Revisar com a sessão nexo-reset-senha.
 12. **Projeto Firebase:** criado pelo usuário. Nome `nexo-app-gestao`, **Project ID `nexo-app-gestao-f97bb`** (permanente). Esse ID aparece no remetente dos e-mails enquanto não houver domínio próprio.
+13. **Histórico de notificações:** **decidido em 04/11/2026**, entra no bloco de integração. Os avisos (entrega próxima, tarefa atrasada, meta do dia, conquista) ficam salvos em `users/{uid}/notifications` por **30 dias**, com a marcação de lido. Contrato e regras em `firestore-rules.md` §7.
+    - Efeito nos documentos legais (sessão de dados e legal): incluir a categoria no inventário de dados e na Política, com finalidade, base legal, prazo de 30 dias e exclusão junto com a conta. Hoje a Política só descreve notificações locais.
 
 ## C. Lacunas no design (sessão de prototipação)
 

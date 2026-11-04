@@ -1,6 +1,6 @@
 # Nexo · Security Rules do Cloud Firestore (MVP)
 
-Status: **v0.7 no repositório (branch `fix/regras-plano-excluindo`), ainda não publicada:** `deleting` passa a ser terminal e o plano em exclusão não recebe filhos novos (achado [4] da revisão de código de 04/11/2026). Publicada: **v0.6 em 25/10/2026** (tópicos do plano, cor da disciplina, situação da entrega), com os **3 índices compostos** (seção 4.1), com autorização do usuário ("pode criar e publicar"). Antes: v0.5, publicada em 24/10/2026. Roteiro completo (etapas 1 a 11) decidido pelo usuário em 22 e 24/10/2026. **Deploy em 24/10/2026** no projeto `nexo-app-gestao-f97bb`, com autorização do usuário ("pode publicar"): regras compiladas e liberadas sem erro. · Sessão: segurança do Firestore · 24/10/2026
+Status: **v0.7 publicada em 04/11/2026**, com autorização do usuário ("pode publicar"): `deleting` passa a ser terminal e o plano em exclusão não recebe filhos novos (achado [4] da revisão de código de 04/11/2026). Antes: **v0.6 em 25/10/2026** (tópicos do plano, cor da disciplina, situação da entrega), com os **3 índices compostos** (seção 4.1), com autorização do usuário ("pode criar e publicar"). Antes: v0.5, publicada em 24/10/2026. Roteiro completo (etapas 1 a 11) decidido pelo usuário em 22 e 24/10/2026. **Deploy em 24/10/2026** no projeto `nexo-app-gestao-f97bb`, com autorização do usuário ("pode publicar"): regras compiladas e liberadas sem erro. · Sessão: segurança do Firestore · 24/10/2026
 Base: `docs/backend/firebase-setup.md` §7.2 (esqueleto e mapa), `docs/legal/inventario-dados-mvp.md` e as telas do `nexo.lib.pen` (`ca7IW` Regras e requisitos, `oXRSc` Fluxo do Plano de ação) e do `nexo.app.pen` (fluxo de entrada).
 
 Legenda: **[C]** confirmado na documentação oficial · **[NC]** não confirmado · **[D]** decisão do usuário.
@@ -325,6 +325,19 @@ O Flutter e o design estão pausados até o fim da configuração do Firebase (d
 6. **Disciplina com cor:** definir a paleta fixa de cores (com contraste nos dois temas) e desenhar a tela de criar/editar disciplina (nome, ícone, cor). Hoje o design marca "cor por disciplina" como Future.
 
 **Dados e legal:** o inventário fala em "Tópico (texto livre)" na sessão; agora é um tópico do plano (nome digitado pelo usuário, ligado ou não a uma matéria). O inventário também dizia "cor por disciplina = Future" e "status de entrega = S"; os dois entraram no MVP (25/10). A Política já descreve notificações locais (confirmado pela sessão nexo-dados-legal em 22/10).
+
+**Histórico de notificações (decisão do usuário de 04/11/2026; entra no bloco de integração com o Firebase):**
+
+Painel aberto pelo sino no topo das abas, com os avisos dos últimos 30 dias. O design é da sessão de prototipação; os itens abaixo ficam para quando o app ligar o Firestore.
+
+1. **Regras (sessão das regras):** coleção nova `users/{uid}/notifications`, só do dono com e-mail verificado.
+   - Contrato a definir. Proposta: `type` (`dueSoon`, `overdue`, `dailyGoal`, `achievement`), o item ligado (`taskId`, `planId` + `day` ou `achievementId`), `createdAt` (servidor), `readAt` (servidor ou null) e o campo de expiração do TTL.
+   - No update, só `readAt` muda. Testes no `firestore_tests/` e índice por `createdAt` decrescente.
+2. **Quem grava:** o app, sem Cloud Function. O aviso entra no histórico quando o app detecta o evento, ou seja, quando é aberto; a notificação local continua saindo na hora certa. Id fixo por evento (ex.: tarefa + tipo) para não duplicar.
+3. **Leitura:** um ícone no painel marca todos os avisos como lidos. Abrir o painel não marca nada. Ainda falta decidir se tocar num aviso o marca como lido.
+4. **Excluir conta (item 12 da lista do nexo-flutter):** incluir `notifications` na limpeza, e nas regras liberar o delete com `userDeleting()` ou sempre para o dono.
+5. **Guarda de 30 dias:** apagar sozinho pelo TTL do Firestore (`firebase-setup.md` §11, A13).
+6. **LGPD:** nova categoria no inventário e na Política (`docs/legal/pendencias.md`, B13).
 
 **Futuro (evolução do app):** levar o cálculo de pontos para funções no servidor (decisão do usuário de 24/10).
 

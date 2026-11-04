@@ -502,6 +502,7 @@ Modo de trabalho decidido pelo usuário em 24/10/2026: primeiro termina **toda**
 | A10 | `flutterfire configure` por ambiente: `firebase_options_dev.dart`/`_prod.dart` e `src/dev`/`src/prod/google-services.json`. Removem-se o arquivo único e o `firebase_options.dart` | `app/lib`, `app/android` | §14.4 | Cada build aponta para o seu projeto |
 | A11 | Ponto de entrada por ambiente (`main_dev.dart`/`main_prod.dart` ou `--dart-define`) e comandos de run/build com `--flavor` | `app/lib` | §14.4 | Escolher o projeto em tempo de build |
 | A12 | `.firebaserc` com os aliases `dev`/`prod`. Comandos do AGENTS.md §8 com `--project` explícito (proposta de diff ao usuário) | `app/`, `AGENTS.md` | §14.5 | Deploy das regras sem risco de cair no projeto errado |
+| A13 | Política de TTL de 30 dias na coleção `users/{uid}/notifications` (campo de expiração definido no contrato), configurada no console em cada projeto | console (você) | `firestore-rules.md` §7, histórico de notificações (04/11/2026) | Guarda de 30 dias decidida pelo usuário. O TTL apaga com atraso e cada exclusão conta como uma operação de exclusão [NC] |
 | D1 | Tela 03 Cadastro mostra a regra de senha R5 exatamente | `.pen` | §6.1 | O design precisa bater com a política do Firebase |
 | D2 | Remover do design os botões e fluxos de login Apple | `.pen` | F7 | Conferir se ainda existem: a confirmar com a prototipação |
 
@@ -555,77 +556,8 @@ Um passo por vez, sempre com explicação antes e autorização do usuário.
 
 ---
 
-## 14. Separação dev × prod (decidida em 26/10/2026; em execução)
+## 14. Separação dev × prod (cancelada em 04/11/2026)
 
-Status: **proposta, aguardando as escolhas do usuário** (14.1). Nada foi feito no console ainda.
-
-### 14.1 Decisões pedidas
-
-| # | Decisão | Opções | Recomendação |
-|---|---|---|---|
-| E1 | Papel do projeto atual `nexo-app-gestao-f97bb` | **A.** atual = produção, novo = desenvolvimento · **B.** atual = desenvolvimento, novo = produção | **B** (14.2) |
-| E2 | Nome e Project ID do projeto novo | Livre. O ID é **permanente** e, em produção, aparece no remetente dos e-mails | Em B: um ID curto e legível para produção. O console pode acrescentar um sufixo |
-| E3 | Pacote do app de desenvolvimento | `dev.emanoelbarbosa.nexo.dev` (`applicationIdSuffix ".dev"`) | Obrigatório na prática: o par pacote + SHA-1 de debug não pode existir nos dois projetos [C, P5] |
-| E4 | Backups no projeto de desenvolvimento | Manter ou remover o agendamento diário | Remover: lá só há dados de teste |
-| E5 | Região do projeto novo | `southamerica-east1` | Igual nos dois, para a Política continuar valendo |
-
-### 14.2 Atual como produção (A) × atual como desenvolvimento (B)
-
-| | A. atual = produção | B. atual = desenvolvimento (recomendada) |
-|---|---|---|
-| Produção começa limpa | Não. Tem os dados de teste de hoje, que você teria de apagar no console, e o histórico do app iOS removido | **Sim** |
-| ID que os usuários veem no remetente | `nexo-app-gestao-f97bb`, para sempre (até haver domínio próprio) | **Escolhido agora** |
-| Configuração já feita (Auth, regras v0.6, índices, backups, proteção, conteúdo) | Fica na produção. O projeto novo (dev) recebe uma cópia | Fica no dev. O projeto novo (produção) recebe tudo de novo, com o mesmo roteiro |
-| SHA de debug | Sem conflito: o dev novo usa o pacote `.dev` | Exige uma ordem: apagar o SHA-1 do app `dev.emanoelbarbosa.nexo` no projeto atual **antes** de cadastrar esse pacote na produção [C, P5] |
-| Esforço | Parecido: nos dois casos um projeto novo é configurado inteiro | Parecido, com um passo a mais (SHA) |
-
-### 14.3 Roteiro de console (um passo por vez, com autorização)
-
-Ordem para a opção B. Na opção A, os passos de produção viram passos do dev novo, sem backups, e os passos do projeto atual se resumem a limpar os dados de teste.
-
-**Projeto atual (vira desenvolvimento)**
-1. Registrar o app `dev.emanoelbarbosa.nexo.dev` e cadastrar nele o SHA-1 e o SHA-256 de debug.
-2. Apagar o SHA-1 e o SHA-256 do app antigo `dev.emanoelbarbosa.nexo`, o que também remove o client OAuth [C, P5]. Depois, remover esse app.
-3. Remover o agendamento de backup (E4). A proteção contra exclusão continua ligada.
-4. Mudar o nome de exibição para algo como "Nexo (dev)". O nome muda; o ID não.
-
-**Projeto novo (produção)**
-5. Criar o projeto: nome e ID (E2), **sem Google Analytics**, plano Blaze (mesma conta de faturamento) e alerta de orçamento.
-6. Public-facing name "Nexo" e só a sua conta como Owner.
-7. Authentication:
-   - e-mail/senha;
-   - política de senha R5 em Require;
-   - conferir a enumeration protection;
-   - Google, com e-mail de suporte;
-   - tentar editar o template de redefinição (se der o mesmo bloqueio, vale o plano B, §6.3).
-8. Firestore: Standard, `(default)`, `southamerica-east1`, modo produção. Depois, proteção contra exclusão e backup diário de 7 dias.
-9. Registrar o app `dev.emanoelbarbosa.nexo` e cadastrar o SHA-1 e o SHA-256 de debug. Os SHA de release ficam para antes de publicar (memória).
-10. Regras e índices: rodar os testes no emulador uma vez (`firestore-rules.md` §2) e depois `firebase deploy --only firestore:rules,firestore:indexes --project <alias-prod>`.
-11. Conteúdo: `legalDocuments/current` e `achievementsCatalog` (9 medalhas), como em `firestore-rules.md` §4 e §8.
-12. Crashlytics: abrir a página no console.
-
-### 14.4 O que muda no app (pendências; o app está pausado)
-
-Registradas em §11.2 como A9–A12.
-
-- **Flavors** `dev` e `prod` em `android/app/build.gradle.kts`: o `dev` com `applicationIdSuffix = ".dev"` e um nome visível diferente, para os dois apps conviverem no mesmo aparelho.
-- **Dois `google-services.json`**, um por pasta de variante (`android/app/src/dev/` e `android/app/src/prod/`) [C, P7].
-- **Dois `firebase_options`**, gerados pelo `flutterfire configure` por ambiente, com `--out` e `--android-out` [C, flags do README]:
-
-  ```bash
-  flutterfire configure --project=<ID_DEV> --platforms=android --android-package-name=dev.emanoelbarbosa.nexo.dev --out=lib/firebase_options_dev.dart --android-out=android/app/src/dev/google-services.json
-  ```
-
-  ```bash
-  flutterfire configure --project=<ID_PROD> --platforms=android --android-package-name=dev.emanoelbarbosa.nexo --out=lib/firebase_options_prod.dart --android-out=android/app/src/prod/google-services.json
-  ```
-
-- **Ponto de entrada por ambiente:** `lib/main_dev.dart` e `lib/main_prod.dart` (ou `--dart-define=FLAVOR=...`). Exemplo: `flutter run --flavor dev -t lib/main_dev.dart`. A forma exata é decisão da nexo-flutter [D].
-- **Sai** o `android/app/google-services.json` único e o `lib/firebase_options.dart`.
-
-### 14.5 Deploy das regras e documentação
-
-- `.firebaserc` com os aliases `dev` e `prod`, criado com `firebase use --add` [C, P6]. A doc sugere versionar o `.firebaserc` [C].
-- Deploy sempre com `--project dev` ou `--project prod`. Nunca sem projeto explícito.
-- **AGENTS.md:** cita o projeto único em §0 item 7, §4 (F2), §7 e §8. Precisa de atualização, que eu só proponho como diff ao usuário; não edito.
-- **Documentos legais:** a Política não cita o Project ID, e os dois projetos ficam na mesma região. Em princípio não muda nada, desde que o dev só tenha dados de teste. A confirmar com a sessão de dados e legal (pendências B8).
+- Em 26/10/2026 o usuário decidiu separar desenvolvimento e produção em dois projetos Firebase. A proposta (papel de cada projeto, IDs, pacote `.dev`, flavors, `.firebaserc`) ficou aguardando as escolhas E1, E2 e E4.
+- **Em 04/11/2026 o usuário decidiu manter um projeto só** (F2): `nexo-app-gestao-f97bb`. Nada tinha sido feito no console. As pendências A9–A12 foram retiradas.
+- Se a separação voltar, as restrições confirmadas continuam valendo: o par pacote + SHA-1 é único entre projetos (P5), os aliases da CLI ficam no `.firebaserc` (P6) e o `google-services.json` vai por pasta de variante (P7).
