@@ -31,7 +31,7 @@ Quem faz cada passo:
 | # | Tema | Decisão | Efeito |
 |---|---|---|---|
 | F1 | Nome do pacote Android (`applicationId`; no console: "Nome do pacote do Android") | **`dev.emanoelbarbosa.nexo`** (22/10/2026). App registrado no console pelo usuário: "App Nexo", App ID `1:956300519140:android:7792abfff1061daa6b6ef1` | A nexo-flutter troca o placeholder `com.example.nexo` no código. O `flutterfire configure` reaproveita o app já registrado [C] |
-| F2 | Ambientes | ~~Um projeto só (21/10/2026)~~ **Decidido em 26/10/2026: separar desenvolvimento e produção agora**, em dois projetos Firebase. Motivos: dois revisores externos apontaram o projeto único como risco, e ainda não há usuários reais | Qual projeto fica com cada papel, os nomes e os IDs estão **em decisão** (seção 14). A doc oficial recomenda um projeto por ambiente [C]. O par pacote + SHA-1 é único entre projetos [C], por isso o app de desenvolvimento usa outro pacote (seção 14) |
+| F2 | Ambientes | **Um projeto só: `nexo-app-gestao-f97bb`** (21/10/2026; **confirmado em 04/11/2026**, quando foi cancelada a separação dev × prod decidida em 26/10/2026, seção 14) | Risco aceito: testes e usuários reais dividem banco, cotas de e-mail e templates. A doc oficial recomenda um projeto por ambiente [C]. Rever antes do lançamento público |
 | F3 | Região do Firestore | **`southamerica-east1`** (São Paulo, regional) | Permanente [C]. Preenche `[REGIÃO DO FIRESTORE]` na Política 7 |
 | F4 | Plano | **Blaze, contratado** (21/10/2026) | Libera Cloud Functions, funções agendadas, backups e cotas maiores do Auth [C]. Fecha o R6 da spec de redefinição de senha |
 | F5 | App Check | **Depois do MVP** | O passo 10 fica descrito, mas não é executado agora. A Política 3.5 precisa refletir isso |
@@ -498,11 +498,8 @@ Modo de trabalho decidido pelo usuário em 24/10/2026: primeiro termina **toda**
 | A6 | Opção de crash de teste num build release ou profile | `app/lib` | §8, checklist 8 | A coleta está desligada em debug |
 | A7 | Nenhum botão ou fluxo de login Apple no app | `app/lib` | F7 | Nada da Apple no MVP. Hoje só há um comentário de tema (`nexo_theme.dart`, "botão Apple") |
 | A8 | `PRODUCT_BUNDLE_IDENTIFIER` do iOS ainda `com.example.nexo` | `app/ios` | F6 | Baixa prioridade: o iOS está fora do MVP. Não bloqueia nada |
-| A9 | Flavors `dev` (`applicationIdSuffix = ".dev"`, nome visível próprio) e `prod` | `app/android/app/build.gradle.kts` | F2 (26/10/2026), §14.4 | Dois projetos Firebase; o par pacote + SHA-1 é único entre projetos [C] |
-| A10 | `flutterfire configure` por ambiente: `firebase_options_dev.dart`/`_prod.dart` e `src/dev`/`src/prod/google-services.json`. Removem-se o arquivo único e o `firebase_options.dart` | `app/lib`, `app/android` | §14.4 | Cada build aponta para o seu projeto |
-| A11 | Ponto de entrada por ambiente (`main_dev.dart`/`main_prod.dart` ou `--dart-define`) e comandos de run/build com `--flavor` | `app/lib` | §14.4 | Escolher o projeto em tempo de build |
-| A12 | `.firebaserc` com os aliases `dev`/`prod`. Comandos do AGENTS.md §8 com `--project` explícito (proposta de diff ao usuário) | `app/`, `AGENTS.md` | §14.5 | Deploy das regras sem risco de cair no projeto errado |
-| A13 | Política de TTL de 30 dias na coleção `users/{uid}/notifications` (campo de expiração definido no contrato), configurada no console em cada projeto | console (você) | `firestore-rules.md` §7, histórico de notificações (04/11/2026) | Guarda de 30 dias decidida pelo usuário. O TTL apaga com atraso e cada exclusão conta como uma operação de exclusão [NC] |
+| ~~A9–A12~~ | ~~Flavors, `flutterfire configure` por ambiente, ponto de entrada por ambiente, `.firebaserc`~~ **Retiradas em 04/11/2026**: a separação dev × prod foi cancelada (F2, seção 14) | — | — | — |
+| A13 | Política de TTL de 30 dias na coleção `users/{uid}/notifications` (campo de expiração definido no contrato), configurada no console do projeto `nexo-app-gestao-f97bb` | console (você) | `firestore-rules.md` §7, histórico de notificações (04/11/2026) | Guarda de 30 dias decidida pelo usuário. O TTL apaga com atraso e cada exclusão conta como uma operação de exclusão [NC] |
 | D1 | Tela 03 Cadastro mostra a regra de senha R5 exatamente | `.pen` | §6.1 | O design precisa bater com a política do Firebase |
 | D2 | Remover do design os botões e fluxos de login Apple | `.pen` | F7 | Conferir se ainda existem: a confirmar com a prototipação |
 
