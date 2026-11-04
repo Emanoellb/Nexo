@@ -1,6 +1,6 @@
 # Nexo · Security Rules do Cloud Firestore (MVP)
 
-Status: **v0.6 publicada em 25/10/2026** (tópicos do plano, cor da disciplina, situação da entrega), com os **3 índices compostos** (seção 4.1), com autorização do usuário ("pode criar e publicar"). Antes: v0.5, publicada em 24/10/2026. Roteiro completo (etapas 1 a 11) decidido pelo usuário em 22 e 24/10/2026. **Deploy em 24/10/2026** no projeto `nexo-app-gestao-f97bb`, com autorização do usuário ("pode publicar"): regras compiladas e liberadas sem erro. · Sessão: segurança do Firestore · 24/10/2026
+Status: **v0.7 no repositório (branch `fix/regras-plano-excluindo`), ainda não publicada:** `deleting` passa a ser terminal e o plano em exclusão não recebe filhos novos (achado [4] da revisão de código de 04/11/2026). Publicada: **v0.6 em 25/10/2026** (tópicos do plano, cor da disciplina, situação da entrega), com os **3 índices compostos** (seção 4.1), com autorização do usuário ("pode criar e publicar"). Antes: v0.5, publicada em 24/10/2026. Roteiro completo (etapas 1 a 11) decidido pelo usuário em 22 e 24/10/2026. **Deploy em 24/10/2026** no projeto `nexo-app-gestao-f97bb`, com autorização do usuário ("pode publicar"): regras compiladas e liberadas sem erro. · Sessão: segurança do Firestore · 24/10/2026
 Base: `docs/backend/firebase-setup.md` §7.2 (esqueleto e mapa), `docs/legal/inventario-dados-mvp.md` e as telas do `nexo.lib.pen` (`ca7IW` Regras e requisitos, `oXRSc` Fluxo do Plano de ação) e do `nexo.app.pen` (fluxo de entrada).
 
 Legenda: **[C]** confirmado na documentação oficial · **[NC]** não confirmado · **[D]** decisão do usuário.
@@ -28,6 +28,7 @@ Histórico de execuções:
 | 22/10/2026 | v0.2 | 54/54. Teste de mutação: 5 verificações enfraquecidas → os 6 testes correspondentes falharam (48/54), mostrando que os testes negam pelo motivo certo |
 | 24/10/2026 | v0.5 | **64/64** (execução única antes do deploy). O processo Java do emulador ficou aberto de novo e foi encerrado ao final |
 | 25/10/2026 | v0.6 | **71/71** (execução única antes do deploy). Processo do emulador encerrado ao final |
+| 04/11/2026 | v0.7 | **75/75** (execução única antes do deploy; 4 testes novos em "plano em exclusão"). O processo Java soltou a porta 8080, mas ficou vivo; foi encerrado ao final |
 
 Instalação global (uma vez por máquina, não muda o repositório): Node 20+, Firebase CLI e JDK 11+. Esta máquina tem Node 22.17, CLI 15.28.2 e JDK 23. O emulador do Firestore já está em `~/.cache/firebase/emulators`.
 
@@ -57,6 +58,8 @@ Sobe o emulador, roda os testes e derruba o emulador. O projeto `demo-nexo` é f
 4. **Carimbos do servidor:** `createdAt`, `updatedAt`, `consents.acceptedAt`, `tasks.completedAt`, `days.finalizedAt`, `achievements.earnedAt` e `users.deletionRequestedAt` precisam ser `FieldValue.serverTimestamp()` (`== request.time`). `createdAt` não muda depois. Funciona offline: o servidor resolve o carimbo na hora de gravar.
 5. **Janela de 7 dias:** sessões e dias só são criados, editados ou finalizados até 7 dias para trás (RF11, RF14). As regras só conhecem o UTC e aceitam até 9 dias, como folga para qualquer fuso.
 6. **Excluir pelo app:** plano com `status: "deleting"` e usuário com `deletionRequestedAt` liberam apagar o que normalmente é imutável (versões, dias, conquistas, sessões antigas). Se o app fechar no meio, retoma depois.
+   - **As duas marcações são terminais.** `deletionRequestedAt` não pode ser desfeito; o plano em `deleting` fica **congelado** (nenhum update) e só sai apagando (v0.7, 04/11/2026). Sem isso, um cliente modificado marcaria `deleting`, apagaria o histórico antigo e voltaria o plano para `active`.
+   - Plano em `deleting` não recebe sessão, dia, tópico nem versão nova.
 7. **Notificações locais** [D]: agendadas no aparelho. Nada de token FCM, `devices` ou `notificationLog` no Firestore.
 8. **Conteúdo do app:** `achievementsCatalog` (leitura com login) e `legalDocuments` (leitura pública) são somente leitura; carregados pelo console.
 9. **Negação por padrão:** coleção fora do mapa é negada.
@@ -99,7 +102,7 @@ Telas: 02 Planos, 03 Novo plano, 07 Visão geral. MVP: RF01, RF02, RF04–RF07. 
 | `endDate` | Fim (RF01) | `AAAA-MM-DD`, ≥ início, **período de até 2 anos** | sim |
 | `frequency` | Todos os dias · Dias da semana · × por semana (RF02) | `{type: "daily"}` · `{type: "weekdays", weekdays: [1..7]}` · `{type: "timesPerWeek", timesPerWeek: 1..7}`. Números como no Dart: 1 = segunda … 7 = domingo | sim |
 | `dailyGoalMinutes` | Meta diária "5h" (RF01) | int 1–1440, em minutos. A tela usa passos de 15 min | sim |
-| `status` | Planos; pausar, encerrar, arquivar, excluir (RF05, RF06) | `active`, `paused`, `completed`, `endedEarly`, `archived`, `deleting` (este só em update) | sim |
+| `status` | Planos; pausar, encerrar, arquivar, excluir (RF05, RF06) | `active`, `paused`, `completed`, `endedEarly`, `archived`, `deleting` (este só em update, e sem volta) | sim |
 | `pauses` | Pausar/retomar (RF05) | lista de `{start, end}` (datas; `end` null enquanto pausado), até 100 itens | não |
 | `endedOn` | Encerrar antes (RF06) | `AAAA-MM-DD` dentro do período; **obrigatório** com `endedEarly`; continua se o plano for arquivado | não |
 | `goalId` | objetivo (etapa 8) | string 1–128 ou null | não |
@@ -111,7 +114,7 @@ Telas: 02 Planos, 03 Novo plano, 07 Visão geral. MVP: RF01, RF02, RF04–RF07. 
 - **Semana: domingo a sábado.** Vale para o "× por semana" e para o calendário (como no design: D S T Q Q S S).
 - `frequency` e `dailyGoalMinutes` no plano são a cópia da configuração mais recente, usada na lista. O histórico fica em `scheduleVersions`.
 - Totais da Visão geral e do Relatório (horas, saldo, sequência, pontos, dias por status) são **calculados pelo app** a partir dos dias e das versões.
-- **Excluir plano:** o app marca `status: "deleting"`, apaga sessões, dias e versões em lotes e, por último, o plano.
+- **Excluir plano:** o app marca `status: "deleting"`, apaga sessões, dias e versões em lotes e, por último, o plano. A marcação **não tem volta**: depois dela, as regras negam qualquer update do plano (inclusive voltar para outro status ou mudar o nome) e qualquer criação de sessão, dia, tópico ou versão nele. Por isso, o app só marca depois de o usuário confirmar a exclusão.
 
 ### `…/plans/{planId}/scheduleVersions/{versionId}` (etapa 3)
 
@@ -288,7 +291,9 @@ Itens do Perfil aprovados (22/10): editar nome, nível e conquistas, privacidade
 - **Pausas, semana e fuso:** as regras não conferem se a pausa começou hoje, a contagem do "× por semana" nem se `day` bate com `startAt` no fuso do usuário. É lógica do app.
 - **Coerência entre sessão e dia:** as regras não conferem se `days.doneMinutes` é a soma das sessões.
 - **Exclusão pelo app:** se o app fechar no meio, ficam dados parciais até o próximo login, quando o app retoma. As regras não conferem se as subcoleções estão vazias antes de apagar o usuário.
-- **Leituras extras (cobradas):** criar sessão ou dia (`exists` do plano), alterar `primaryPlanId`, apagar plano, criar versão, criar conquista, aceite (`legalDocuments/current`) e as exclusões com "excluindo".
+- **Leituras extras (cobradas):** criar sessão ou dia (`exists` + `get` do plano, para checar o status), criar tópico ou versão (`getAfter` do plano), alterar `primaryPlanId`, apagar plano, criar conquista, aceite (`legalDocuments/current`) e as exclusões com "excluindo". Se o `exists` e o `get` do mesmo plano na mesma requisição contam como uma leitura só: [NC].
+- **Plano em exclusão:** update de sessão e de dia continua permitido num plano `deleting` (bloquear custaria uma leitura a mais em toda gravação). Fica limitado à janela de 7 dias e não reabre o histórico.
+- **Plano recriado com o mesmo id:** se o app apagar o documento do plano antes das subcoleções, sessões e dias órfãos continuam no banco; um plano novo criado com o mesmo id passaria a enxergá-los. O app deve usar ids automáticos para planos novos e apagar o plano por último (seção 7, item 11).
 
 ## 7. Pendências para outras sessões
 
@@ -308,7 +313,7 @@ O Flutter e o design estão pausados até o fim da configuração do Firebase (d
 13. Nível: pontos ÷ 20 (parte inteira) + 1; a barra do Nexo/LevelProgress mostra "pontos atuais / 20" dentro do nível.
 14. Tópicos do plano: criar, renomear e apagar em `plans/{id}/topics`; ao criar, oferecer as matérias existentes ou um tópico novo. A sessão grava `topicId`.
 15. Tarefa: `deliveryStatus` coerente com `completed` (concluir → "Entregue"; reabrir → "Em andamento", no mesmo gravar).
-11. Excluir plano: `status: "deleting"` → apagar sessões, dias e versões em lotes → limpar `primaryPlanId` e apagar o plano.
+11. Excluir plano: confirmar com o usuário → `status: "deleting"` (sem volta: depois disso o plano não aceita update nem filhos novos) → apagar sessões, dias, tópicos e versões em lotes → limpar `primaryPlanId` e apagar o plano. Planos novos sempre com id automático.
 12. Excluir conta: pedir login de novo → `deletionRequestedAt` → apagar planos (como no item 11), tarefas, disciplinas, objetivos e conquistas → apagar `users/{uid}` → `currentUser.delete()`. Retomar no próximo login se parar no meio.
 
 **Prototipação (quando o design voltar):**

@@ -265,6 +265,17 @@ service cloud.firestore {
           return !exists(planPath()) || get(planPath()).data.status == 'deleting';
         }
 
+        // Plano existe e não está sendo excluído. Usado no create dos filhos:
+        // o get falha (nega) se o plano não existe, então substitui o exists.
+        function planOpen() {
+          return get(planPath()).data.status != 'deleting';
+        }
+
+        // Mesma checagem, vendo o lote inteiro (plano criado junto).
+        function planOpenAfter() {
+          return getAfter(planPath()).data.status != 'deleting';
+        }
+
         // Frequência: todos os dias, dias da semana (1 = segunda … 7 = domingo,
         // como o DateTime.weekday do Dart) ou X vezes por semana. A semana do
         // Nexo vai de domingo a sábado; isso só afeta a contagem do
@@ -336,7 +347,11 @@ service cloud.firestore {
           && validPlan(incoming())
           && incoming().status != 'deleting'
           && notBeforeLastWeek(incoming().startDate);
+        // 'deleting' é terminal: o plano marcado fica congelado e só sai
+        // apagando. Sem isso, um cliente modificado marcaria 'deleting',
+        // apagaria o histórico antigo (planGone) e voltaria para 'active'.
         allow update: if isVerifiedOwner(uid)
+          && resource.data.status != 'deleting'
           && validUpdate(planFields())
           && validPlan(incoming())
           && (!('startDate' in changedKeys()) || notBeforeLastWeek(incoming().startDate));
@@ -364,6 +379,7 @@ service cloud.firestore {
           allow read: if isVerifiedOwner(uid);
           allow create: if isVerifiedOwner(uid)
             && existsAfter(planPath())
+            && planOpenAfter()
             && validVersion(incoming(), getAfter(planPath()).data);
           allow update: if false;
           allow delete: if isVerifiedOwner(uid) && (planGone() || userDeleting());
@@ -385,6 +401,7 @@ service cloud.firestore {
           allow read: if isVerifiedOwner(uid);
           allow create: if isVerifiedOwner(uid)
             && existsAfter(planPath())
+            && planOpenAfter()
             && validCreate(topicFields(), ['name', 'createdAt', 'updatedAt'])
             && validTopic(incoming());
           allow update: if isVerifiedOwner(uid)
@@ -428,6 +445,7 @@ service cloud.firestore {
           allow read: if isVerifiedOwner(uid);
           allow create: if isVerifiedOwner(uid)
             && exists(planPath())
+            && planOpen()
             && validCreate(sessionFields(), sessionRequired())
             && validSession(incoming());
           allow update: if isVerifiedOwner(uid)
@@ -456,6 +474,7 @@ service cloud.firestore {
           allow create: if isVerifiedOwner(uid)
             && inLastWeek(day)
             && exists(planPath())
+            && planOpen()
             && validCreate(dayFields(), dayFields())
             && validDay(incoming())
             && (incoming().finalizedAt == null || incoming().finalizedAt == request.time);

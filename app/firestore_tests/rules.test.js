@@ -466,6 +466,65 @@ describe('users/{uid}/plans', () => {
   });
 });
 
+// ---------- plano em exclusão ('deleting' é terminal) ----------
+
+describe('plano em exclusão', () => {
+  const version = () => ({
+    effectiveFrom: isoDate(10),
+    frequency: { type: 'daily' },
+    dailyGoalMinutes: 90,
+    createdAt: serverTimestamp(),
+  });
+
+  beforeEach(async () => {
+    await seed(USER, storedUser());
+    await seed(PLAN, storedPlan({ status: 'deleting' }));
+  });
+
+  test('não volta para outro status nem é editado', async () => {
+    const ref = doc(db(ALICE), PLAN);
+    for (const status of ['active', 'paused', 'archived']) {
+      await assertFails(updateDoc(ref, { status, updatedAt: serverTimestamp() }));
+    }
+    await assertFails(updateDoc(ref, { name: 'Outro nome', updatedAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  test('marcar, apagar histórico antigo e voltar para "ativo" é negado', async () => {
+    await seed(PLAN, storedPlan());
+    await seed(`${PLAN}/sessions/antiga`, storedSession({ day: isoDate(-30) }));
+    await seed(`${PLAN}/days/${isoDate(-30)}`, storedDay());
+    const d = db(ALICE);
+    // fora da exclusão, o histórico antigo é imutável
+    await assertFails(deleteDoc(doc(d, `${PLAN}/sessions/antiga`)));
+    await assertSucceeds(updateDoc(doc(d, PLAN), { status: 'deleting', updatedAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(doc(d, `${PLAN}/sessions/antiga`)));
+    await assertSucceeds(deleteDoc(doc(d, `${PLAN}/days/${isoDate(-30)}`)));
+    await assertFails(updateDoc(doc(d, PLAN), { status: 'active', updatedAt: serverTimestamp() }));
+  });
+
+  test('não recebe sessão, dia, tópico nem versão nova', async () => {
+    const d = db(ALICE);
+    await assertFails(setDoc(doc(d, `${PLAN}/sessions/s1`), newSession()));
+    await assertFails(setDoc(doc(d, `${PLAN}/days/${isoDate(0)}`), newDay()));
+    await assertFails(setDoc(doc(d, `${PLAN}/topics/t1`), {
+      name: 'Porcentagem', subjectId: null, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    }));
+    await assertFails(setDoc(doc(d, `${PLAN}/scheduleVersions/v1`), version()));
+  });
+
+  test('em plano ativo, os mesmos creates continuam permitidos', async () => {
+    await seed(PLAN, storedPlan());
+    const d = db(ALICE);
+    await assertSucceeds(setDoc(doc(d, `${PLAN}/sessions/s1`), newSession()));
+    await assertSucceeds(setDoc(doc(d, `${PLAN}/days/${isoDate(0)}`), newDay()));
+    await assertSucceeds(setDoc(doc(d, `${PLAN}/topics/t1`), {
+      name: 'Porcentagem', subjectId: null, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    }));
+    await assertSucceeds(setDoc(doc(d, `${PLAN}/scheduleVersions/v1`), version()));
+  });
+});
+
 // ---------- plano principal (users.primaryPlanId) ----------
 
 describe('plano principal', () => {
