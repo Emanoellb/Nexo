@@ -12,6 +12,7 @@ class AuthScaffold extends StatelessWidget {
     super.key,
     required this.children,
     this.onBack,
+    this.backEnabled = true,
     this.top,
     this.topHeight = 0,
     this.centered = false,
@@ -21,6 +22,9 @@ class AuthScaffold extends StatelessWidget {
 
   /// Mostra a TopAppBar só com o voltar (Cadastro, Esqueci a senha, 03b).
   final VoidCallback? onBack;
+
+  /// `false`: a barra fica, com o voltar desabilitado.
+  final bool backEnabled;
 
   /// Fixo no topo, fora do bloco centralizado (logo do Login), com altura
   /// [topHeight].
@@ -91,7 +95,9 @@ class AuthScaffold extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: context.nexoColors.surface,
-      appBar: onBack == null ? null : NexoTopAppBar(onBack: onBack),
+      appBar: onBack == null
+          ? null
+          : NexoTopAppBar(onBack: onBack, backEnabled: backEnabled),
       body: SafeArea(top: onBack == null, child: body),
     );
   }

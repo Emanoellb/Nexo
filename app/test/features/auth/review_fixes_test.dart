@@ -8,7 +8,10 @@ import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/core/data/data_failure.dart';
 import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/ui/ui.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
+import 'package:nexo/features/auth/application/login_controller.dart';
+import 'package:nexo/features/auth/domain/auth_failure.dart';
 import 'package:nexo/features/auth/application/sign_up_controller.dart';
 import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
@@ -135,7 +138,89 @@ Future<void> _fillGoogleFirstAccess(WidgetTester tester) async {
   await _tap(tester, find.byType(NexoCheckbox));
 }
 
+/// Google que só responde quando [gate] completa; com [fail], falha.
+class _SlowGoogleAuth extends FakeAuthRepository {
+  _SlowGoogleAuth({this.fail}) : super(withPrototypeAccounts: true);
+
+  final AuthFailureCode? fail;
+  final gate = Completer<void>();
+
+  @override
+  Future<AuthUser?> signInWithGoogle() async {
+    await gate.future;
+    if (fail != null) throw AuthFailure(fail!);
+    return super.signInWithGoogle();
+  }
+}
+
+/// Login no bloqueio de "Muitas tentativas", pelo controlador.
+Future<(ProviderContainer, LoginController)> _lockedLogin(
+  WidgetTester tester,
+  _SlowGoogleAuth auth,
+) async {
+  final container = ProviderContainer(
+    overrides: [authRepositoryProvider.overrideWithValue(auth)],
+  );
+  addTearDown(container.dispose);
+  final sub = container.listen(loginControllerProvider, (_, _) {});
+  addTearDown(sub.close);
+  final controller = container.read(loginControllerProvider.notifier);
+  // A espera do fake só anda com o relógio do teste: dispara e avança.
+  unawaited(
+    controller.submit(
+      email: 'muitas-tentativas@email.com',
+      password: 'Qualquer#1',
+    ),
+  );
+  await tester.pump(const Duration(milliseconds: 10));
+  return (container, controller);
+}
+
 void main() {
+  testWidgets('Login: tocar no Google no bloqueio mantém "Muitas tentativas"', (
+    tester,
+  ) async {
+    final auth = _SlowGoogleAuth();
+    final (container, controller) = await _lockedLogin(tester, auth);
+    expect(
+      container.read(loginControllerProvider).alert,
+      LoginAlert.tooManyRequests,
+    );
+
+    unawaited(controller.signInWithGoogle());
+    await tester.pump(const Duration(milliseconds: 10));
+    final state = container.read(loginControllerProvider);
+    expect(state.googleLoading, isTrue);
+    expect(state.locked, isTrue);
+    expect(state.alert, LoginAlert.tooManyRequests);
+
+    auth.gate.complete();
+    await tester.pump(const Duration(seconds: 61));
+  });
+
+  testWidgets('Login: erro no Google no bloqueio volta a "Muitas tentativas"', (
+    tester,
+  ) async {
+    final auth = _SlowGoogleAuth(fail: AuthFailureCode.network);
+    final (container, controller) = await _lockedLogin(tester, auth);
+
+    unawaited(controller.signInWithGoogle());
+    auth.gate.complete();
+    await tester.pump(const Duration(milliseconds: 10));
+    expect(container.read(loginControllerProvider).alert, LoginAlert.offline);
+
+    // Depois dos 5 s do aviso, o bloqueio ainda está ativo: o alerta volta.
+    await tester.pump(const Duration(seconds: 6));
+    final state = container.read(loginControllerProvider);
+    expect(state.locked, isTrue);
+    expect(state.alert, LoginAlert.tooManyRequests);
+
+    // No fim do bloqueio, o alerta sai e o Entrar volta.
+    await tester.pump(const Duration(seconds: 60));
+    expect(container.read(loginControllerProvider).alert, isNull);
+    expect(container.read(loginControllerProvider).locked, isFalse);
+  });
+
   testWidgets(
     '[1] 03b: voltar durante a gravação do perfil não apaga a conta',
     (tester) async {
@@ -148,8 +233,13 @@ void main() {
       await tester.tap(find.widgetWithText(NexoButton, 'Continuar'));
       await tester.pump();
 
-      // Gravando: sem seta de voltar, e o voltar do Android é ignorado.
-      expect(find.byTooltip('Voltar'), findsNothing);
+      // Gravando: a barra fica (layout sem pular), com a seta desabilitada,
+      // e o voltar do Android é ignorado.
+      expect(find.byType(NexoTopAppBar), findsOneWidget);
+      final back = tester.widget<NexoIconButton>(
+        find.widgetWithIcon(NexoIconButton, LucideIcons.arrowLeft),
+      );
+      expect(back.onPressed, isNull);
       await tester.binding.handlePopRoute();
       await tester.pump();
       expect(auth.currentUser, isNotNull);

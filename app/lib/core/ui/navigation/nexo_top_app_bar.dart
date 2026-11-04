@@ -14,6 +14,7 @@ class NexoTopAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     this.title,
     this.onBack,
+    this.backEnabled = true,
     this.actions = const [],
   });
 
@@ -22,6 +23,10 @@ class NexoTopAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// `null` esconde o botão de voltar.
   final VoidCallback? onBack;
+
+  /// `false` mostra o voltar desabilitado (ex.: enquanto a tela grava), sem
+  /// tirar a barra e sem o layout pular.
+  final bool backEnabled;
   final List<Widget> actions;
 
   @override
@@ -52,7 +57,7 @@ class NexoTopAppBar extends StatelessWidget implements PreferredSizeWidget {
                       icon: LucideIcons.arrowLeft,
                       tooltip: 'Voltar',
                       color: c.iconDefault,
-                      onPressed: onBack,
+                      onPressed: backEnabled ? onBack : null,
                     ),
                   const SizedBox(width: 12),
                   Expanded(

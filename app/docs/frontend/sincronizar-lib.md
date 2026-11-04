@@ -32,8 +32,8 @@ Código: `app/lib/features/splash/`, `app/lib/core/ui/brand/nexo_animated_symbol
 | Item | No Flutter | Origem |
 |---|---|---|
 | Splash nativa | Fundo `Surface` e símbolo estático de 128 dp. No Android 12+ usa a SplashScreen API, com o ícone dentro do círculo de 192 dp. Sem animação nativa | [D] |
-| Animação | O "x" é revelado a partir dos traços do SVG oficial: reto 0–380 ms, curvo 250–700 ms, `Motion/Easing/Emphasized` | [D] roteiro |
-| 1ª abertura | "Bem-vindo ao Nexo" (TitleLarge) e "Do objetivo à ação do dia." (BodyMedium, OnSurfaceVariant) abaixo do símbolo, de 500 a 750 ms (`Enter`, sobe `distanceMedium`), mais ~600 ms de leitura. Marca local `first_open_done` | [D] |
+| Animação | O "x" é revelado a partir dos traços do SVG oficial: reto 0–800 ms, curvo 550–1500 ms, `Motion/Easing/Emphasized`; depois o símbolo pronto fica até 2,7 s (alongado em +2 s em 27/10/2026, pedido do usuário) | [D] roteiro |
+| 1ª abertura | "Bem-vindo ao Nexo" (TitleLarge) e "Do objetivo à ação do dia." (BodyMedium, OnSurfaceVariant) abaixo do símbolo, de 1100 a 1500 ms (`Enter`, sobe `distanceMedium`), mais ~600 ms de leitura: 3,3 s no total. Marca local `first_open_done` | [D] |
 | Saída | Sem sessão: Hero até a logo do Login (tag `nexo-logo`; a tela de Login deve usar a mesma). Com sessão: esmaecimento até o Início (`Motion/Duration/Medium`) | [D] |
 | Reduzir movimento | Símbolo e texto estáticos; só a pausa de leitura na 1ª abertura | [D] |
 | Modo escuro do sistema | A abertura continua clara, porque o app é só claro | [P] |

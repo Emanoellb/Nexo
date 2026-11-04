@@ -16,6 +16,14 @@ mixin EntryAlerts<S, A extends Object> on Notifier<S> {
   final _alertTimer = AlertTimer();
   Countdown? _lock;
   A? _lockAlert;
+  var _lockedFor = 0;
+
+  /// Há bloqueio de "Muitas tentativas" em andamento.
+  bool get isLocked => _lockedFor > 0;
+
+  /// O alerta que deve ficar na tela sem outro aviso: o do bloqueio, se ele
+  /// estiver ativo; senão, nenhum.
+  A? get restingAlert => isLocked ? _lockAlert : null;
 
   A? alertOf(S state);
   S withAlert(S state, A? alert);
@@ -29,11 +37,12 @@ mixin EntryAlerts<S, A extends Object> on Notifier<S> {
   }
 
   /// Mostra [alert] e o tira depois de [alertDuration], se ainda for o atual.
+  /// Durante um bloqueio, o "Muitas tentativas" volta no lugar dele.
   void showAlert(A alert) {
     state = withAlert(state, alert);
     _alertTimer.start(() {
       if (ref.mounted && alertOf(state) == alert) {
-        state = withAlert(state, null);
+        state = withAlert(state, restingAlert);
       }
     });
   }
@@ -45,6 +54,7 @@ mixin EntryAlerts<S, A extends Object> on Notifier<S> {
     state = withAlert(state, alert);
     _lock ??= Countdown((remaining) {
       if (!ref.mounted) return;
+      _lockedFor = remaining;
       var next = withLock(state, remaining);
       if (remaining <= 0 && alertOf(next) == _lockAlert) {
         next = withAlert(next, null);

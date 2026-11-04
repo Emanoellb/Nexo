@@ -237,7 +237,9 @@ class SignUpController extends Notifier<SignUpState>
   Future<void> signInWithGoogle() async {
     if (state.busy) return;
     final auth = ref.read(authRepositoryProvider);
-    state = state.copyWith(googleLoading: true, alert: () => null);
+    // Durante o bloqueio, o "Muitas tentativas" fica: ele explica o botão
+    // desabilitado.
+    state = state.copyWith(googleLoading: true, alert: () => restingAlert);
     try {
       await auth.signInWithGoogle();
       if (ref.mounted) state = state.copyWith(googleLoading: false);
