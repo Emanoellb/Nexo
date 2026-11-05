@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/clock.dart';
+import '../../auth/application/auth_providers.dart';
 import '../../focus/domain/focus_session.dart';
 import '../data/fake_plans_repository.dart';
 import '../data/plans_repository.dart';
@@ -8,7 +9,9 @@ import '../domain/plan.dart';
 import '../domain/plan_schedule.dart';
 
 /// Na prototipação, o fake em memória; no bloco de integração, o Firestore.
+/// Um por conta: trocar de conta recria (dados de `users/{uid}`).
 final plansRepositoryProvider = Provider<PlansRepository>((ref) {
+  ref.watch(currentUidProvider);
   final repository = FakePlansRepository(clock: ref.watch(clockProvider));
   ref.onDispose(repository.dispose);
   return repository;

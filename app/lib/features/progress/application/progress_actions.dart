@@ -1,0 +1,143 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/data/clock.dart';
+import '../../../core/domain/local_date.dart';
+import '../../auth/application/auth_providers.dart';
+import '../../focus/domain/focus_session.dart';
+import '../../focus/domain/session_split.dart';
+import '../../plans/application/plans_providers.dart';
+import '../../plans/domain/plan.dart';
+import '../../plans/domain/plan_day_result.dart';
+import '../../tasks/application/tasks_providers.dart';
+
+/// Ações que mexem em pontos ou no plano principal, sempre com o ajuste no
+/// perfil junto (sem Cloud Function no MVP: o app mantém `users.points` e
+/// `users.primaryPlanId`; decisão do usuário, 05/11/2026).
+///
+/// - Tarefa: +1 ao concluir, −1 ao reabrir ou apagar concluída.
+/// - Dia do plano: a semana é calculada antes e depois de cada mudança
+///   (sessão, finalizar, desfazer) e a diferença vai para `users.points`;
+///   na cota semanal, um dia pode mudar o status de outro.
+/// - O primeiro plano criado vira o principal.
+class ProgressActions {
+  ProgressActions(this._ref);
+
+  final Ref _ref;
+
+  /// Uma ação de cada vez: cada uma lê os pontos "antes", muda e lê o
+  /// "depois". Duas ao mesmo tempo (toques rápidos) usariam o mesmo "antes"
+  /// e somariam a diferença duas vezes.
+  Future<void> _queue = Future<void>.value();
+
+  Future<T> _serial<T>(Future<T> Function() action) {
+    final result = _queue.then((_) => action());
+    _queue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  DateTime get _now => _ref.read(clockProvider)();
+  LocalDate get _today => LocalDate.fromDateTime(_now);
+  String? get _uid => _ref.read(authStateProvider).value?.uid;
+
+  Future<void> _addPoints(int delta) async {
+    final uid = _uid;
+    if (uid == null || delta == 0) return;
+    await _ref.read(userProfileRepositoryProvider).addPoints(uid, delta);
+  }
+
+  // ---------- Tarefas ----------
+
+  Future<void> setTaskCompleted(String taskId, bool completed) =>
+      _serial(() async {
+        final delta = await _ref
+            .read(tasksRepositoryProvider)
+            .setCompleted(taskId, completed);
+        await _addPoints(delta);
+      });
+
+  Future<void> deleteTask(String taskId) => _serial(() async {
+    final delta = await _ref.read(tasksRepositoryProvider).deleteTask(taskId);
+    await _addPoints(delta);
+  });
+
+  // ---------- Planos ----------
+
+  /// Cria o plano; se ainda não há principal, ele vira o principal.
+  Future<Plan> createPlan(Plan draft, {List<String> topicNames = const []}) =>
+      _serial(() async {
+        final plan = await _ref
+            .read(plansRepositoryProvider)
+            .createPlan(draft, topicNames: topicNames);
+        final uid = _uid;
+        if (uid == null) return plan;
+        // Lê do repositório (não do provider em cache): dois planos criados em
+        // seguida não podem os dois virar principal.
+        final profiles = _ref.read(userProfileRepositoryProvider);
+        final profile = await profiles.watchProfile(uid).first;
+        if (profile != null && profile.primaryPlanId == null) {
+          await profiles.setPrimaryPlan(uid, plan.id);
+        }
+        return plan;
+      });
+
+  /// Registra uma sessão de foco de [minutes] terminando agora (dividida à
+  /// meia-noite, se for o caso).
+  Future<void> addFocusMinutes(String planId, int minutes) async {
+    final end = _now;
+    final segments = splitSessionByDay([
+      ActiveInterval(end.subtract(Duration(minutes: minutes)), end),
+    ]);
+    await _withWeekPoints(planId, {for (final s in segments) s.day}, () {
+      return _ref
+          .read(plansRepositoryProvider)
+          .addSessions(planId, segments, source: SessionSource.focus);
+    });
+  }
+
+  Future<void> finalizeDay(String planId, LocalDate day) =>
+      _withWeekPoints(planId, {day}, () {
+        return _ref.read(plansRepositoryProvider).finalizeDay(planId, day);
+      });
+
+  /// "Desfazer" da Snackbar (RF17).
+  Future<void> undoFinalizeDay(String planId, LocalDate day) =>
+      _withWeekPoints(planId, {day}, () {
+        return _ref.read(plansRepositoryProvider).undoFinalizeDay(planId, day);
+      });
+
+  /// Roda [change] e soma ao perfil a diferença de pontos das semanas de
+  /// [days], na fila (uma ação de cada vez).
+  Future<void> _withWeekPoints(
+    String planId,
+    Set<LocalDate> days,
+    Future<Object?> Function() change,
+  ) => _serial(() async {
+    final weeks = {for (final d in days) NexoWeek.startOf(d)};
+    final before = await _weeksPoints(planId, weeks);
+    await change();
+    final after = await _weeksPoints(planId, weeks);
+    await _addPoints(after - before);
+  });
+
+  Future<int> _weeksPoints(String planId, Set<LocalDate> weeks) async {
+    final snapshot = await _snapshot(planId);
+    if (snapshot == null) return 0;
+    return weeks.fold<int>(
+      0,
+      (sum, week) => sum + planWeekPoints(snapshot, week, today: _today),
+    );
+  }
+
+  Future<PlanSnapshot?> _snapshot(String planId) async {
+    final repository = _ref.read(plansRepositoryProvider);
+    final plan = await repository.watchPlan(planId).first;
+    if (plan == null) return null;
+    return PlanSnapshot(
+      plan: plan,
+      versions: await repository.watchVersions(planId).first,
+      days: await repository.watchDays(planId).first,
+    );
+  }
+}
+
+final progressActionsProvider = Provider<ProgressActions>(ProgressActions.new);

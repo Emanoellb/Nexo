@@ -1,13 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/clock.dart';
+import '../../auth/application/auth_providers.dart';
 import '../data/notifications_repository.dart';
 import '../domain/nexo_notification.dart';
 
 /// Na prototipação, o fake (sem Firebase), preenchido pelos dados de exemplo.
+/// Um por conta: trocar de conta recria (dados de `users/{uid}`).
 final notificationsRepositoryProvider = Provider<NotificationsRepository>((
   ref,
 ) {
+  ref.watch(currentUidProvider);
   final repository = FakeNotificationsRepository(
     clock: ref.watch(clockProvider),
   );

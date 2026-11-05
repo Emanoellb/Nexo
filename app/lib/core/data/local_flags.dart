@@ -14,22 +14,40 @@ abstract interface class LocalFlags {
   String? get themePreference;
 
   Future<void> setThemePreference(String value);
+
+  /// A conta [uid] concluiu ou dispensou os "Primeiros passos" do Início
+  /// neste aparelho (o cartão não volta).
+  bool firstStepsDone(String uid);
+
+  Future<void> markFirstStepsDone(String uid);
 }
 
-/// Implementação com `shared_preferences`. Sem dado pessoal.
+/// Implementação com `shared_preferences`. Sem dado pessoal: só o uid
+/// opaco da conta, que já fica no aparelho pela sessão.
 class SharedPreferencesLocalFlags implements LocalFlags {
   SharedPreferencesLocalFlags._(this._prefs);
 
   static const _firstOpenDoneKey = 'first_open_done';
   static const _themePreferenceKey = 'theme_preference';
+  static const _firstStepsDoneKey = 'first_steps_done';
 
   static Future<SharedPreferencesLocalFlags> create() async {
     final prefs = await SharedPreferencesWithCache.create(
       cacheOptions: const SharedPreferencesWithCacheOptions(
-        allowList: {_firstOpenDoneKey, _themePreferenceKey},
+        allowList: {_firstOpenDoneKey, _themePreferenceKey, _firstStepsDoneKey},
       ),
     );
     return SharedPreferencesLocalFlags._(prefs);
+  }
+
+  @override
+  bool firstStepsDone(String uid) =>
+      (_prefs.getStringList(_firstStepsDoneKey) ?? const []).contains(uid);
+
+  @override
+  Future<void> markFirstStepsDone(String uid) {
+    final done = {...?_prefs.getStringList(_firstStepsDoneKey), uid};
+    return _prefs.setStringList(_firstStepsDoneKey, done.toList());
   }
 
   final SharedPreferencesWithCache _prefs;
@@ -50,13 +68,27 @@ class SharedPreferencesLocalFlags implements LocalFlags {
 
 /// Em memória: testes e qualquer execução sem o `main` real.
 class InMemoryLocalFlags implements LocalFlags {
-  InMemoryLocalFlags({this.firstOpenDone = false, this.themePreference});
+  InMemoryLocalFlags({
+    this.firstOpenDone = false,
+    this.themePreference,
+    Set<String>? firstStepsDoneFor,
+  }) : firstStepsDoneFor = {...?firstStepsDoneFor};
 
   @override
   bool firstOpenDone;
 
   @override
   String? themePreference;
+
+  /// Contas que concluíram ou dispensaram os "Primeiros passos".
+  final Set<String> firstStepsDoneFor;
+
+  @override
+  bool firstStepsDone(String uid) => firstStepsDoneFor.contains(uid);
+
+  @override
+  Future<void> markFirstStepsDone(String uid) async =>
+      firstStepsDoneFor.add(uid);
 
   @override
   Future<void> markFirstOpenDone() async => firstOpenDone = true;

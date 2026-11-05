@@ -284,7 +284,9 @@ class NexoNotificationItem extends StatelessWidget {
     final spacing = context.spacing;
     final small = Theme.of(context).textTheme.labelSmall!;
     final titleStyle =
-        (unread ? NexoTextStyles.labelSmallEmphasis : NexoTextStyles.labelSmall)
+        (unread
+                ? context.textStyle(NexoTextStyles.labelSmallEmphasis)
+                : context.textStyle(NexoTextStyles.labelSmall))
             .copyWith(color: c.onSurface);
 
     return Semantics(

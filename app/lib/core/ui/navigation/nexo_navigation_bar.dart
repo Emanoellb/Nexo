@@ -217,8 +217,8 @@ class _NavItem extends StatelessWidget {
         : null;
     final TextStyle style =
         (selected
-                ? NexoTextStyles.labelSmallEmphasis
-                : NexoTextStyles.labelSmall)
+                ? context.textStyle(NexoTextStyles.labelSmallEmphasis)
+                : context.textStyle(NexoTextStyles.labelSmall))
             .copyWith(color: label);
 
     return Semantics(

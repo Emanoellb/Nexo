@@ -12,8 +12,9 @@ import 'package:nexo/features/auth/application/auth_providers.dart';
 import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
 import 'package:nexo/features/legal/data/legal_documents_repository.dart';
+import 'package:nexo/features/home/presentation/home_page.dart';
 
-const _home = 'Em construção · bloco 6 · Início';
+final _home = find.byType(HomePage);
 
 class _App {
   _App(this.auth, this.profiles);
@@ -106,7 +107,7 @@ void main() {
       await _type(tester, 'Senha', FakeAuthRepository.prototypePassword);
       expect(find.text('E-mail ou senha incorretos'), findsNothing);
       await _tap(tester, find.widgetWithText(NexoButton, 'Entrar'));
-      expect(find.text(_home), findsOneWidget);
+      expect(_home, findsOneWidget);
     });
 
     testWidgets('sem conexão mantém os dados digitados', (tester) async {

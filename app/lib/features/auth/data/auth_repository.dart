@@ -50,4 +50,11 @@ abstract interface class UserProfileRepository {
 
   /// Grava `tutorialSeen: true` ("Começar" no fim do tutorial).
   Future<void> markTutorialSeen(String uid);
+
+  /// Soma [delta] a `users.points`, sem sair de 0 a [UserProfile.maxPoints]
+  /// (limites das regras).
+  Future<void> addPoints(String uid, int delta);
+
+  /// Grava `users.primaryPlanId` (`null` limpa).
+  Future<void> setPrimaryPlan(String uid, String? planId);
 }

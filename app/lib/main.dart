@@ -24,17 +24,21 @@ Future<void> main() async {
   final container = ProviderContainer(
     overrides: [
       localFlagsProvider.overrideWithValue(localFlags),
+      // Na prototipação, os repositórios são fake (sem banco) e a conta de
+      // protótipo começa com dados de exemplo fictícios; contas novas
+      // começam vazias. A troca pelo Firebase é feita nos providers de cada
+      // feature; aí estes dados saem.
+      prototypeSeedingProvider.overrideWithValue(true),
       appStartupProvider.overrideWith((ref) async {
         await _initFirebase();
-        // Na prototipação, os repositórios são fake (sem login nem banco) e
-        // começam com dados de exemplo fictícios. A troca pelo Firebase é
-        // feita nos providers de cada feature; aí estes dados saem.
-        await ref.read(prototypeSampleDataProvider.future);
       }),
     ],
   );
   // Começa já; a splash espera o resultado no fim da animação.
   container.read(appStartupProvider);
+  // Semeia os exemplos a cada login na conta de protótipo (os dados são por
+  // conta e recriados na troca de conta).
+  container.listen(prototypeSampleDataProvider, (_, _) {});
 
   runApp(
     UncontrolledProviderScope(container: container, child: const NexoApp()),

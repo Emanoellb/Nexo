@@ -8,13 +8,14 @@ import 'package:nexo/core/ui/ui.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
 import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
+import 'package:nexo/features/home/presentation/home_page.dart';
 
 const _user = AuthUser(
   uid: 'nova',
   emailVerified: true,
   email: 'nova.conta@email.com',
 );
-const _home = 'Em construção · bloco 6 · Início';
+final _home = find.byType(HomePage);
 const _titles = [
   'Objetivo e plano',
   'Tarefas e calendário',
@@ -83,7 +84,7 @@ void main() {
     expect(find.byType(NexoWordmark), findsNothing);
 
     await _tapButton(tester, 'Começar');
-    expect(find.text(_home), findsOneWidget);
+    expect(_home, findsOneWidget);
     expect(
       (await profiles.watchProfile(_user.uid).first)!.tutorialSeen,
       isTrue,

@@ -29,6 +29,13 @@ final authStateProvider = StreamProvider<AuthUser?>(
   (ref) => ref.watch(authRepositoryProvider).authStateChanges(),
 );
 
+/// uid da sessão atual (`null` sem login). Os repositórios de dados assistem
+/// a ele: cada conta tem os próprios dados, como em `users/{uid}` no
+/// Firestore (decisão do usuário, 05/11/2026).
+final currentUidProvider = Provider<String?>(
+  (ref) => ref.watch(authStateProvider.select((auth) => auth.value?.uid)),
+);
+
 /// Perfil do usuário logado; `null` sem login ou sem documento.
 final userProfileProvider = StreamProvider<UserProfile?>((ref) {
   final user = ref.watch(authStateProvider).value;

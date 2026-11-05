@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/data/clock.dart';
 import '../../core/domain/local_date.dart';
-import '../../features/plans/application/plans_providers.dart';
+import '../../features/progress/application/progress_actions.dart';
 import '../../features/plans/domain/plan.dart';
 import '../../features/plans/domain/plan_schedule.dart';
 import '../../features/tasks/application/tasks_providers.dart';
@@ -35,11 +35,12 @@ class PrototypeActions {
         );
   }
 
+  /// Pelo [ProgressActions]: o primeiro plano vira o principal.
   Future<Plan> createSamplePlan() {
     final today = LocalDate.fromDateTime(_now);
     _plans++;
     return _ref
-        .read(plansRepositoryProvider)
+        .read(progressActionsProvider)
         .createPlan(
           Plan(
             id: '',

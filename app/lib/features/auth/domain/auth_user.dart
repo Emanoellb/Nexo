@@ -53,15 +53,38 @@ class AuthUser {
 /// (firestore-rules.md §4) entram com as telas que os usam.
 @immutable
 class UserProfile {
-  const UserProfile({required this.displayName, this.tutorialSeen = false});
+  const UserProfile({
+    required this.displayName,
+    this.tutorialSeen = false,
+    this.points = 0,
+    this.primaryPlanId,
+  });
+
+  /// Limite das regras do Firestore para `users.points`.
+  static const maxPoints = 10000000;
 
   final String displayName;
   final bool tutorialSeen;
 
-  UserProfile copyWith({String? displayName, bool? tutorialSeen}) {
+  /// `users.points`: mantido pelo app (sem Cloud Function no MVP).
+  final int points;
+
+  /// `users.primaryPlanId`: o plano do Início. `null` sem plano.
+  final String? primaryPlanId;
+
+  UserProfile copyWith({
+    String? displayName,
+    bool? tutorialSeen,
+    int? points,
+    String? Function()? primaryPlanId,
+  }) {
     return UserProfile(
       displayName: displayName ?? this.displayName,
       tutorialSeen: tutorialSeen ?? this.tutorialSeen,
+      points: points ?? this.points,
+      primaryPlanId: primaryPlanId == null
+          ? this.primaryPlanId
+          : primaryPlanId(),
     );
   }
 
@@ -69,10 +92,13 @@ class UserProfile {
   bool operator ==(Object other) =>
       other is UserProfile &&
       other.displayName == displayName &&
-      other.tutorialSeen == tutorialSeen;
+      other.tutorialSeen == tutorialSeen &&
+      other.points == points &&
+      other.primaryPlanId == primaryPlanId;
 
   @override
-  int get hashCode => Object.hash(displayName, tutorialSeen);
+  int get hashCode =>
+      Object.hash(displayName, tutorialSeen, points, primaryPlanId);
 }
 
 /// Aceite dos Termos e da Política: as versões de `legalDocuments/current`.

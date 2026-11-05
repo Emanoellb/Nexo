@@ -61,6 +61,7 @@ class NexoColors extends ThemeExtension<NexoColors> {
     required this.scrim,
     required this.controlBorder,
     required this.unread,
+    required this.stepMarkerBorder,
     required this.brandMark,
     required this.glassFill,
     required this.glassSheen,
@@ -134,6 +135,7 @@ class NexoColors extends ThemeExtension<NexoColors> {
     scrim: Color(0x521D2127),
     controlBorder: Color(0xFF858B96),
     unread: Color(0xFFF7F8F9),
+    stepMarkerBorder: Color(0xFFF4F5F7),
     brandMark: Color(0xFF567792),
     glassFill: Color(0x8FFFFFFF),
     glassSheen: Color(0x7AFFFFFF),
@@ -207,6 +209,7 @@ class NexoColors extends ThemeExtension<NexoColors> {
     scrim: Color(0xB314171B),
     controlBorder: Color(0xFF858B96),
     unread: Color(0xFF30353D),
+    stepMarkerBorder: Color(0xFF858B96),
     brandMark: Color(0xFF6E92AE),
     glassFill: Color(0x9E1D2127),
     glassSheen: Color(0x14FFFFFF),
@@ -377,6 +380,13 @@ class NexoColors extends ThemeExtension<NexoColors> {
   /// `Colors/Semantic/Unread`
   final Color unread;
 
+  /// Borda do marcador das etapas futuras dos "Primeiros passos" (Início).
+  /// No claro é igual ao fundo (some); no escuro dá 4,7:1 sobre o cartão,
+  /// onde o SurfaceContainer se confunde com o Card/Default (05/11/2026).
+  ///
+  /// `Colors/Semantic/StepMarker/Border`
+  final Color stepMarkerBorder;
+
   /// Cor do símbolo da marca. No escuro é Primary/500 (#6E92AE, a cor
   /// oficial), diferente do Primary do tema.
   ///
@@ -499,6 +509,7 @@ class NexoColors extends ThemeExtension<NexoColors> {
     Color? scrim,
     Color? controlBorder,
     Color? unread,
+    Color? stepMarkerBorder,
     Color? brandMark,
     Color? glassFill,
     Color? glassSheen,
@@ -571,6 +582,7 @@ class NexoColors extends ThemeExtension<NexoColors> {
       scrim: scrim ?? this.scrim,
       controlBorder: controlBorder ?? this.controlBorder,
       unread: unread ?? this.unread,
+      stepMarkerBorder: stepMarkerBorder ?? this.stepMarkerBorder,
       brandMark: brandMark ?? this.brandMark,
       glassFill: glassFill ?? this.glassFill,
       glassSheen: glassSheen ?? this.glassSheen,
@@ -707,6 +719,11 @@ class NexoColors extends ThemeExtension<NexoColors> {
       scrim: Color.lerp(scrim, other.scrim, t)!,
       controlBorder: Color.lerp(controlBorder, other.controlBorder, t)!,
       unread: Color.lerp(unread, other.unread, t)!,
+      stepMarkerBorder: Color.lerp(
+        stepMarkerBorder,
+        other.stepMarkerBorder,
+        t,
+      )!,
       brandMark: Color.lerp(brandMark, other.brandMark, t)!,
       glassFill: Color.lerp(glassFill, other.glassFill, t)!,
       glassSheen: Color.lerp(glassSheen, other.glassSheen, t)!,

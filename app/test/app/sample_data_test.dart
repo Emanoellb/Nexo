@@ -2,18 +2,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/app/prototype/sample_data.dart';
 import 'package:nexo/core/data/clock.dart';
+import 'package:nexo/features/auth/application/auth_providers.dart';
+import 'package:nexo/features/auth/data/fake_auth_repository.dart';
+import 'package:nexo/features/auth/domain/auth_user.dart';
 import 'package:nexo/features/goals/application/goals_providers.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/subjects/application/subjects_providers.dart';
 import 'package:nexo/features/tasks/application/tasks_providers.dart';
 
+/// Conta de protótipo logada (os exemplos são só dela) e semeadura ligada,
+/// como no `main`.
 Future<ProviderContainer> _seeded(DateTime now) async {
   final container = ProviderContainer(
-    overrides: [clockProvider.overrideWithValue(() => now)],
+    overrides: [
+      clockProvider.overrideWithValue(() => now),
+      authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
+      prototypeSeedingProvider.overrideWithValue(true),
+    ],
   );
   addTearDown(container.dispose);
-  await container.read(prototypeSampleDataProvider.future);
+  await _seedFor(container);
   return container;
+}
+
+/// Ouve os providers como o `main` (no Riverpod 3, provider sem ouvinte fica
+/// pausado) e espera a sessão e a semeadura.
+Future<void> _seedFor(ProviderContainer container) async {
+  container
+    ..listen(authStateProvider, (_, _) {})
+    ..listen(prototypeSampleDataProvider, (_, _) {});
+  await container.read(authStateProvider.future);
+  await container.read(prototypeSampleDataProvider.future);
 }
 
 void main() {
@@ -60,6 +79,51 @@ void main() {
       hasLength(1),
     );
     expect(tasks.last.completed, isTrue);
+
+    // Pontos do perfil = o que foi semeado: dias de 5 a 2 atrás (com menos
+    // 3, com mais 7, com menos 3, na meta 5) + 1 tarefa concluída.
+    final profile = await container
+        .read(userProfileRepositoryProvider)
+        .watchProfile(FakeAuthRepository.prototypeUser.uid)
+        .first;
+    expect(profile!.points, 3 + 7 + 3 + 5 + 1);
+  });
+
+  test('conta nova começa vazia; a de protótipo é o plano principal', () async {
+    final container = ProviderContainer(
+      overrides: [
+        clockProvider.overrideWithValue(() => DateTime(2026, 10, 26, 12)),
+        authRepositoryProvider.overrideWithValue(
+          FakeAuthRepository(
+            initialUser: const AuthUser(
+              uid: 'conta-nova',
+              emailVerified: true,
+              email: 'nova@email.com',
+            ),
+          ),
+        ),
+        prototypeSeedingProvider.overrideWithValue(true),
+      ],
+    );
+    addTearDown(container.dispose);
+    await _seedFor(container);
+    expect(
+      await container.read(plansRepositoryProvider).watchPlans().first,
+      isEmpty,
+    );
+    expect(
+      await container.read(tasksRepositoryProvider).watchTasks().first,
+      isEmpty,
+    );
+
+    final ana = await _seeded(DateTime(2026, 10, 26, 12));
+    final concurso =
+        (await ana.read(plansRepositoryProvider).watchPlans().first).first;
+    final profile = await ana
+        .read(userProfileRepositoryProvider)
+        .watchProfile(FakeAuthRepository.prototypeUser.uid)
+        .first;
+    expect(profile!.primaryPlanId, concurso.id);
   });
 
   test('cedo de manhã, ainda sem a sessão de hoje', () async {

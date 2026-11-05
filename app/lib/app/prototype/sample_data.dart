@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/data/clock.dart';
 import '../../core/domain/local_date.dart';
+import '../../features/auth/application/auth_providers.dart';
+import '../../features/auth/data/fake_auth_repository.dart';
 import '../../features/focus/domain/focus_session.dart';
 import '../../features/focus/domain/session_split.dart';
 import '../../features/goals/application/goals_providers.dart';
@@ -10,16 +12,29 @@ import '../../features/notifications/data/notifications_repository.dart';
 import '../../features/notifications/domain/nexo_notification.dart';
 import '../../features/plans/application/plans_providers.dart';
 import '../../features/plans/domain/plan.dart';
+import '../../features/plans/domain/plan_day_result.dart';
 import '../../features/plans/domain/plan_schedule.dart';
 import '../../features/subjects/application/subjects_providers.dart';
 import '../../features/tasks/application/tasks_providers.dart';
 import '../../features/tasks/domain/task.dart';
 import '../../features/tasks/domain/task_rules.dart';
 
+/// Liga os dados de exemplo. O `main` liga; nos testes fica desligado, para
+/// cada teste montar só os dados de que precisa.
+final prototypeSeedingProvider = Provider<bool>((ref) => false);
+
 /// Preenche os repositórios fake com dados de exemplo, relativos a hoje.
-/// Só na prototipação (chamado pelo `main`). Instituições e nomes são
-/// **fictícios**.
+/// Só na prototipação e só na conta de protótipo (Ana): os dados são por
+/// conta, e uma conta nova começa vazia, para percorrer o Início do zero
+/// (decisão do usuário, 05/11/2026). Instituições e nomes são **fictícios**.
+///
+/// Refaz a cada troca de conta (os repositórios também são recriados).
 final prototypeSampleDataProvider = FutureProvider<void>((ref) async {
+  const uid = FakeAuthRepository.prototypeUserUid;
+  if (!ref.watch(prototypeSeedingProvider) ||
+      ref.watch(currentUidProvider) != uid) {
+    return;
+  }
   final now = ref.read(clockProvider)();
   final today = LocalDate.fromDateTime(now);
 
@@ -64,6 +79,10 @@ final prototypeSampleDataProvider = FutureProvider<void>((ref) async {
     ),
     topicNames: ['Porcentagem', 'Juros simples'],
   );
+  // O primeiro plano é o principal (o do Início).
+  await ref
+      .read(userProfileRepositoryProvider)
+      .setPrimaryPlan(uid, concurso.id);
   await plans.createPlan(
     Plan(
       id: '',
@@ -153,6 +172,24 @@ final prototypeSampleDataProvider = FutureProvider<void>((ref) async {
     ),
   );
   await tasks.setCompleted(relatorio.id, true);
+
+  // users.points coerente com o que foi semeado (dias do plano + tarefas
+  // concluídas). O perfil fake sobrevive a novos logins, então o valor é
+  // ajustado ao total, não somado.
+  var points = (await tasks.watchTasks().first)
+      .where((t) => t.completed)
+      .length;
+  for (final plan in await plans.watchPlans().first) {
+    final snapshot = PlanSnapshot(
+      plan: plan,
+      versions: await plans.watchVersions(plan.id).first,
+      days: await plans.watchDays(plan.id).first,
+    );
+    points += planTotalPoints(snapshot, today: today);
+  }
+  final profiles = ref.read(userProfileRepositoryProvider);
+  final current = (await profiles.watchProfile(uid).first)?.points ?? 0;
+  await profiles.addPoints(uid, points - current);
 
   // Avisos do painel de notificações (ligados aos exemplos acima).
   final notifications = ref.read(notificationsRepositoryProvider);

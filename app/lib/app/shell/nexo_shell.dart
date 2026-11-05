@@ -114,8 +114,10 @@ class _NexoShellState extends ConsumerState<NexoShell> {
     final actions = ref.read(prototypeActionsProvider);
     // Telas de criar ainda não desenhadas: o toque cria um exemplo nos dados
     // fake (decisão do usuário, 04/11/2026).
+    // Na fila: se criar concluir os "Primeiros passos", o aviso do Início
+    // (mostrado na mesma hora) não é apagado por este.
     void created(String message) {
-      if (mounted) showNexoSnackbar(context, message: message);
+      if (mounted) showNexoSnackbar(context, message: message, queue: true);
     }
 
     showNexoFabMenu(

@@ -38,6 +38,7 @@ Se esses tokens mudarem, atualize também esses arquivos.
 | `Motion/*` | `context.motion.short`, `.standard` (`Cubic`), `.distanceSmall`… |
 | `Glass/Blur` | `context.glass.blur` (24). As cores `Colors/Semantic/Glass/*` ficam em `context.nexoColors.glass*`; as de repouso (`Glass/Rest/*`) em `glassRestFill`, `glassRestSheen`, `glassRestEdge` |
 | `Colors/Semantic/Unread` (novo, 04/11/2026) | `context.nexoColors.unread`: fundo da linha de aviso não lido. Claro `#F7F8F9` (igual ao antigo SurfaceContainerLow), escuro `#30353D` (mais claro que o cartão `#262A31`) |
+| `Colors/Semantic/StepMarker/Border` (novo, 05/11/2026) | `context.nexoColors.stepMarkerBorder`: borda de 1 px do marcador das etapas futuras dos "Primeiros passos" do Início. Claro `#F4F5F7` (igual ao fundo, não aparece); escuro `#858B96`, 4,7:1 sobre o Card/Default `#1D2127`, onde o SurfaceContainer do círculo se confunde com o cartão |
 | `Colors/Semantic/Brand/Mark` | `context.nexoColors.brandMark`: cor do símbolo. Claro = Primary/600 `#567792`; escuro = Primary/500 `#6E92AE`, **diferente do Primary escuro** (`#B8CBDC`) |
 | `Elevation/0..5` nos dois temas | `NexoElevation.standard` (uma só lista: a cor da sombra é a mesma) |
 | `typeface` (Manrope) | `nexoFontFamily`, empacotada em `assets/fonts/` (SIL OFL 1.1) |
@@ -90,6 +91,29 @@ A lib tem 9 papéis e o M3 tem 15. Peso 600 = `Typography/Weight/Emphasis`. Sem 
 
 **Atenção:** a Manrope é uma fonte variável. Cada estilo define o peso em `fontWeight` e no eixo `wght` (`FontVariation.weight`). Um `copyWith(fontWeight: …)` feito fora do tema não ajusta o eixo. Use os estilos do tema ou ajuste os dois. A renderização de cada peso ainda não foi verificada em dispositivo.
 
+**Negrito do sistema (05/11/2026):** com "texto em negrito" ligado no aparelho (`MediaQuery.boldTextOf`), todo estilo ganha +200 de peso, até 800 (máximo da Manrope), no `fontWeight` e no eixo `wght` (`withBoldText`). O app aplica ao tema no `builder` do `MaterialApp` (`NexoTheme.withSystemText`). Estilo fixo de `NexoTextStyles` usado direto num widget passa por `context.textStyle(...)`, nunca sozinho.
+
 ## Decisão de componente que afeta o tema
 
 Na lib, o rótulo do campo fica **acima** do campo (LabelMedium) e o valor usa BodyMedium (14). Não é o rótulo flutuante do Material. O `InputDecorationTheme` e o `TextField` do Nexo (fase 3) seguem a lib.
+
+## Desvios intencionais do Material 3
+
+Decisões da lib (pen.dev), registradas em 05/11/2026 na auditoria de componentes. Não são erro de implementação; não "corrija" para o padrão do M3.
+
+| Componente | Material 3 | Nexo (lib) | Por quê |
+|---|---|---|---|
+| Botão (Primary, Secondary, Tertiary) | 40 de altura, formato pílula | 48 de altura (`Size/Target`), `Shape/MD` (12) | Alvo de toque ≥ 48 também na altura; cantos iguais aos dos cartões e campos |
+| Campo de texto | 56 de altura, rótulo flutuante | 48, rótulo **acima** (LabelMedium) | Rótulo sempre visível (mais claro com leitor de tela e fonte grande) |
+| Snackbar | Superfície invertida (escura no claro) | Superfície elevada do tema (`SurfaceContainerLowest`), com borda e Elevation/3, nunca invertida | Superfícies neutras nos dois temas |
+| Barra de navegação | Barra de 80 encostada na base, indicador só atrás do ícone | Cápsula flutuante de vidro (64), indicador atrás do item inteiro, nome sempre visível, versão sólida | Vidro adaptativo do Nexo; "reduzir transparência" e alto contraste usam a sólida |
+| FAB | 56, `Shape` 16 | 64, redondo (`Shape/Full`), ao lado da cápsula | Criação pelo "+" da barra; abre o menu do "+" (como o FAB menu do M3 Expressive) |
+| Dialog | Raio 28 | `Shape/LG` (16), 312 de largura, ícone e título alinhados à esquerda | Mesma família de raios do app |
+| Checkbox | Caixa de 18 | Caixa de 20 (`Shape/XS`, borda 2 em `Control/Border`), alvo de 48 | Leitura melhor com a borda de 2 px |
+
+## Comportamento de sistema
+
+- **Snackbar com ação** ("Desfazer"): some em 4 s, como no design. Com leitor de tela ativo (`MediaQuery.accessibleNavigationOf`), **não some sozinha** (`SnackBar.persist`) e ganha o botão Fechar (WCAG 2.2.1 e M3). `queue: true` entra na fila sem apagar a atual; `clearQueue: true` aparece na frente de tudo ("Primeiros passos concluídos.").
+- **Vibração**: só ao concluir uma tarefa (e, quando existirem, ao concluir um plano e um objetivo), leve (`HapticFeedback.lightImpact`), seguindo a configuração de vibração do sistema. Nada no "+" (decisão do usuário, 05/11/2026).
+- **Fonte ampliada**: os testes de layout cobrem 1,3 e 2,0 (o Android vai até 200%). Textos em linha usam `Wrap`/`Flexible`; as ações do cartão do plano empilham quando o Tertiary não cabe ao lado sem espremer o Focar.
+- **Cartão**: `NexoCard` (= `Content/Card`: Card/Default, borda Card/Border, `Shape/MD`, padding LG). Não repita a decoração à mão.

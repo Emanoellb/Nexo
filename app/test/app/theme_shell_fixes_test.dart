@@ -11,6 +11,7 @@ import 'package:nexo/core/ui/ui.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
 import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/app/shell/under_construction_page.dart';
+import 'package:nexo/features/home/presentation/home_page.dart';
 
 /// Correções do code review da feat/tema-escuro (04/11/2026).
 Future<void> _pumpReady(WidgetTester tester) async {
@@ -32,13 +33,13 @@ Future<void> _pumpReady(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Avisa o shell de uma lista longa (conteúdo abaixo da barra) a partir de
-/// [context].
-void _reportLongList(BuildContext context) {
+/// Avisa o shell de uma lista a partir de [context]: longa (conteúdo abaixo
+/// da barra) ou curta (cabe na tela).
+void _reportList(BuildContext context, {bool long = true}) {
   ScrollMetricsNotification(
     metrics: FixedScrollMetrics(
       minScrollExtent: 0,
-      maxScrollExtent: 800,
+      maxScrollExtent: long ? 800 : 0,
       pixels: 0,
       viewportDimension: 600,
       axisDirection: AxisDirection.down,
@@ -78,15 +79,19 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(LucideIcons.house));
     await tester.pumpAndSettle();
+    // O Início (aba visível) com a lista inteira na tela: repouso.
+    final home = tester.element(find.byType(HomePage));
+    _reportList(home, long: false);
+    await tester.pump();
     expect(_overContent(tester), isFalse);
 
     // Tarefas, fora da tela, avisa uma lista longa (ex.: teclado, rotação).
-    _reportLongList(_pageOf(tester, 'Tarefas'));
+    _reportList(_pageOf(tester, 'Tarefas'));
     await tester.pump();
     expect(_overContent(tester), isFalse);
 
     // A aba visível avisando liga o vidro.
-    _reportLongList(_pageOf(tester, 'Início'));
+    _reportList(home);
     await tester.pump();
     expect(_overContent(tester), isTrue);
   });

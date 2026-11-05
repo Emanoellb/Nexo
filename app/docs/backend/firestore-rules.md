@@ -113,6 +113,12 @@ Telas: 02 Planos, 03 Novo plano, 07 Visão geral. MVP: RF01, RF02, RF04–RF07. 
 - **Plano principal: `users.primaryPlanId`**, não `isPrimary` no plano. Para apagar o plano principal, o app limpa o `primaryPlanId` na mesma operação (lote).
 - **Pausa:** vale **a partir de hoje**, se o dia ainda não foi finalizado. Retomar também. Dias pausados viram "Folga/Pausado" e saem da conta (lógica do app).
 - **Semana: domingo a sábado.** Vale para o "× por semana" e para o calendário (como no design: D S T Q Q S S).
+- **"× por semana" é uma cota semanal** (decisão do usuário de 05/11/2026, já implementada pelo Flutter no Início):
+  - todo dia da semana é dia de estudo **até** o usuário cumprir X dias naquela semana (domingo a sábado);
+  - depois de cumprida a cota, os demais dias da semana são **folga**;
+  - dia sem estudo **não vira "não cumprido"**;
+  - **sequência** (decisão de 05/11/2026): quebra quando a semana (domingo a sábado) **fecha abaixo da cota** de X dias. Dia sem estudo dentro da semana é folga e não quebra.
+  - É regra do app (calculada a partir dos `days`); o banco e as regras não mudam. Fecha a pendência do `ca7IW` item 05 para essa frequência.
 - `frequency` e `dailyGoalMinutes` no plano são a cópia da configuração mais recente, usada na lista. O histórico fica em `scheduleVersions`.
 - Totais da Visão geral e do Relatório (horas, saldo, sequência, pontos, dias por status) são **calculados pelo app** a partir dos dias e das versões.
 - **Excluir plano:** o app marca `status: "deleting"`, apaga sessões, dias e versões em lotes e, por último, o plano. A marcação **não tem volta**: depois dela, as regras negam qualquer update do plano (inclusive voltar para outro status ou mudar o nome) e qualquer criação de sessão, dia, tópico ou versão nele. Por isso, o app só marca depois de o usuário confirmar a exclusão.
@@ -284,6 +290,7 @@ Publicados em 25/10/2026 junto com as regras v0.6. Filtros simples são indexado
 | Nível | **A cada 20 pontos, sobe um nível**: nível = pontos ÷ 20 (parte inteira) + 1. Regra do app | 25/10 |
 | Disciplina | ~~Usuário escolhe ícone e cor (paleta fixa)~~ (25/10). **Revertida em 04/11:** só nome e ícone; cor fora do MVP | 04/11 |
 | Situação da entrega da tarefa | **Entra no MVP**: Não iniciada, Em andamento, Entregue, Aguardando correção | 25/10 |
+| Frequência "× por semana" | **Cota semanal:** todo dia é dia de estudo até cumprir X dias na semana (domingo a sábado); depois, os demais dias são folga. Dia sem estudo não vira "não cumprido". A sequência quebra quando a semana fecha abaixo da cota. Regra do app (seção 4, planos) | 05/11 |
 
 Itens do Perfil aprovados (22/10): editar nome, nível e conquistas, privacidade e dados (Termos, Política, pedir cópia dos dados, contato), alterar senha (só e-mail e senha), Sobre (versão e licenças), sair, excluir conta.
 
@@ -310,12 +317,14 @@ O Flutter e o design estão pausados até o fim da configuração do Firebase (d
 5. Criar plano: plano + versão inicial (`effectiveFrom` = início) + `primaryPlanId` (se for o principal) num lote só.
 6. Cronômetro: guardar o início no aparelho; gravar a sessão só ao encerrar; dividir à meia-noite (fuso do usuário); gravar a sessão e atualizar `days/{data}.doneMinutes` no mesmo lote.
 7. Calcular no app: meta, status e pontos de cada dia; totais da Visão geral e do Relatório; sequências; nível; contagens das disciplinas; "Atrasada".
+   - **Sequências no "× por semana"** (05/11/2026): a sequência só quebra quando a semana (domingo a sábado) fecha abaixo da cota de X dias. Dia sem estudo dentro da semana é folga e não quebra (seção 4, planos).
 8. Pontos: +1/−1 na tarefa; 5/3/7/0 no dia (com os ajustes de Desfazer, RF16 e edições dentro da janela). Gravar em `users.points`.
 9. Conquistas: gravar `achievements/{id}` com `earnedAt` quando o critério do catálogo for atingido.
 10. Notificações locais: lembrete diário do plano, aviso noturno **às 21h** se a meta não estiver completa, aviso 7 dias antes do fim do plano, aviso de entrega da tarefa (`reminderMinutesBefore`), limite de 1 aviso por plano/dia. Preferências de silêncio ficam no aparelho.
 13. Nível: pontos ÷ 20 (parte inteira) + 1; a barra do Nexo/LevelProgress mostra "pontos atuais / 20" dentro do nível.
 14. Tópicos do plano: criar, renomear e apagar em `plans/{id}/topics`; ao criar, oferecer as matérias existentes ou um tópico novo. A sessão grava `topicId`.
 15. Tarefa: `deliveryStatus` coerente com `completed` (concluir → "Entregue"; reabrir → "Em andamento", no mesmo gravar).
+16. **Comentário desatualizado:** `app/lib/features/plans/domain/plan_schedule.dart:64` ainda diz que "quais dias contam como planejados é regra do item 05 do `ca7IW` (pendente)". Para o "× por semana", a regra foi decidida em 05/11/2026 (cota semanal, seção 4, planos). Atualizar o comentário. O `app/firestore.rules` não tem comentário pendente sobre isso.
 11. Excluir plano: confirmar com o usuário → `status: "deleting"` (sem volta: depois disso o plano não aceita update nem filhos novos) → apagar sessões, dias, tópicos e versões em lotes → limpar `primaryPlanId` e apagar o plano. Planos novos sempre com id automático.
 12. Excluir conta: pedir login de novo → `deletionRequestedAt` → apagar planos (como no item 11), tarefas, disciplinas, objetivos e conquistas → apagar `users/{uid}` → `currentUser.delete()`. Retomar no próximo login se parar no meio.
 

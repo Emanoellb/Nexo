@@ -91,8 +91,11 @@ class FakeAuthRepository implements AuthRepository {
   static const prototypePassword = 'Nexo#2026';
   static const googleEmail = 'ana.souza@gmail.com';
 
+  /// uid da conta de protótipo (constante, para comparações em `const`).
+  static const prototypeUserUid = 'prototipo';
+
   static const prototypeUser = AuthUser(
-    uid: 'prototipo',
+    uid: prototypeUserUid,
     emailVerified: true,
     email: prototypeEmail,
   );
@@ -293,6 +296,21 @@ class FakeUserProfileRepository implements UserProfileRepository {
     final profile = _profiles[uid];
     if (profile == null) return;
     setProfile(uid, profile.copyWith(tutorialSeen: true));
+  }
+
+  @override
+  Future<void> addPoints(String uid, int delta) async {
+    final profile = _profiles[uid];
+    if (profile == null || delta == 0) return;
+    final points = (profile.points + delta).clamp(0, UserProfile.maxPoints);
+    setProfile(uid, profile.copyWith(points: points));
+  }
+
+  @override
+  Future<void> setPrimaryPlan(String uid, String? planId) async {
+    final profile = _profiles[uid];
+    if (profile == null) return;
+    setProfile(uid, profile.copyWith(primaryPlanId: () => planId));
   }
 
   void dispose() => _controller.close();

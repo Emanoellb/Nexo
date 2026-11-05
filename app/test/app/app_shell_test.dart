@@ -10,6 +10,8 @@ import 'package:nexo/features/auth/domain/auth_user.dart';
 import 'package:nexo/features/notifications/application/notifications_providers.dart';
 import 'package:nexo/features/notifications/data/notifications_repository.dart';
 import 'package:nexo/features/notifications/domain/nexo_notification.dart';
+import 'package:nexo/features/home/presentation/home_page.dart';
+import 'package:nexo/core/ui/ui.dart';
 
 /// App logado com a conta pronta e, se pedido, avisos de exemplo.
 Future<FakeNotificationsRepository> _pumpReady(WidgetTester tester) async {
@@ -47,7 +49,7 @@ void main() {
     tester,
   ) async {
     await _pumpReady(tester);
-    expect(find.text('Em construção · bloco 6 · Início'), findsOneWidget);
+    expect(find.byType(HomePage), findsOneWidget);
 
     await tester.tap(find.byIcon(LucideIcons.target));
     await tester.pumpAndSettle();
@@ -73,7 +75,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
-    expect(find.text('Em construção · bloco 6 · Início'), findsOneWidget);
+    expect(find.byType(HomePage), findsOneWidget);
   });
 
   testWidgets('sino: abrir não marca lido; tocar marca e vai à aba', (
@@ -119,7 +121,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('Criar'), findsOneWidget);
     }
-    await tester.tap(find.byIcon(LucideIcons.plus));
+    await tester.tap(find.byType(NexoFab));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Nova tarefa'));
     await tester.pumpAndSettle();
@@ -145,7 +147,7 @@ void main() {
 
     auth.setUser(FakeAuthRepository.prototypeUser);
     await tester.pumpAndSettle();
-    expect(find.text('Em construção · bloco 6 · Início'), findsOneWidget);
+    expect(find.byType(HomePage), findsOneWidget);
   });
 
   testWidgets('e-mail não verificado vai à tela de verificação', (

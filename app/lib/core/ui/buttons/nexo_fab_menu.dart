@@ -164,9 +164,9 @@ class NexoFabMenuItem extends StatelessWidget {
                   SizedBox(width: spacing.sm),
                   Text(
                     label,
-                    style: NexoTextStyles.labelMediumEmphasis.copyWith(
-                      color: c.onPrimaryContainer,
-                    ),
+                    style: context
+                        .textStyle(NexoTextStyles.labelMediumEmphasis)
+                        .copyWith(color: c.onPrimaryContainer),
                   ),
                 ],
               ),

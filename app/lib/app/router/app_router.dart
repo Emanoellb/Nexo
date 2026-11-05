@@ -11,6 +11,7 @@ import '../../features/auth/presentation/google_first_access_page.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/sign_up_page.dart';
 import '../../features/auth/presentation/verify_email_page.dart';
+import '../../features/home/presentation/home_page.dart';
 import '../../features/legal/presentation/legal_document_page.dart';
 import '../../features/tutorial/presentation/tutorial_page.dart';
 import '../../features/splash/application/splash_providers.dart';
@@ -101,8 +102,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           NexoShell(navigationShell: navigationShell),
         ),
         branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.home,
+                builder: (context, state) => const HomePage(),
+              ),
+            ],
+          ),
           for (final (path, title, block) in const [
-            (AppRoutes.home, 'Início', 'bloco 6 · Início'),
             (AppRoutes.tasks, 'Tarefas', 'bloco 7 · Tarefas'),
             (AppRoutes.plans, 'Planos', 'bloco 3 · Planos'),
             // "Calendário" virou "Agenda" só no texto (04/11/2026).

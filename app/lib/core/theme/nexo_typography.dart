@@ -84,3 +84,42 @@ TextTheme nexoTextTheme(Color onSurface) {
   );
   return theme.apply(bodyColor: onSurface, displayColor: onSurface);
 }
+
+/// Peso máximo da Manrope empacotada.
+const int _maxWeight = 800;
+
+/// "Texto em negrito" do sistema (HIG Bold Text, Android 12+): +200 no
+/// peso, até 800, no `fontWeight` e no eixo `wght` (a fonte é variável,
+/// então só o `fontWeight` não bastaria).
+TextStyle withBoldText(TextStyle style) {
+  final weight = ((style.fontWeight ?? FontWeight.w400).value + 200).clamp(
+    100,
+    _maxWeight,
+  );
+  return style.copyWith(
+    fontWeight: FontWeight.values[weight ~/ 100 - 1],
+    fontVariations: [FontVariation.weight(weight.toDouble())],
+  );
+}
+
+/// O [TextTheme] com o negrito do sistema aplicado em todos os slots.
+TextTheme textThemeWithBoldText(TextTheme t) {
+  TextStyle? b(TextStyle? s) => s == null ? null : withBoldText(s);
+  return TextTheme(
+    displayLarge: b(t.displayLarge),
+    displayMedium: b(t.displayMedium),
+    displaySmall: b(t.displaySmall),
+    headlineLarge: b(t.headlineLarge),
+    headlineMedium: b(t.headlineMedium),
+    headlineSmall: b(t.headlineSmall),
+    titleLarge: b(t.titleLarge),
+    titleMedium: b(t.titleMedium),
+    titleSmall: b(t.titleSmall),
+    bodyLarge: b(t.bodyLarge),
+    bodyMedium: b(t.bodyMedium),
+    bodySmall: b(t.bodySmall),
+    labelLarge: b(t.labelLarge),
+    labelMedium: b(t.labelMedium),
+    labelSmall: b(t.labelSmall),
+  );
+}

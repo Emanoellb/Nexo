@@ -48,6 +48,27 @@ void main() {
         expect(c.glassRestFill.a, greaterThan(c.glassFill.a));
       }
     });
+
+    test(
+      'StepMarker/Border: some no claro; ≥ 3:1 sobre o cartão no escuro',
+      () {
+        double contrast(Color a, Color b) {
+          final la = a.computeLuminance();
+          final lb = b.computeLuminance();
+          final (hi, lo) = la > lb ? (la, lb) : (lb, la);
+          return (hi + 0.05) / (lo + 0.05);
+        }
+
+        expect(NexoColors.light.stepMarkerBorder, const Color(0xFFF4F5F7));
+        expect(
+          NexoColors.light.stepMarkerBorder,
+          NexoColors.light.surfaceContainer,
+        );
+        expect(d.stepMarkerBorder, const Color(0xFF858B96));
+        // Elemento não textual (WCAG 1.4.11): 3:1. O design mede 4,7:1.
+        expect(contrast(d.stepMarkerBorder, d.cardDefault), greaterThan(4.5));
+      },
+    );
   });
 
   group('NexoTheme.dark', () {

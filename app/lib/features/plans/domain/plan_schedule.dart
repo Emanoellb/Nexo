@@ -60,8 +60,15 @@ final class WeekdaysFrequency extends PlanFrequency {
   int get hashCode => Object.hashAllUnordered(weekdays);
 }
 
-/// "× por semana" (semana de domingo a sábado). Quais dias contam como
-/// planejados é regra do item 05 do `ca7IW` (pendente).
+/// "× por semana" (semana de domingo a sábado), como cota (decisão do
+/// usuário, 05/11/2026; firestore-rules.md §4, §5 e §7):
+/// - todo dia é dia de estudo até a pessoa cumprir [timesPerWeek] dias na
+///   semana; depois, os dias restantes viram folga;
+/// - dia sem estudo é folga, nunca "não cumprido" sozinho;
+/// - a sequência quebra quando a semana fecha abaixo da cota.
+///
+/// O cálculo fica em `plan_day_result.dart` (`planWeekResults`,
+/// `currentStreak`).
 final class TimesPerWeekFrequency extends PlanFrequency {
   TimesPerWeekFrequency(this.timesPerWeek) {
     if (timesPerWeek < 1 || timesPerWeek > 7) {
@@ -157,8 +164,9 @@ bool isWithinPlanPeriod({
 }
 
 /// O dia está na frequência de "todos os dias" ou "dias da semana".
-/// Para "× por semana", a decisão depende da regra pendente (`ca7IW` item 05)
-/// e esta função devolve `null`.
+/// Para "× por semana" devolve `null`: o dia não se decide sozinho, depende
+/// da cota da semana ([TimesPerWeekFrequency]; cálculo em
+/// `planWeekResults`).
 bool? isScheduledWeekday(PlanFrequency frequency, LocalDate day) {
   return switch (frequency) {
     DailyFrequency() => true,

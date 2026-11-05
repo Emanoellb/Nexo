@@ -31,18 +31,16 @@ void main() {
       );
     });
 
-    test(
-      'dia na frequência: diário e dias da semana; × por semana pendente',
-      () {
-        const monday = LocalDate(2026, 10, 26);
-        const tuesday = LocalDate(2026, 10, 27);
-        expect(isScheduledWeekday(const DailyFrequency(), tuesday), isTrue);
-        final mwf = WeekdaysFrequency({1, 3, 5});
-        expect(isScheduledWeekday(mwf, monday), isTrue);
-        expect(isScheduledWeekday(mwf, tuesday), isFalse);
-        expect(isScheduledWeekday(TimesPerWeekFrequency(3), monday), isNull);
-      },
-    );
+    test('dia na frequência: diário e dias da semana; × por semana depende da '
+        'cota (plan_day_result)', () {
+      const monday = LocalDate(2026, 10, 26);
+      const tuesday = LocalDate(2026, 10, 27);
+      expect(isScheduledWeekday(const DailyFrequency(), tuesday), isTrue);
+      final mwf = WeekdaysFrequency({1, 3, 5});
+      expect(isScheduledWeekday(mwf, monday), isTrue);
+      expect(isScheduledWeekday(mwf, tuesday), isFalse);
+      expect(isScheduledWeekday(TimesPerWeekFrequency(3), monday), isNull);
+    });
   });
 
   group('versão vigente (RF04)', () {

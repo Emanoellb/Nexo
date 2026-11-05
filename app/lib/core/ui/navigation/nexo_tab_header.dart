@@ -142,9 +142,9 @@ class _Avatar extends StatelessWidget {
               ),
               child: Text(
                 initials,
-                style: NexoTextStyles.labelMediumEmphasis.copyWith(
-                  color: c.onPrimaryContainer,
-                ),
+                style: context
+                    .textStyle(NexoTextStyles.labelMediumEmphasis)
+                    .copyWith(color: c.onPrimaryContainer),
               ),
             ),
           ),

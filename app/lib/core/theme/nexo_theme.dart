@@ -27,6 +27,13 @@ abstract final class NexoTheme {
     elevation: NexoElevation.standard,
   );
 
+  /// Aplica o "texto em negrito" do sistema ao [theme], se ligado em
+  /// [context] (o app chama no `builder` do MaterialApp).
+  static ThemeData withSystemText(BuildContext context, ThemeData theme) {
+    if (!MediaQuery.boldTextOf(context)) return theme;
+    return theme.copyWith(textTheme: textThemeWithBoldText(theme.textTheme));
+  }
+
   static ThemeData build({
     required Brightness brightness,
     required NexoColors colors,
@@ -110,4 +117,10 @@ extension NexoThemeContext on BuildContext {
   NexoElevation get elevation => Theme.of(this).extension<NexoElevation>()!;
   NexoMotion get motion => Theme.of(this).extension<NexoMotion>()!;
   NexoGlass get glass => Theme.of(this).extension<NexoGlass>()!;
+
+  /// Um estilo fixo de [NexoTextStyles] com o negrito do sistema, se ligado.
+  /// Os estilos do tema (`Theme.of(context).textTheme`) já vêm ajustados
+  /// pelo app ([NexoTheme.withSystemText]).
+  TextStyle textStyle(TextStyle style) =>
+      MediaQuery.boldTextOf(this) ? withBoldText(style) : style;
 }

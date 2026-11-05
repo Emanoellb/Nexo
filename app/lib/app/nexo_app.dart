@@ -29,13 +29,18 @@ class NexoApp extends ConsumerWidget {
       // status: os presets SystemUiOverlayStyle.dark/.light também pintam a
       // barra de navegação do Android de preto.
       builder: (context, child) {
-        final light = Theme.of(context).brightness == Brightness.light;
+        final theme = Theme.of(context);
+        final light = theme.brightness == Brightness.light;
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
             statusBarIconBrightness: light ? Brightness.dark : Brightness.light,
             statusBarBrightness: light ? Brightness.light : Brightness.dark,
           ),
-          child: WindowBackgroundSync(child: child!),
+          // "Texto em negrito" do sistema em todos os estilos do tema.
+          child: Theme(
+            data: NexoTheme.withSystemText(context, theme),
+            child: WindowBackgroundSync(child: child!),
+          ),
         );
       },
     );

@@ -87,6 +87,14 @@ class NexoSnackbar extends StatelessWidget {
 
 /// Mostra um [NexoSnackbar] flutuante no rodapé. O SnackBar do Flutter já
 /// anuncia a mensagem para o leitor de tela.
+///
+/// - Com ação ("Desfazer") e leitor de tela ativo, NÃO some sozinha (M3,
+///   WCAG 2.2.1): fica até a pessoa agir ou fechar, e ganha o botão
+///   Fechar. Sem leitor de tela, some em [duration] (4 s, do design).
+/// - [queue]: entra depois da atual, em vez de substituí-la (ex.: a
+///   confirmação de "criar" não apaga "Primeiros passos concluídos.").
+/// - [clearQueue]: tira a atual e as da fila e aparece já (ex.: "Primeiros
+///   passos concluídos.", que não pode ficar atrás de outras).
 ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showNexoSnackbar(
   BuildContext context, {
   required String message,
@@ -94,10 +102,18 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showNexoSnackbar(
   String? actionLabel,
   VoidCallback? onAction,
   bool showClose = false,
+  bool queue = false,
+  bool clearQueue = false,
   Duration duration = const Duration(seconds: 4),
 }) {
   final messenger = ScaffoldMessenger.of(context);
-  messenger.hideCurrentSnackBar();
+  if (clearQueue) {
+    messenger.clearSnackBars();
+  } else if (!queue) {
+    messenger.hideCurrentSnackBar();
+  }
+  final persist =
+      onAction != null && MediaQuery.accessibleNavigationOf(context);
   return messenger.showSnackBar(
     SnackBar(
       // Fundo do SnackBar invisível: a superfície é a do NexoSnackbar. Sem
@@ -109,6 +125,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showNexoSnackbar(
       behavior: SnackBarBehavior.floating,
       padding: EdgeInsets.zero,
       duration: duration,
+      persist: persist,
       margin: EdgeInsets.fromLTRB(
         context.spacing.lg,
         0,
@@ -127,7 +144,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showNexoSnackbar(
                 );
                 onAction();
               },
-        onClose: showClose ? messenger.hideCurrentSnackBar : null,
+        onClose: showClose || persist ? messenger.hideCurrentSnackBar : null,
       ),
     ),
   );
