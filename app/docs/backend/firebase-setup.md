@@ -81,14 +81,17 @@ Nada aqui muda o repositório.
 
 ## 2. Projeto no console (você)
 
-O projeto já existe: nome `nexo-app-gestao`, Project ID `nexo-app-gestao-f97bb`, plano Blaze contratado (21/10/2026). Falta conferir:
+O projeto já existe: nome `nexo-app-gestao`, Project ID `nexo-app-gestao-f97bb`, plano Blaze contratado (21/10/2026). Itens 1 a 3 conferidos pelo usuário em 04/11/2026:
 
-1. **Google Analytics desligado** (D2). Configurações do projeto › Integrações: o Google Analytics não pode estar vinculado.
+1. **Google Analytics desligado** (D2). Configurações do projeto › Integrações: o Google Analytics não pode estar vinculado. **Conferido pelo usuário em 04/11/2026: o card mostra "Ativar", ou seja, não está vinculado.**
    - Se estiver, desvincule a propriedade. Os dados ficam na propriedade do Analytics [C]. O passo a passo exato no console é [NC].
 2. **Orçamento com alertas** no Google Cloud Billing (ex.: 50%, 90% e 100% de um valor mensal baixo).
+   - **Criado pelo usuário em 04/11/2026** (print do console): "Nexo - Alerta Mensal", mensal, valor especificado de **R$ 20,00**, só no projeto `nexo-app-gestao-f97bb`, alertas em 50%, 90% e 100%, sem limite de gastos (spend cap).
+   - Orientação: desmarcar "Promoções" para o alerta medir o custo bruto, sem descontar os créditos [C]. **Conferido pelo usuário em 04/11/2026 (print):** em "Economia", "Programas de economia" e "Outras economias" estão desmarcados, então o orçamento mede o custo total, sem descontar créditos.
+   - **Créditos de teste:** a conta usa créditos com prazo que termina por volta de 19/01/2027 (informado pelo usuário). Sem ativar a conta paga, a conta de faturamento fecha e o projeto volta para o Spark [C, firebase-pricing-plans]. Decisão do usuário antes dessa data.
    - O orçamento **só avisa: não bloqueia o gasto** [C].
    - O teto de gasto (spend cap) não cobre Firestore nem Cloud Scheduler [C].
-3. **Public-facing name** = `Nexo`.
+3. **Public-facing name** = `Nexo`. **Conferido pelo usuário em 04/11/2026:** o campo "Nome público" já está como `Nexo`.
    - Ele aparece nos e-mails que os usuários recebem e vira `%APP_NAME%` [C, P3].
    - Fica na página Settings do projeto [C]. O caminho exato do menu é [NC].
 4. **Usuários e permissões:** só a sua conta como Owner. Papéis com o menor privilégio [C, security checklist].
@@ -98,10 +101,10 @@ O projeto já existe: nome `nexo-app-gestao`, Project ID `nexo-app-gestao-f97bb`
 
 **Checklist 2**
 - [ ] `firebase projects:list` mostra `nexo-app-gestao-f97bb`.
-- [ ] Integrações: Google Analytics **não** vinculado.
+- [x] Integrações: Google Analytics **não** vinculado (usuário, 04/11/2026).
 - [ ] Uso e faturamento: plano Blaze.
-- [ ] Orçamento criado, com o e-mail de alerta chegando para você.
-- [ ] Public-facing name = `Nexo`.
+- [x] Orçamento criado: R$ 20/mês, alertas em 50/90/100% (usuário, 04/11/2026). Chegada do e-mail de alerta: não testada.
+- [x] Public-facing name = `Nexo` (usuário, 04/11/2026).
 
 ---
 

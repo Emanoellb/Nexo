@@ -29,8 +29,8 @@ Regras completas no `AGENTS.md` §6 e no mapeamento `app/docs/frontend/tokens-fl
 
 - **Tokens:** só `Colors/Semantic/*` (Flutter: `colorScheme` / `context.nexoColors`), `context.spacing`, `context.shape`, `context.elevation`, `context.motion` e os estilos de texto do tema (Manrope). Zero hex ou primitiva em widget.
 - **Componentes base:** `app/lib/core/ui/` (exportados em `ui.dart`). Reutilize antes de criar.
-- **Tema:** só claro, com dark previsto pela troca dos papéis semânticos.
-- **Decisões travadas:** Snackbar clara embaixo; superfícies claras; criação no topo; Secondary só para progresso e conquistas; alvo ≥ 48 px.
+- **Tema:** claro e escuro (aprovado em 04/11/2026). Segue o tema do sistema, com opção no Perfil. Os mesmos papéis semânticos nos dois temas; o escuro usa `NexoColors.dark` (especificação em `pen.dev/notas/modo-escuro-especificacao.md`). Toda tela nova é desenhada e implementada nos dois temas.
+- **Decisões travadas:** Snackbar embaixo, acima da barra, na superfície elevada do tema (nunca invertida); superfícies neutras, sem inverter o tema; criação pelo "+" da barra (menu "Nova tarefa" / "Novo plano"), nunca no topo das telas; Secondary só para progresso e conquistas; alvo ≥ 48 px.
 
 ## Como trabalhar aqui
 
@@ -43,8 +43,10 @@ Regras completas no `AGENTS.md` §6 e no mapeamento `app/docs/frontend/tokens-fl
 
 ## Sessões paralelas
 
-O trabalho do Nexo roda em várias sessões do Claude Code: design system, prototipação, Flutter, Firebase, regras do Firestore, dados e legal, logo.
+O trabalho do Nexo roda em várias sessões do Claude Code: design system, prototipação, Flutter, Firebase, regras do Firestore, dados e legal, logo. Uma sessão principal orquestra as outras: os pedidos do usuário passam por ela, e ela repassa às sessões.
 
 - Uma sessão só edita o que é dela.
+- Uma frente por vez, por prioridade: só se sai de uma frente quando ela termina. Telas em fila rígida: design (claro e escuro) → aprovação → Flutter → teste e publicação do usuário → próxima tela.
+- Mudança só de docs ou regras de design não ganha branch própria: vai na branch de código que mexe no componente afetado. Exceção: regras do Firestore, que têm testes e deploy.
 - Dois escritores nunca no mesmo `.pen` ao mesmo tempo, por causa do arquivo ativo do Pencil.
 - Pedidos para uma área pausada vão para as listas de pendências (`firebase-setup.md` §11, `firestore-rules.md` §7), não para a sessão pausada.

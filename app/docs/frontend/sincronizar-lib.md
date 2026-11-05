@@ -36,7 +36,8 @@ Código: `app/lib/features/splash/`, `app/lib/core/ui/brand/nexo_animated_symbol
 | 1ª abertura | "Bem-vindo ao Nexo" (TitleLarge) e "Do objetivo à ação do dia." (BodyMedium, OnSurfaceVariant) abaixo do símbolo, de 1100 a 1500 ms (`Enter`, sobe `distanceMedium`), mais ~600 ms de leitura: 3,3 s no total. Marca local `first_open_done` | [D] |
 | Saída | Sem sessão: Hero até a logo do Login (tag `nexo-logo`; a tela de Login deve usar a mesma). Com sessão: esmaecimento até o Início (`Motion/Duration/Medium`) | [D] |
 | Reduzir movimento | Símbolo e texto estáticos; só a pausa de leitura na 1ª abertura | [D] |
-| Modo escuro do sistema | A abertura continua clara, porque o app é só claro | [P] |
+| Modo escuro do sistema | **Substituído em 04/11/2026** (modo escuro aprovado): com o sistema no escuro, a abertura é escura. Fundo `Surface` escuro `#14171B`, símbolo `Brand/Mark` escuro `#6E92AE` (`values-night`, `values-night-v31`). Antes: "a abertura continua clara, porque o app é só claro" | [D] |
+| Carregando lento | Se a animação acaba antes da carga, aparece no rodapé o `Feedback/Progress/Circular` indeterminado (32 px, rótulo "Carregando") até a carga terminar; continua com "reduzir movimento"; sem limite de tempo (04/11/2026) | [D] |
 
 ### Tutorial: conteúdo novo dos 5 passos (decidido em 26/10/2026; ainda não implementado)
 
