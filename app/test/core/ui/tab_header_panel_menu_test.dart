@@ -1,0 +1,247 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:nexo/core/theme/nexo_theme.dart';
+import 'package:nexo/core/ui/ui.dart';
+
+import '../../helpers/nexo_test_app.dart';
+
+/// Topo das abas, painel de notificações e menu do "+" (aprovados no Pen.dev
+/// em 04/11/2026).
+void main() {
+  group('NexoTabHeader', () {
+    Widget header({int unread = 0, VoidCallback? onProfile}) => MaterialApp(
+      theme: NexoTheme.light(),
+      home: Scaffold(
+        body: NexoTabHeader(
+          title: 'Início',
+          unreadCount: unread,
+          onNotifications: () {},
+          initials: 'AS',
+          onProfile: onProfile ?? () {},
+        ),
+      ),
+    );
+
+    testWidgets('nome da aba, sino e avatar com as iniciais', (tester) async {
+      await tester.pumpWidget(header());
+      expect(find.text('Início'), findsOneWidget);
+      expect(find.byIcon(LucideIcons.bell), findsOneWidget);
+      expect(find.text('AS'), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(NexoTabHeader)).height,
+        greaterThanOrEqualTo(NexoTabHeader.height),
+      );
+    });
+
+    testWidgets('sino diz quantos não lidos; ponto só com não lido', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(header());
+      expect(find.bySemanticsLabel('Notificações'), findsOneWidget);
+
+      await tester.pumpWidget(header(unread: 2));
+      expect(
+        find.bySemanticsLabel('Notificações, 2 não lidas'),
+        findsOneWidget,
+      );
+      final dot = tester
+          .widgetList<Container>(find.byType(Container))
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .where((d) => d.color == NexoColors.light.error);
+      expect(dot, hasLength(1));
+      handle.dispose();
+    });
+
+    testWidgets('avatar é um botão "Perfil"', (tester) async {
+      final handle = tester.ensureSemantics();
+      var opened = 0;
+      await tester.pumpWidget(header(onProfile: () => opened++));
+      await tester.tap(find.bySemanticsLabel('Perfil'));
+      expect(opened, 1);
+      await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      handle.dispose();
+    });
+  });
+
+  group('NexoNotificationPanel', () {
+    Widget panel({List<Widget> items = const [], VoidCallback? markAll}) =>
+        nexoTestApp(
+          NexoNotificationPanel(
+            items: items,
+            onMarkAllRead: markAll,
+            onClose: () {},
+          ),
+        );
+
+    NexoNotificationItem item(String title, {bool unread = false}) =>
+        NexoNotificationItem(
+          icon: LucideIcons.calendarClock,
+          title: title,
+          body: 'Lista de exercícios 3 · Cálculo II · amanhã, 18:00',
+          time: 'há 2 h',
+          unread: unread,
+          onTap: () {},
+        );
+
+    testWidgets('vazio: sino e "Nenhuma notificação recente"', (tester) async {
+      await tester.pumpWidget(panel());
+      expect(find.text('Notificações'), findsOneWidget);
+      expect(find.text('Últimos 30 dias'), findsOneWidget);
+      expect(find.text('Nenhuma notificação recente'), findsOneWidget);
+      expect(
+        tester
+            .widget<NexoIconButton>(
+              find.widgetWithIcon(NexoIconButton, LucideIcons.checkCheck),
+            )
+            .onPressed,
+        isNull,
+      );
+    });
+
+    testWidgets('não lido: título 600, ponto e fundo próprio', (tester) async {
+      await tester.pumpWidget(
+        panel(
+          items: [item('Entrega amanhã', unread: true), item('Meta do dia')],
+          markAll: () {},
+        ),
+      );
+      final c = NexoColors.light;
+      TextStyle styleOf(String t) => tester.widget<Text>(find.text(t)).style!;
+      expect(styleOf('Entrega amanhã').fontVariations, [
+        const FontVariation.weight(600),
+      ]);
+      expect(styleOf('Meta do dia').fontVariations, [
+        const FontVariation.weight(500),
+      ]);
+      final unreadDots = tester
+          .widgetList<Container>(find.byType(Container))
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .where((d) => d.color == c.primary && d.shape == BoxShape.circle);
+      expect(unreadDots, hasLength(1));
+    });
+
+    testWidgets('lista com até 400 de altura e rolagem', (tester) async {
+      tester.view.physicalSize = const Size(1080, 3000);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        panel(items: [for (var i = 0; i < 12; i++) item('Aviso $i')]),
+      );
+      final list = tester.getSize(find.byType(ListView));
+      expect(
+        list.height,
+        lessThanOrEqualTo(NexoNotificationPanel.maxListHeight),
+      );
+    });
+
+    testWidgets('diretrizes de alvo, rótulo e contraste', (tester) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        panel(items: [item('Entrega amanhã', unread: true)], markAll: () {}),
+      );
+      await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      handle.dispose();
+    });
+  });
+
+  group('showNexoFabMenu', () {
+    Future<List<String>> openMenu(WidgetTester tester) async {
+      final chosen = <String>[];
+      final fabKey = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: NexoTheme.light(),
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomRight,
+              child: Builder(
+                builder: (context) => NexoFab(
+                  key: fabKey,
+                  onPressed: () {
+                    final box =
+                        fabKey.currentContext!.findRenderObject()! as RenderBox;
+                    showNexoFabMenu(
+                      context,
+                      fabRect: box.localToGlobal(Offset.zero) & box.size,
+                      options: [
+                        for (final label in ['Nova tarefa', 'Novo plano'])
+                          NexoFabMenuOption(
+                            icon: LucideIcons.listTodo,
+                            label: label,
+                            onSelected: () => chosen.add(label),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byType(NexoFab));
+      await tester.pumpAndSettle();
+      return chosen;
+    }
+
+    testWidgets('abre as opções acima do "+", que vira "Fechar menu"', (
+      tester,
+    ) async {
+      await openMenu(tester);
+      expect(find.text('Nova tarefa'), findsOneWidget);
+      expect(find.text('Novo plano'), findsOneWidget);
+      expect(find.byIcon(LucideIcons.x), findsOneWidget);
+      final fab = tester.getTopLeft(find.byIcon(LucideIcons.x));
+      expect(tester.getTopLeft(find.text('Novo plano')).dy, lessThan(fab.dy));
+      expect(
+        tester.getTopLeft(find.text('Nova tarefa')).dy,
+        lessThan(tester.getTopLeft(find.text('Novo plano')).dy),
+      );
+    });
+
+    testWidgets('escolher fecha o menu e avisa a opção', (tester) async {
+      final chosen = await openMenu(tester);
+      await tester.tap(find.text('Novo plano'));
+      await tester.pumpAndSettle();
+      expect(chosen, ['Novo plano']);
+      expect(find.text('Nova tarefa'), findsNothing);
+    });
+
+    testWidgets('fecha pelo X, pelo voltar e com toque fora', (tester) async {
+      await openMenu(tester);
+      await tester.tap(find.byIcon(LucideIcons.x));
+      await tester.pumpAndSettle();
+      expect(find.text('Nova tarefa'), findsNothing);
+
+      await tester.tap(find.byType(NexoFab));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('Nova tarefa'), findsNothing);
+
+      await tester.tap(find.byType(NexoFab));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+      expect(find.text('Nova tarefa'), findsNothing);
+    });
+
+    testWidgets('com "reduzir movimento", abre sem animação', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await openMenu(tester);
+      expect(find.text('Nova tarefa'), findsOneWidget);
+    });
+  });
+}
