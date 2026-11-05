@@ -5,6 +5,9 @@ import '../../core/domain/local_date.dart';
 import '../../features/focus/domain/focus_session.dart';
 import '../../features/focus/domain/session_split.dart';
 import '../../features/goals/application/goals_providers.dart';
+import '../../features/notifications/application/notifications_providers.dart';
+import '../../features/notifications/data/notifications_repository.dart';
+import '../../features/notifications/domain/nexo_notification.dart';
 import '../../features/plans/application/plans_providers.dart';
 import '../../features/plans/domain/plan.dart';
 import '../../features/plans/domain/plan_schedule.dart';
@@ -150,4 +153,36 @@ final prototypeSampleDataProvider = FutureProvider<void>((ref) async {
     ),
   );
   await tasks.setCompleted(relatorio.id, true);
+
+  // Avisos do painel de notificações (ligados aos exemplos acima).
+  final notifications = ref.read(notificationsRepositoryProvider);
+  if (notifications is FakeNotificationsRepository) {
+    notifications
+      ..add(
+        kind: NotificationKind.dueSoon,
+        title: 'Entrega amanhã',
+        body: 'Lista de exercícios 3 · Cálculo II · amanhã, 18:00',
+        createdAt: now.subtract(const Duration(hours: 2)),
+      )
+      ..add(
+        kind: NotificationKind.overdue,
+        title: 'Tarefa atrasada',
+        body: 'Resumo do capítulo 2 · venceu ontem, 23:59',
+        createdAt: now.subtract(const Duration(hours: 5)),
+      )
+      ..add(
+        kind: NotificationKind.dailyGoal,
+        title: 'Meta do dia',
+        body: 'Concurso Banco Horizonte · faltam 30 min para a meta de hoje',
+        createdAt: now.subtract(const Duration(days: 1)),
+        read: true,
+      )
+      ..add(
+        kind: NotificationKind.achievement,
+        title: 'Conquista: Primeiro foco',
+        body: 'Você encerrou sua primeira sessão de foco.',
+        createdAt: now.subtract(const Duration(days: 3)),
+        read: true,
+      );
+  }
 });

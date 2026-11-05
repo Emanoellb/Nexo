@@ -13,11 +13,13 @@ abstract final class AppRoutes {
   static const terms = '/legal/terms';
   static const privacy = '/legal/privacy';
 
-  // Abas da barra de navegação.
+  // Abas da barra de navegação. `calendar` aparece como "Agenda".
   static const home = '/home';
   static const tasks = '/tasks';
   static const plans = '/plans';
   static const calendar = '/calendar';
+
+  /// Fora da barra desde 04/11/2026 (vai para o avatar no topo das abas).
   static const profile = '/profile';
 
   /// Telas que só fazem sentido antes de o usuário estar pronto.

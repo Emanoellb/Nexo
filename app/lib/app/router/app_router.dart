@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/nexo_theme.dart';
+import '../../core/ui/ui.dart';
 import '../../features/auth/application/auth_providers.dart';
 import '../../features/auth/domain/entry_status.dart';
 import '../../features/auth/presentation/forgot_password_page.dart';
@@ -104,8 +105,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             (AppRoutes.home, 'Início', 'bloco 6 · Início'),
             (AppRoutes.tasks, 'Tarefas', 'bloco 7 · Tarefas'),
             (AppRoutes.plans, 'Planos', 'bloco 3 · Planos'),
-            (AppRoutes.calendar, 'Calendário', 'bloco 9 · Calendário'),
-            (AppRoutes.profile, 'Perfil', 'bloco 11 · Perfil'),
+            // "Calendário" virou "Agenda" só no texto (04/11/2026).
+            (AppRoutes.calendar, 'Agenda', 'bloco 9 · Calendário'),
           ])
             StatefulShellBranch(
               routes: [
@@ -117,6 +118,23 @@ final routerProvider = Provider<GoRouter>((ref) {
               ],
             ),
         ],
+      ),
+      // O Perfil saiu da barra (04/11/2026) e vai virar o avatar no topo das
+      // abas, ainda não aprovado. A rota continua, sem acesso por enquanto.
+      GoRoute(
+        path: AppRoutes.profile,
+        // Aberto pelo avatar do topo das abas, por cima delas.
+        pageBuilder: (context, state) => _fadePage(
+          context,
+          state,
+          Scaffold(
+            appBar: NexoTopAppBar(title: 'Perfil', onBack: () => context.pop()),
+            body: const UnderConstructionPage(
+              title: 'Perfil',
+              block: 'bloco 11 · Perfil',
+            ),
+          ),
+        ),
       ),
     ],
   );

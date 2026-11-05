@@ -52,6 +52,10 @@ abstract final class NexoTextStyles {
   /// `Typography/LabelSmall` 12/500
   static final labelSmall = _style(12, 500, 1.3333333333);
 
+  /// `Typography/LabelSmall` com `Typography/Weight/Emphasis` (600): nome do
+  /// destino selecionado da barra de navegação (Navigation/BottomBar).
+  static final labelSmallEmphasis = _style(12, 600, 1.3333333333);
+
   /// `Typography/DisplayTimer` 56/600. Só no Nexo/FocusTimer.
   static final displayTimer = _style(56, 600, 1.1428571429);
 }
