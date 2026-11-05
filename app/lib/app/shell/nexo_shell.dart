@@ -51,7 +51,28 @@ class _NexoShellState extends ConsumerState<NexoShell> {
   final _bellKey = GlobalKey();
   final _fabKey = GlobalKey();
 
+  /// Por aba: há conteúdo passando por baixo da barra (vidro adaptativo)?
+  /// Guardado por aba porque o `indexedStack` mantém as outras montadas.
+  final _overContent = <int, bool>{};
+
   StatefulNavigationShell get _shell => widget.navigationShell;
+
+  /// Lista principal da aba (vertical, não aninhada) com conteúdo além da
+  /// borda de baixo: esse conteúdo está sob a cápsula.
+  ///
+  /// Só conta a aba visível: o `indexedStack` do go_router deixa as outras
+  /// em `Offstage` com `TickerMode` desligado, e elas também avisam quando o
+  /// layout muda (teclado, rotação).
+  bool _onScroll(ScrollMetrics metrics, int depth, BuildContext? source) {
+    if (depth != 0 || metrics.axis != Axis.vertical) return false;
+    if (source != null && !TickerMode.valuesOf(source).enabled) return false;
+    final over = metrics.extentAfter > 0;
+    final index = _shell.currentIndex;
+    if ((_overContent[index] ?? false) != over) {
+      setState(() => _overContent[index] = over);
+    }
+    return false;
+  }
 
   Rect _rectOf(GlobalKey key) {
     final box = key.currentContext!.findRenderObject()! as RenderBox;
@@ -144,10 +165,16 @@ class _NexoShellState extends ConsumerState<NexoShell> {
           ),
           // O topo já respeita a barra de status.
           Expanded(
-            child: MediaQuery.removePadding(
-              context: context,
-              removeTop: true,
-              child: _shell,
+            child: NotificationListener<ScrollMetricsNotification>(
+              onNotification: (n) => _onScroll(n.metrics, n.depth, n.context),
+              child: NotificationListener<ScrollUpdateNotification>(
+                onNotification: (n) => _onScroll(n.metrics, n.depth, n.context),
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  child: _shell,
+                ),
+              ),
             ),
           ),
         ],
@@ -156,6 +183,7 @@ class _NexoShellState extends ConsumerState<NexoShell> {
         destinations: nexoDestinations,
         selectedIndex: _shell.currentIndex,
         solid: solid,
+        overContent: _overContent[_shell.currentIndex] ?? false,
         fabKey: _fabKey,
         onCreate: _openCreateMenu,
         onSelected: (index) => _shell.goBranch(

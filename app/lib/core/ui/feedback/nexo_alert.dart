@@ -62,9 +62,11 @@ class NexoAlert extends StatelessWidget {
       ),
     };
 
+    // Todo tom é anunciado ao aparecer: os alertas do Nexo surgem por uma
+    // ação do usuário (conta criada, e-mail reenviado, sem conexão).
     return Semantics(
       container: true,
-      liveRegion: tone == NexoAlertTone.error,
+      liveRegion: true,
       child: Container(
         padding: EdgeInsets.all(spacing.lg),
         decoration: BoxDecoration(

@@ -3,7 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../theme/nexo_theme.dart';
 import '../foundation/nexo_tappable.dart';
-import '../navigation/nexo_navigation_bar.dart';
+import 'nexo_fab.dart';
 
 /// Uma opção do [showNexoFabMenu].
 @immutable

@@ -104,13 +104,18 @@ class NexoDateField extends StatelessWidget {
 }
 
 /// Só dígitos, com as barras inseridas: `21032004` → `21/03/2004`.
+///
+/// O cursor fica depois do mesmo dígito em que estava, para editar no meio
+/// (ex.: corrigir o mês) sem ele pular para o fim.
 class DateMaskFormatter extends TextInputFormatter {
+  static final _nonDigit = RegExp(r'\D');
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final digits = newValue.text.replaceAll(_nonDigit, '');
     final clipped = digits.length > 8 ? digits.substring(0, 8) : digits;
     final buffer = StringBuffer();
     for (var i = 0; i < clipped.length; i++) {
@@ -118,9 +123,31 @@ class DateMaskFormatter extends TextInputFormatter {
       buffer.write(clipped[i]);
     }
     final text = buffer.toString();
+
+    // Quantos dígitos havia antes do cursor no texto digitado.
+    final cursor = newValue.selection.isValid
+        ? newValue.selection.extentOffset.clamp(0, newValue.text.length)
+        : newValue.text.length;
+    final before = newValue.text
+        .substring(0, cursor)
+        .replaceAll(_nonDigit, '')
+        .length
+        .clamp(0, clipped.length);
+
     return TextEditingValue(
       text: text,
-      selection: TextSelection.collapsed(offset: text.length),
+      selection: TextSelection.collapsed(offset: _offsetAfter(before, text)),
     );
+  }
+
+  /// Posição logo depois do [count]-ésimo dígito de [text].
+  static int _offsetAfter(int count, String text) {
+    if (count == 0) return 0;
+    var seen = 0;
+    for (var i = 0; i < text.length; i++) {
+      if (text[i] != '/') seen++;
+      if (seen == count) return i + 1;
+    }
+    return text.length;
   }
 }

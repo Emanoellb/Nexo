@@ -81,6 +81,11 @@ class _NexoTextFieldState extends State<NexoTextField> {
     final textTheme = Theme.of(context).textTheme;
     final radius = BorderRadius.circular(context.shape.md);
 
+    // Controle da lib (`Input/TextField` › Control) com a altura do alvo.
+    final controlHeight = context.sizes.target;
+    final valueStyle = textTheme.bodyMedium!;
+    final valueLineHeight = valueStyle.fontSize! * valueStyle.height!;
+
     final hasError = widget.errorText != null;
     final disabled = !widget.enabled;
     final readOnly = widget.readOnly && !disabled;
@@ -141,17 +146,15 @@ class _NexoTextFieldState extends State<NexoTextField> {
       mainAxisSize: MainAxisSize.min,
       children: [
         ExcludeSemantics(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: spacing.xs),
-            child: Text(
-              widget.label,
-              style: textTheme.labelMedium!.copyWith(
-                color: disabled ? c.disabledContent : c.onSurface,
-              ),
+          child: Text(
+            widget.label,
+            style: textTheme.labelMedium!.copyWith(
+              color: disabled ? c.disabledContent : c.onSurface,
             ),
           ),
         ),
-        SizedBox(height: spacing.xs),
+        // Na lib: XS embaixo da região do rótulo + XS de gap = SM.
+        SizedBox(height: spacing.sm),
         Semantics(
           label: widget.label,
           child: TextField(
@@ -170,7 +173,7 @@ class _NexoTextFieldState extends State<NexoTextField> {
             onChanged: widget.onChanged,
             onSubmitted: widget.onSubmitted,
             onEditingComplete: widget.onEditingComplete,
-            style: textTheme.bodyMedium!.copyWith(color: valueColor),
+            style: valueStyle.copyWith(color: valueColor),
             cursorColor: c.primary,
             decoration: InputDecoration(
               isDense: true,
@@ -180,10 +183,12 @@ class _NexoTextFieldState extends State<NexoTextField> {
               hintStyle: textTheme.bodyMedium!.copyWith(
                 color: disabled ? c.disabledContent : c.onSurfaceVariant,
               ),
-              constraints: const BoxConstraints(minHeight: 48),
+              constraints: BoxConstraints(minHeight: controlHeight),
+              // Texto centrado no controle de 48 (lib: altura fixa, sem
+              // padding vertical): sobra dividida entre cima e baixo.
               contentPadding: EdgeInsets.symmetric(
                 horizontal: spacing.lg,
-                vertical: 14,
+                vertical: (controlHeight - valueLineHeight) / 2,
               ),
               prefixIcon: widget.leadingIcon == null
                   ? null

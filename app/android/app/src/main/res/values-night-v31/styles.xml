@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Igual ao values-v31: o app é só claro, então a abertura também é clara
-     com o modo escuro do sistema ligado (evita fundo preto antes de um app claro). -->
+<!-- Android 12+ com o modo escuro do sistema ligado: igual ao values-v31, mas
+     com as cores escuras de values-night/colors.xml. -->
 <resources>
-    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowSplashScreenBackground">@color/nexo_splash_background</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_symbol_android12</item>
         <item name="android:windowBackground">@color/nexo_splash_background</item>
     </style>
-    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@color/nexo_splash_background</item>
     </style>
 </resources>

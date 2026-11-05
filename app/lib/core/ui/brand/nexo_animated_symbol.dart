@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:path_parsing/path_parsing.dart';
 
+import '../../theme/nexo_theme.dart';
 import 'nexo_symbol_paths.dart';
 
 /// Tag do Hero da logo: a splash e a tela de Login usam a mesma, para o
@@ -36,7 +37,7 @@ class NexoAnimatedSymbol extends StatelessWidget {
     return CustomPaint(
       size: Size.square(size),
       painter: _SymbolPainter(
-        color: Theme.of(context).colorScheme.primary,
+        color: context.nexoColors.brandMark,
         straight: straight.clamp(0, 1),
         curve: curve.clamp(0, 1),
       ),

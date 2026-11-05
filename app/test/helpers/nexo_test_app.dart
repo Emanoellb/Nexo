@@ -5,12 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/core/theme/nexo_theme.dart';
 
-/// Envolve [child] no tema do Nexo, com animações desligadas (o spinner fica
-/// parado e o pumpAndSettle termina).
-Widget nexoTestApp(Widget child, {double width = 390}) {
+/// Envolve [child] no tema do Nexo (claro, ou escuro com [dark]), com
+/// animações desligadas (o spinner fica parado e o pumpAndSettle termina).
+Widget nexoTestApp(Widget child, {double width = 390, bool dark = false}) {
   return MaterialApp(
     debugShowCheckedModeBanner: false,
-    theme: NexoTheme.light(),
+    theme: dark ? NexoTheme.dark() : NexoTheme.light(),
     home: MediaQuery(
       data: const MediaQueryData(disableAnimations: true),
       child: Scaffold(

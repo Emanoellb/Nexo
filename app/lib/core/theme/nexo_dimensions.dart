@@ -1,5 +1,5 @@
-// Valores das variáveis Spacing/*, Shape/*, Elevation/*, Motion/* e Glass/Blur
-// de nexo.lib.pen. Ver docs/frontend/tokens-flutter.md.
+// Valores das variáveis Spacing/*, Size/*, Shape/*, Elevation/*, Motion/* e
+// Glass/Blur de nexo.lib.pen. Ver docs/frontend/tokens-flutter.md.
 
 import 'package:flutter/material.dart';
 
@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 class NexoSpacing extends ThemeExtension<NexoSpacing> {
   const NexoSpacing({
     required this.none,
+    required this.xxs,
     required this.xs,
     required this.sm,
     required this.md,
@@ -20,6 +21,7 @@ class NexoSpacing extends ThemeExtension<NexoSpacing> {
 
   static const standard = NexoSpacing(
     none: 0,
+    xxs: 2,
     xs: 4,
     sm: 8,
     md: 12,
@@ -32,6 +34,10 @@ class NexoSpacing extends ThemeExtension<NexoSpacing> {
 
   /// `Spacing/0`
   final double none;
+
+  /// `Spacing/2XS` (2): respiros mínimos, como título e texto de um aviso
+  /// (decisão de 04/11/2026; a criar na lib).
+  final double xxs;
 
   /// `Spacing/XS`
   final double xs;
@@ -60,6 +66,7 @@ class NexoSpacing extends ThemeExtension<NexoSpacing> {
   @override
   NexoSpacing copyWith({
     double? none,
+    double? xxs,
     double? xs,
     double? sm,
     double? md,
@@ -71,6 +78,7 @@ class NexoSpacing extends ThemeExtension<NexoSpacing> {
   }) {
     return NexoSpacing(
       none: none ?? this.none,
+      xxs: xxs ?? this.xxs,
       xs: xs ?? this.xs,
       sm: sm ?? this.sm,
       md: md ?? this.md,
@@ -84,6 +92,25 @@ class NexoSpacing extends ThemeExtension<NexoSpacing> {
 
   @override
   NexoSpacing lerp(NexoSpacing? other, double t) => other ?? this;
+}
+
+/// `Size/*`. Medidas fixas compartilhadas entre componentes.
+@immutable
+class NexoSizes extends ThemeExtension<NexoSizes> {
+  const NexoSizes({required this.target});
+
+  static const standard = NexoSizes(target: 48);
+
+  /// `Size/Target` (48): alvo mínimo de toque e altura dos controles
+  /// (botão, campo, Snackbar). Decisão de 04/11/2026; a criar na lib.
+  final double target;
+
+  @override
+  NexoSizes copyWith({double? target}) =>
+      NexoSizes(target: target ?? this.target);
+
+  @override
+  NexoSizes lerp(NexoSizes? other, double t) => other ?? this;
 }
 
 /// `Shape/*`. Raios de canto. `full` deixa a forma em pílula.
@@ -159,12 +186,13 @@ class NexoShape extends ThemeExtension<NexoShape> {
 
 /// `Elevation/0..5`. Uma sombra por nível (X, Y, Blur, Color).
 ///
-/// As cores de sombra mudam no dark mode, por isso ficam numa extensão.
+/// Iguais nos temas claro e escuro (decisão de 04/11/2026): no escuro, a
+/// elevação aparece pelo tom mais claro da superfície e pela borda.
 @immutable
 class NexoElevation extends ThemeExtension<NexoElevation> {
   const NexoElevation({required this.levels});
 
-  static const light = NexoElevation(
+  static const standard = NexoElevation(
     levels: [
       [BoxShadow(color: Color(0x001D2127))],
       [

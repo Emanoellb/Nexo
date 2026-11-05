@@ -145,19 +145,21 @@ class NexoNotificationPanel extends StatelessWidget {
       ),
     );
 
+    // Espaço do topo = `Spacing/SM` (lib, 04/11/2026; era 10). A seta tem 10
+    // de altura e passa um pouco acima do painel; a base sobrepõe 1 px a
+    // borda do cartão, para a linha ficar contínua (sem fresta).
+    final cardTop = spacing.sm;
     return SizedBox(
       width: width,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Padding(
-            padding: EdgeInsets.only(top: arrowSize.height),
+            padding: EdgeInsets.only(top: cardTop),
             child: card,
           ),
-          // A seta sobrepõe 1 px a borda do cartão, para a linha ficar
-          // contínua.
           Positioned(
-            top: 1,
+            top: cardTop - arrowSize.height + 1,
             left: (arrowCenter ?? width - 44) - arrowSize.width / 2,
             child: CustomPaint(
               size: arrowSize,
@@ -257,7 +259,7 @@ Future<void> showNexoNotificationPanel(
 
 /// `Content/NotificationItem` da lib: círculo de 32 com o ícone do tipo,
 /// título, texto (2 linhas) e tempo. Não lido: ponto Primary, título 600,
-/// fundo SurfaceContainerLow e círculo com borda.
+/// fundo `Unread` e círculo com borda.
 class NexoNotificationItem extends StatelessWidget {
   const NexoNotificationItem({
     super.key,
@@ -293,7 +295,7 @@ class NexoNotificationItem extends StatelessWidget {
       child: NexoTappable(
         onTap: onTap,
         borderRadius: BorderRadius.zero,
-        color: unread ? c.surfaceContainerLow : null,
+        color: unread ? c.unread : null,
         child: Padding(
           padding: EdgeInsets.symmetric(
             vertical: spacing.sm,
@@ -335,8 +337,8 @@ class NexoNotificationItem extends StatelessWidget {
                         ),
                       ],
                     ),
-                    // 2 px: valor da lib, sem token (registrado para a lib).
-                    const SizedBox(height: 2),
+                    // Conteúdo da lib, gap 2 → `Spacing/2XS`.
+                    SizedBox(height: spacing.xxs),
                     Text(
                       body,
                       maxLines: 2,

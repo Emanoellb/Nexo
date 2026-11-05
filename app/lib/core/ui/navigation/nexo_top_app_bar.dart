@@ -59,7 +59,7 @@ class NexoTopAppBar extends StatelessWidget implements PreferredSizeWidget {
                       color: c.iconDefault,
                       onPressed: backEnabled ? onBack : null,
                     ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: spacing.md),
                   Expanded(
                     child: title == null
                         ? const SizedBox.shrink()

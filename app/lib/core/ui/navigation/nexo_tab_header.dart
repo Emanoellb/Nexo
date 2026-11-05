@@ -130,7 +130,7 @@ class _Avatar extends StatelessWidget {
         onTap: onTap,
         borderRadius: radius,
         child: SizedBox.square(
-          dimension: 48,
+          dimension: context.sizes.target,
           child: Center(
             child: Container(
               width: 40,

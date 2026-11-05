@@ -126,6 +126,32 @@ void main() {
       expect(unreadDots, hasLength(1));
     });
 
+    testWidgets('cartão a SM do topo; seta emendada (1 px sobre a borda)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(panel());
+      final panelRect = tester.getRect(find.byType(NexoNotificationPanel));
+      final arrow = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(NexoNotificationPanel),
+              matching: find.byType(CustomPaint),
+            )
+            .last,
+      );
+      final card = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(NexoNotificationPanel),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      expect(card.top - panelRect.top, NexoSpacing.standard.sm);
+      expect(arrow.size, NexoNotificationPanel.arrowSize);
+      expect(arrow.bottom - card.top, 1);
+    });
+
     testWidgets('lista com até 400 de altura e rolagem', (tester) async {
       tester.view.physicalSize = const Size(1080, 3000);
       tester.view.devicePixelRatio = 3;

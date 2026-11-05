@@ -27,7 +27,7 @@ class NexoPageControl extends StatelessWidget {
       label: 'Passo ${index + 1} de $count',
       excludeSemantics: true,
       child: SizedBox(
-        height: 48,
+        height: context.sizes.target,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: spacing.lg),
           child: Row(

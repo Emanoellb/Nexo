@@ -238,7 +238,10 @@ class NexoButtonShell extends StatelessWidget {
         color: background,
         side: side,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          constraints: BoxConstraints(
+            minHeight: context.sizes.target,
+            minWidth: context.sizes.target,
+          ),
           child: Padding(
             padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding ?? spacing.lg,

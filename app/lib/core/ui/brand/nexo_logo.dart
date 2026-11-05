@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../theme/nexo_theme.dart';
+
 /// Símbolo da marca Nexo (o "x como ponto de encontro").
 ///
 /// Regras de uso em assets/brand/README.md: tamanho mínimo de 16 px e área
 /// de proteção de 25% da largura em volta, que fica com quem posiciona.
-/// A cor vem do tema (`colorScheme.primary` = `Brand/Mark` no tema claro), por
-/// isso o mesmo arquivo serve para o dark mode futuro.
+/// A cor vem do tema (`Brand/Mark`: Primary/600 no claro, #6E92AE no escuro),
+/// por isso o mesmo arquivo serve aos dois temas.
 class NexoLogoSymbol extends StatelessWidget {
   const NexoLogoSymbol({super.key, this.size = 32, this.semanticLabel = 'Nexo'})
     : assert(size >= minSize, 'O símbolo não pode ficar menor que 16 px.');
@@ -27,7 +29,7 @@ class NexoLogoSymbol extends StatelessWidget {
       width: size,
       height: size,
       colorFilter: ColorFilter.mode(
-        Theme.of(context).colorScheme.primary,
+        context.nexoColors.brandMark,
         BlendMode.srcIn,
       ),
       excludeFromSemantics: true,

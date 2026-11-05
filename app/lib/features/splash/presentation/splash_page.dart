@@ -5,6 +5,7 @@ import '../../../app/startup/app_startup.dart';
 import '../../../core/data/local_flags.dart';
 import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/brand/nexo_animated_symbol.dart';
+import '../../../core/ui/feedback/nexo_circular_progress.dart';
 import '../application/splash_providers.dart';
 
 /// Splash do Flutter, logo depois da splash nativa (mesmo símbolo, mesmo
@@ -21,11 +22,19 @@ import '../application/splash_providers.dart';
 ///
 /// Sai quando a animação termina **e** a carga inicial ([appStartupProvider])
 /// também, o que vier por último.
+///
+/// "Carregando lento" (04/11/2026): se a animação acabou e a carga não,
+/// aparece no rodapé o `Feedback/Progress/Circular` indeterminado, com o
+/// rótulo "Carregando", até a carga terminar. Também com "reduzir movimento"
+/// (é um estado). Sem limite de tempo próprio.
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   /// Tamanho do símbolo: igual ao da splash nativa (128 dp).
   static const double symbolSize = 128;
+
+  /// Indicador do "Carregando lento", como no Pen.dev (32 px).
+  static const double loaderSize = 32;
 
   // Linha do tempo, em ms.
   static const _straightEnd = 800;
@@ -51,6 +60,9 @@ class _SplashPageState extends ConsumerState<SplashPage>
   late final bool _firstOpen = !ref.read(localFlagsProvider).firstOpenDone;
   late final AnimationController _controller;
   bool _started = false;
+
+  /// "Carregando lento": a animação acabou e a carga ainda não.
+  bool _waiting = false;
 
   @override
   void initState() {
@@ -84,6 +96,9 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
   Future<void> _finish() async {
     if (!mounted) return;
+    if (ref.read(appStartupProvider).isLoading) {
+      setState(() => _waiting = true);
+    }
     try {
       await ref.read(appStartupProvider.future);
     } catch (error, stack) {
@@ -97,6 +112,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
       );
     }
     if (!mounted) return;
+    if (_waiting) setState(() => _waiting = false);
     if (_firstOpen) await ref.read(localFlagsProvider).markFirstOpenDone();
     if (mounted) ref.read(splashFinishedProvider.notifier).finish();
   }
@@ -196,6 +212,23 @@ class _SplashPageState extends ConsumerState<SplashPage>
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (_waiting)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: spacing.xxxl),
+                          child: const Center(
+                            child: NexoCircularProgress(
+                              size: SplashPage.loaderSize,
+                            ),
                           ),
                         ),
                       ),

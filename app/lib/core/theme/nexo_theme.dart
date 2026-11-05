@@ -12,13 +12,19 @@ export 'nexo_typography.dart';
 
 /// Monta o ThemeData do Nexo a partir dos tokens.
 ///
-/// Só existe o tema claro no MVP. Para o dark mode: criar `NexoColors.dark`
-/// e `NexoElevation.dark` e chamar `NexoTheme.build` com eles.
+/// Claro e escuro trocam só os papéis de cor; espaço, forma, movimento e as
+/// sombras são os mesmos nos dois (sombra igual, decisão de 04/11/2026).
 abstract final class NexoTheme {
   static ThemeData light() => build(
     brightness: Brightness.light,
     colors: NexoColors.light,
-    elevation: NexoElevation.light,
+    elevation: NexoElevation.standard,
+  );
+
+  static ThemeData dark() => build(
+    brightness: Brightness.dark,
+    colors: NexoColors.dark,
+    elevation: NexoElevation.standard,
   );
 
   static ThemeData build({
@@ -39,6 +45,7 @@ abstract final class NexoTheme {
         colors,
         elevation,
         NexoSpacing.standard,
+        NexoSizes.standard,
         NexoShape.standard,
         NexoMotion.standardMotion,
         NexoGlass.standard,
@@ -48,6 +55,10 @@ abstract final class NexoTheme {
 
   /// Papéis do ColorScheme (M3). Os que a lib não tem usam um alias,
   /// documentado em docs/frontend/tokens-flutter.md.
+  ///
+  /// Definido à mão, sem `ColorScheme.fromSeed`: no escuro o
+  /// `surfaceContainerLowest` do Nexo é mais claro que o `surface` (é a
+  /// superfície elevada), o contrário do M3.
   static ColorScheme colorSchemeFrom(NexoColors c, Brightness brightness) {
     return ColorScheme(
       brightness: brightness,
@@ -94,6 +105,7 @@ abstract final class NexoTheme {
 extension NexoThemeContext on BuildContext {
   NexoColors get nexoColors => Theme.of(this).extension<NexoColors>()!;
   NexoSpacing get spacing => Theme.of(this).extension<NexoSpacing>()!;
+  NexoSizes get sizes => Theme.of(this).extension<NexoSizes>()!;
   NexoShape get shape => Theme.of(this).extension<NexoShape>()!;
   NexoElevation get elevation => Theme.of(this).extension<NexoElevation>()!;
   NexoMotion get motion => Theme.of(this).extension<NexoMotion>()!;

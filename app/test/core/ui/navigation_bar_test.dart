@@ -17,6 +17,8 @@ const _destinations = [
 Widget _bar({
   int selected = 0,
   bool solid = false,
+  bool overContent = false,
+  bool dark = false,
   ValueChanged<int>? onSelected,
   VoidCallback? onCreate,
 }) {
@@ -25,9 +27,11 @@ Widget _bar({
       destinations: _destinations,
       selectedIndex: selected,
       solid: solid,
+      overContent: overContent,
       onSelected: onSelected ?? (_) {},
       onCreate: onCreate ?? () {},
     ),
+    dark: dark,
   );
 }
 
@@ -37,15 +41,34 @@ Finder get _items => find.descendant(
   matching: find.byType(NexoTappable),
 );
 
+/// A pílula é o `AnimatedContainer` mais próximo do nome (o vidro, mais
+/// acima, também é um).
 BoxDecoration? _pill(WidgetTester tester, String label) {
   final container = tester.widget<AnimatedContainer>(
-    find.ancestor(
-      of: find.text(label),
-      matching: find.byType(AnimatedContainer),
-    ),
+    find
+        .ancestor(
+          of: find.text(label),
+          matching: find.byType(AnimatedContainer),
+        )
+        .first,
   );
   return container.decoration as BoxDecoration?;
 }
+
+/// A superfície de vidro da cápsula (o `AnimatedContainer` dentro do
+/// desfoque).
+BoxDecoration _glass(WidgetTester tester) =>
+    tester
+            .widget<AnimatedContainer>(
+              find
+                  .descendant(
+                    of: find.byType(BackdropFilter),
+                    matching: find.byType(AnimatedContainer),
+                  )
+                  .first,
+            )
+            .decoration!
+        as BoxDecoration;
 
 Text _label(WidgetTester tester, String label) =>
     tester.widget<Text>(find.text(label));
@@ -174,18 +197,103 @@ void main() {
     handle.dispose();
   });
 
-  for (final solid in [false, true]) {
-    testWidgets(
-      'alvos, rótulos e contraste nas diretrizes (${solid ? 'sólida' : 'vidro'})',
-      (tester) async {
-        final handle = tester.ensureSemantics();
-        await tester.pumpWidget(_bar(selected: 1, solid: solid));
-        await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
-        await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-        await expectLater(tester, meetsGuideline(textContrastGuideline));
-        handle.dispose();
-      },
-    );
+  group('vidro adaptativo (04/11/2026)', () {
+    for (final dark in [false, true]) {
+      final theme = dark ? 'escuro' : 'claro';
+      final c = dark ? NexoColors.dark : NexoColors.light;
+
+      testWidgets('$theme: repouso sem conteúdo por baixo', (tester) async {
+        await tester.pumpWidget(_bar(dark: dark));
+        final glass = _glass(tester);
+        expect(glass.color, c.glassRestFill);
+        expect((glass.border! as Border).top.color, c.glassRestEdge);
+        expect(
+          (glass.gradient! as LinearGradient).colors.first,
+          c.glassRestSheen,
+        );
+      });
+
+      testWidgets('$theme: vidro com conteúdo por baixo', (tester) async {
+        await tester.pumpWidget(_bar(dark: dark, overContent: true));
+        final glass = _glass(tester);
+        expect(glass.color, c.glassFill);
+        expect((glass.border! as Border).top.color, c.glassEdge);
+        expect((glass.gradient! as LinearGradient).colors.first, c.glassSheen);
+      });
+
+      testWidgets('$theme: a versão sólida vale por cima das duas', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _bar(dark: dark, solid: true, overContent: true),
+        );
+        expect(find.byType(BackdropFilter), findsNothing);
+        expect(_pill(tester, 'Início')?.color, c.selected);
+      });
+    }
+
+    testWidgets('troca em Motion/Duration/Short; sem duração com '
+        '"reduzir movimento"', (tester) async {
+      final motion = NexoMotion.standardMotion;
+      Widget app({required bool reduce}) => MaterialApp(
+        theme: NexoTheme.light(),
+        home: MediaQuery(
+          data: MediaQueryData(disableAnimations: reduce),
+          child: Scaffold(
+            body: NexoNavigationBar(
+              destinations: _destinations,
+              selectedIndex: 0,
+              onSelected: (_) {},
+              overContent: true,
+            ),
+          ),
+        ),
+      );
+      Duration duration() => tester
+          .widget<AnimatedContainer>(
+            find
+                .descendant(
+                  of: find.byType(BackdropFilter),
+                  matching: find.byType(AnimatedContainer),
+                )
+                .first,
+          )
+          .duration;
+
+      await tester.pumpWidget(app(reduce: false));
+      expect(duration(), motion.short);
+      await tester.pumpWidget(app(reduce: true));
+      expect(duration(), Duration.zero);
+    });
+  });
+
+  for (final dark in [false, true]) {
+    for (final solid in [false, true]) {
+      for (final overContent in [false, true]) {
+        if (solid && overContent) continue;
+        final name = [
+          dark ? 'escuro' : 'claro',
+          solid ? 'sólida' : (overContent ? 'vidro' : 'repouso'),
+        ].join(', ');
+        testWidgets('alvos, rótulos e contraste nas diretrizes ($name)', (
+          tester,
+        ) async {
+          final handle = tester.ensureSemantics();
+          await tester.pumpWidget(
+            _bar(
+              selected: 1,
+              solid: solid,
+              overContent: overContent,
+              dark: dark,
+            ),
+          );
+          await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+          await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+          await expectLater(tester, meetsGuideline(textContrastGuideline));
+          handle.dispose();
+        });
+      }
+    }
   }
 
   testWidgets('fonte ampliada (1,3) não estoura em 360 dp', (tester) async {

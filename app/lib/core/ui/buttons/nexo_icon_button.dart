@@ -52,7 +52,7 @@ class NexoIconButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(context.shape.full),
           color: enabled ? null : c.disabledBackground,
           child: SizedBox.square(
-            dimension: 48,
+            dimension: context.sizes.target,
             child: Center(
               child: loading
                   ? NexoSpinner(color: iconColor, size: iconSize)

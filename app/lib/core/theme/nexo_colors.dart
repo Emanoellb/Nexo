@@ -1,4 +1,5 @@
-// Valores das variáveis Colors/Semantic/* de nexo.lib.pen (lidos em 21/10/2026).
+// Valores das variáveis Colors/Semantic/* de nexo.lib.pen, temas claro e
+// escuro (lidos em 04/11/2026; modo escuro aprovado no Pen.dev nessa data).
 // A lib é a fonte da verdade: mudou um token lá, atualize aqui.
 // Ver docs/frontend/tokens-flutter.md.
 
@@ -8,9 +9,8 @@ import 'package:flutter/material.dart';
 ///
 /// Este é o único lugar do app com valores de cor. Os widgets leem
 /// `Theme.of(context).colorScheme` (papéis do Material 3) ou
-/// `context.nexoColors` (papéis que não existem no ColorScheme).
-///
-/// Dark mode futuro: criar `NexoColors.dark` com os mesmos campos.
+/// `context.nexoColors` (papéis que não existem no ColorScheme), e nunca
+/// [light] ou [dark] direto: assim o mesmo widget serve aos dois temas.
 @immutable
 class NexoColors extends ThemeExtension<NexoColors> {
   const NexoColors({
@@ -60,10 +60,15 @@ class NexoColors extends ThemeExtension<NexoColors> {
     required this.pressed,
     required this.scrim,
     required this.controlBorder,
+    required this.unread,
+    required this.brandMark,
     required this.glassFill,
     required this.glassSheen,
     required this.glassSheenEnd,
     required this.glassEdge,
+    required this.glassRestFill,
+    required this.glassRestSheen,
+    required this.glassRestEdge,
     required this.glassIndicator,
     required this.glassPressed,
     required this.glassContent,
@@ -80,7 +85,7 @@ class NexoColors extends ThemeExtension<NexoColors> {
     required this.iconInfo,
   });
 
-  /// Tema claro, o único do MVP.
+  /// Tema claro.
   static const light = NexoColors(
     primary: Color(0xFF567792),
     onPrimary: Color(0xFFFFFFFF),
@@ -128,10 +133,15 @@ class NexoColors extends ThemeExtension<NexoColors> {
     pressed: Color(0x1A1D2127),
     scrim: Color(0x521D2127),
     controlBorder: Color(0xFF858B96),
-    glassFill: Color(0xA3FFFFFF),
+    unread: Color(0xFFF7F8F9),
+    brandMark: Color(0xFF567792),
+    glassFill: Color(0x8FFFFFFF),
     glassSheen: Color(0x7AFFFFFF),
     glassSheenEnd: Color(0x00FFFFFF),
     glassEdge: Color(0x0F1D2127),
+    glassRestFill: Color(0xEBFFFFFF),
+    glassRestSheen: Color(0x33FFFFFF),
+    glassRestEdge: Color(0x0F1D2127),
     glassIndicator: Color(0xA3D8E3EC),
     glassPressed: Color(0x1A1D2127),
     glassContent: Color(0xFF666D78),
@@ -146,6 +156,79 @@ class NexoColors extends ThemeExtension<NexoColors> {
     iconWarning: Color(0xFF8F703F),
     iconError: Color(0xFFA34D52),
     iconInfo: Color(0xFF4A6B84),
+  );
+
+  /// Tema escuro.
+  static const dark = NexoColors(
+    primary: Color(0xFFB8CBDC),
+    onPrimary: Color(0xFF24353F),
+    primaryContainer: Color(0xFF334958),
+    onPrimaryContainer: Color(0xFFEEF3F8),
+    secondary: Color(0xFFC8BED9),
+    onSecondary: Color(0xFF332C40),
+    secondaryContainer: Color(0xFF463D57),
+    onSecondaryContainer: Color(0xFFF2EFF7),
+    surface: Color(0xFF14171B),
+    surfaceDim: Color(0xFF14171B),
+    surfaceContainerLowest: Color(0xFF262A31),
+    surfaceContainerLow: Color(0xFF191C21),
+    surfaceContainer: Color(0xFF1D2127),
+    surfaceContainerHigh: Color(0xFF30353D),
+    onSurface: Color(0xFFF4F5F7),
+    onSurfaceVariant: Color(0xFFAEB3BC),
+    outline: Color(0xFF858B96),
+    outlineVariant: Color(0xFF4A505A),
+    cardDefault: Color(0xFF1D2127),
+    cardSecondary: Color(0xFF262A31),
+    cardSelected: Color(0xFF24353F),
+    cardBorder: Color(0xFF30353D),
+    success: Color(0xFF92AA97),
+    onSuccess: Color(0xFF25372A),
+    successContainer: Color(0xFF25372A),
+    onSuccessContainer: Color(0xFFE0ECE3),
+    error: Color(0xFFCE8E91),
+    onError: Color(0xFF54272A),
+    errorContainer: Color(0xFF54272A),
+    onErrorContainer: Color(0xFFF6DFDF),
+    warning: Color(0xFFC3AA84),
+    onWarning: Color(0xFF463720),
+    warningContainer: Color(0xFF463720),
+    onWarningContainer: Color(0xFFF3E9D2),
+    info: Color(0xFF8FA7B8),
+    onInfo: Color(0xFF223642),
+    infoContainer: Color(0xFF223642),
+    onInfoContainer: Color(0xFFDDEAF3),
+    disabledBackground: Color(0xFF30353D),
+    disabledContent: Color(0xFF666D78),
+    focus: Color(0xFFF4F5F7),
+    selected: Color(0xFF24353F),
+    hover: Color(0x0FF4F5F7),
+    pressed: Color(0x1AF4F5F7),
+    scrim: Color(0xB314171B),
+    controlBorder: Color(0xFF858B96),
+    unread: Color(0xFF30353D),
+    brandMark: Color(0xFF6E92AE),
+    glassFill: Color(0x9E1D2127),
+    glassSheen: Color(0x14FFFFFF),
+    glassSheenEnd: Color(0x00FFFFFF),
+    glassEdge: Color(0x1FFFFFFF),
+    glassRestFill: Color(0xF01D2127),
+    glassRestSheen: Color(0x0AFFFFFF),
+    glassRestEdge: Color(0x14FFFFFF),
+    glassIndicator: Color(0xCC334958),
+    glassPressed: Color(0x1AFFFFFF),
+    glassContent: Color(0xFFAEB3BC),
+    glassContentSelected: Color(0xFFD8E3EC),
+    glassFallback: Color(0xFF1D2127),
+    glassHighlight: Color(0x14FFFFFF),
+    iconDefault: Color(0xFFF4F5F7),
+    iconSecondary: Color(0xFFAEB3BC),
+    iconSelected: Color(0xFFB8CBDC),
+    iconDisabled: Color(0xFF666D78),
+    iconSuccess: Color(0xFF92AA97),
+    iconWarning: Color(0xFFC3AA84),
+    iconError: Color(0xFFCE8E91),
+    iconInfo: Color(0xFF8FA7B8),
   );
 
   /// `Colors/Semantic/Primary`
@@ -178,6 +261,9 @@ class NexoColors extends ThemeExtension<NexoColors> {
   /// `Colors/Semantic/SurfaceDim`
   final Color surfaceDim;
 
+  /// Fora do padrão M3: no escuro é mais CLARO que o Surface, porque no
+  /// Nexo ele é a superfície elevada (cartões, menus, diálogos, campos).
+  ///
   /// `Colors/Semantic/SurfaceContainerLowest`
   final Color surfaceContainerLowest;
 
@@ -286,6 +372,19 @@ class NexoColors extends ThemeExtension<NexoColors> {
   /// `Colors/Semantic/Control/Border`
   final Color controlBorder;
 
+  /// Fundo da linha de aviso não lido (Content/NotificationItem).
+  ///
+  /// `Colors/Semantic/Unread`
+  final Color unread;
+
+  /// Cor do símbolo da marca. No escuro é Primary/500 (#6E92AE, a cor
+  /// oficial), diferente do Primary do tema.
+  ///
+  /// `Colors/Semantic/Brand/Mark`
+  final Color brandMark;
+
+  /// Vidro com conteúdo rolando por baixo da cápsula.
+  ///
   /// `Colors/Semantic/Glass/Fill`
   final Color glassFill;
 
@@ -297,6 +396,17 @@ class NexoColors extends ThemeExtension<NexoColors> {
 
   /// `Colors/Semantic/Glass/Edge`
   final Color glassEdge;
+
+  /// Vidro em repouso: nada por baixo da cápsula.
+  ///
+  /// `Colors/Semantic/Glass/Rest/Fill`
+  final Color glassRestFill;
+
+  /// `Colors/Semantic/Glass/Rest/Sheen`
+  final Color glassRestSheen;
+
+  /// `Colors/Semantic/Glass/Rest/Edge`
+  final Color glassRestEdge;
 
   /// `Colors/Semantic/Glass/Indicator`
   final Color glassIndicator;
@@ -388,10 +498,15 @@ class NexoColors extends ThemeExtension<NexoColors> {
     Color? pressed,
     Color? scrim,
     Color? controlBorder,
+    Color? unread,
+    Color? brandMark,
     Color? glassFill,
     Color? glassSheen,
     Color? glassSheenEnd,
     Color? glassEdge,
+    Color? glassRestFill,
+    Color? glassRestSheen,
+    Color? glassRestEdge,
     Color? glassIndicator,
     Color? glassPressed,
     Color? glassContent,
@@ -455,10 +570,15 @@ class NexoColors extends ThemeExtension<NexoColors> {
       pressed: pressed ?? this.pressed,
       scrim: scrim ?? this.scrim,
       controlBorder: controlBorder ?? this.controlBorder,
+      unread: unread ?? this.unread,
+      brandMark: brandMark ?? this.brandMark,
       glassFill: glassFill ?? this.glassFill,
       glassSheen: glassSheen ?? this.glassSheen,
       glassSheenEnd: glassSheenEnd ?? this.glassSheenEnd,
       glassEdge: glassEdge ?? this.glassEdge,
+      glassRestFill: glassRestFill ?? this.glassRestFill,
+      glassRestSheen: glassRestSheen ?? this.glassRestSheen,
+      glassRestEdge: glassRestEdge ?? this.glassRestEdge,
       glassIndicator: glassIndicator ?? this.glassIndicator,
       glassPressed: glassPressed ?? this.glassPressed,
       glassContent: glassContent ?? this.glassContent,
@@ -586,10 +706,15 @@ class NexoColors extends ThemeExtension<NexoColors> {
       pressed: Color.lerp(pressed, other.pressed, t)!,
       scrim: Color.lerp(scrim, other.scrim, t)!,
       controlBorder: Color.lerp(controlBorder, other.controlBorder, t)!,
+      unread: Color.lerp(unread, other.unread, t)!,
+      brandMark: Color.lerp(brandMark, other.brandMark, t)!,
       glassFill: Color.lerp(glassFill, other.glassFill, t)!,
       glassSheen: Color.lerp(glassSheen, other.glassSheen, t)!,
       glassSheenEnd: Color.lerp(glassSheenEnd, other.glassSheenEnd, t)!,
       glassEdge: Color.lerp(glassEdge, other.glassEdge, t)!,
+      glassRestFill: Color.lerp(glassRestFill, other.glassRestFill, t)!,
+      glassRestSheen: Color.lerp(glassRestSheen, other.glassRestSheen, t)!,
+      glassRestEdge: Color.lerp(glassRestEdge, other.glassRestEdge, t)!,
       glassIndicator: Color.lerp(glassIndicator, other.glassIndicator, t)!,
       glassPressed: Color.lerp(glassPressed, other.glassPressed, t)!,
       glassContent: Color.lerp(glassContent, other.glassContent, t)!,

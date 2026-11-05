@@ -232,7 +232,8 @@ class MailBadge extends StatelessWidget {
             borderRadius: BorderRadius.circular(context.shape.lg),
           ),
           alignment: Alignment.center,
-          child: Icon(LucideIcons.mailCheck, size: 32, color: c.iconDefault),
+          // Escala de ícones 24/20/16 (era 32; decisão de 04/11/2026).
+          child: Icon(LucideIcons.mailCheck, size: 24, color: c.iconDefault),
         ),
       ),
     );

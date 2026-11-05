@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cores da splash nativa com o modo escuro do sistema ligado (04/11/2026).
+     Mesma exceção à regra "sem hex" de values/colors.xml. Espelham o tema
+     escuro do app, não os Brand/* locais da logo:
+     - nexo_splash_background = Colors/Semantic/Surface escuro (#14171B)
+     - nexo_splash_symbol     = Colors/Semantic/Brand/Mark escuro (#6E92AE) -->
+<resources>
+    <color name="nexo_splash_background">#14171B</color>
+    <color name="nexo_splash_symbol">#6E92AE</color>
+</resources>

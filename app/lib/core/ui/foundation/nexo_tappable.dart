@@ -82,7 +82,11 @@ class _NexoTappableState extends State<NexoTappable> {
             )
           : null,
       child: Material(
-        color: widget.color ?? Colors.transparent,
+        // Sem cor própria: superfície invisível, só para a tinta do toque.
+        type: widget.color == null
+            ? MaterialType.transparency
+            : MaterialType.canvas,
+        color: widget.color,
         shape: shape,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -95,7 +99,8 @@ class _NexoTappableState extends State<NexoTappable> {
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed)) return colors.pressed;
             if (states.contains(WidgetState.hovered)) return colors.hover;
-            return Colors.transparent;
+            // Sem camada nos outros estados (o foco é o anel, não um véu).
+            return colors.hover.withValues(alpha: 0);
           }),
           child: widget.child,
         ),

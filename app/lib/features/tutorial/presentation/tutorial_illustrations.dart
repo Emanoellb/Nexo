@@ -165,7 +165,11 @@ class _Chip extends StatelessWidget {
     final spacing = context.spacing;
     final color = emphasis ? c.onPrimaryContainer : c.onSurface;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: spacing.md, vertical: 6),
+      // Vertical era 6 no design; arredondado para SM (decisão de 04/11/2026).
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.md,
+        vertical: spacing.sm,
+      ),
       decoration: BoxDecoration(
         color: emphasis ? c.primaryContainer : c.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(context.shape.full),
@@ -387,7 +391,7 @@ class TasksCalendarIllustration extends StatelessWidget {
             ),
             child: Opacity(
               opacity: checked,
-              child: Icon(LucideIcons.check, size: 14, color: c.onPrimary),
+              child: Icon(LucideIcons.check, size: 16, color: c.onPrimary),
             ),
           ),
           SizedBox(width: spacing.md),
@@ -623,6 +627,9 @@ class ProgressIllustration extends StatelessWidget {
   static const _planned = [0, 90, 60, 90, 60, 90, 30];
   static const _done = [0, 90, 45, 100, 60, 70, 30];
 
+  /// Contorno do "planejado" no claro (nexo.app.pen, tutorial passo 5).
+  static const double _plannedOutline = 1.5;
+
   @override
   Widget build(BuildContext context) {
     final c = context.nexoColors;
@@ -635,15 +642,27 @@ class ProgressIllustration extends StatelessWidget {
     final points = scored < 0.5 ? 37 : 38;
     final level = (17 + scored) / 20;
 
-    Widget bar(double minutes, Color color) => Container(
+    Widget bar(double minutes, {Color? fill, Color? outline}) => Container(
       width: 10,
       // Até 72 px: sobra lugar para o rótulo do dia com fonte ampliada.
       height: 72 * minutes / 100 * grow,
       decoration: BoxDecoration(
-        color: color,
+        color: fill,
+        // Sem barra (0 min ou antes de crescer), sem contorno solto.
+        border: outline == null || minutes * grow == 0
+            ? null
+            : Border.all(color: outline, width: _plannedOutline),
         borderRadius: BorderRadius.circular(context.shape.xs),
       ),
     );
+
+    // "Planejado" (decisão de 04/11/2026): no claro, só contorno em
+    // Control/Border (SecondaryContainer some sobre SurfaceContainer, 1,04:1);
+    // no escuro, sólido em SecondaryContainer.
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    Widget planned(double minutes) => dark
+        ? bar(minutes, fill: c.secondaryContainer)
+        : bar(minutes, outline: c.controlBorder);
 
     return _Stage(
       label:
@@ -665,9 +684,10 @@ class ProgressIllustration extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          bar(_planned[i].toDouble(), c.secondaryContainer),
-                          const SizedBox(width: 3),
-                          bar(_done[i].toDouble(), c.secondary),
+                          planned(_planned[i].toDouble()),
+                          // Gap era 3 no design; `Spacing/2XS` (04/11/2026).
+                          SizedBox(width: spacing.xxs),
+                          bar(_done[i].toDouble(), fill: c.secondary),
                         ],
                       ),
                       SizedBox(height: spacing.xs),

@@ -40,7 +40,7 @@ class NexoSnackbar extends StatelessWidget {
     };
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 48),
+      constraints: BoxConstraints(minHeight: context.sizes.target),
       padding: EdgeInsets.fromLTRB(
         spacing.lg,
         spacing.xs,
@@ -100,7 +100,11 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showNexoSnackbar(
   messenger.hideCurrentSnackBar();
   return messenger.showSnackBar(
     SnackBar(
-      backgroundColor: Colors.transparent,
+      // Fundo do SnackBar invisível: a superfície é a do NexoSnackbar. Sem
+      // papel "transparente" na lib, usa o mesmo token com alfa 0.
+      backgroundColor: context.nexoColors.surfaceContainerLowest.withValues(
+        alpha: 0,
+      ),
       elevation: 0,
       behavior: SnackBarBehavior.floating,
       padding: EdgeInsets.zero,

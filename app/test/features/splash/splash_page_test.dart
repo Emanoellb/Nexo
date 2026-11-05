@@ -7,6 +7,7 @@ import 'package:nexo/app/startup/app_startup.dart';
 import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/theme/nexo_theme.dart';
 import 'package:nexo/core/ui/brand/nexo_animated_symbol.dart';
+import 'package:nexo/core/ui/feedback/nexo_circular_progress.dart';
 import 'package:nexo/features/splash/application/splash_providers.dart';
 import 'package:nexo/features/splash/presentation/splash_page.dart';
 
@@ -94,18 +95,59 @@ void main() {
   testWidgets('espera a carga inicial terminar, mesmo com a animação pronta', (
     tester,
   ) async {
+    final handle = tester.ensureSemantics();
     final startup = Completer<void>();
     final container = await _pumpSplash(
       tester,
       flags: InMemoryLocalFlags(firstOpenDone: true),
       startup: () => startup.future,
     );
-    await tester.pumpAndSettle();
+    // Durante a animação, sem indicador.
+    await tester.pump(const Duration(milliseconds: 2000));
+    expect(find.byType(NexoCircularProgress), findsNothing);
+
+    // Animação pronta (2,7 s) e carga não: "Carregando lento" no rodapé.
+    await tester.pump(const Duration(milliseconds: 800));
     expect(container.read(splashFinishedProvider), isFalse);
+    expect(find.byType(NexoCircularProgress), findsOneWidget);
+    expect(find.bySemanticsLabel('Carregando'), findsOneWidget);
+    expect(
+      tester.getCenter(find.byType(NexoCircularProgress)).dy,
+      greaterThan(tester.getCenter(find.byType(NexoAnimatedSymbol)).dy),
+    );
 
     startup.complete();
     await tester.pump();
     expect(container.read(splashFinishedProvider), isTrue);
+    expect(find.byType(NexoCircularProgress), findsNothing);
+    handle.dispose();
+  });
+
+  testWidgets('"Carregando lento" continua com "reduzir movimento"', (
+    tester,
+  ) async {
+    final startup = Completer<void>();
+    final container = await _pumpSplash(
+      tester,
+      flags: InMemoryLocalFlags(firstOpenDone: true),
+      reduceMotion: true,
+      startup: () => startup.future,
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(container.read(splashFinishedProvider), isFalse);
+    expect(find.byType(NexoCircularProgress), findsOneWidget);
+
+    startup.complete();
+    await tester.pump();
+    expect(container.read(splashFinishedProvider), isTrue);
+  });
+
+  testWidgets('carga pronta antes da animação: sem indicador', (tester) async {
+    await _pumpSplash(tester, flags: InMemoryLocalFlags(firstOpenDone: true));
+    await tester.pump(const Duration(milliseconds: 2700));
+    await tester.pump();
+    expect(find.byType(NexoCircularProgress), findsNothing);
   });
 
   testWidgets('erro na carga inicial é registrado e não prende na splash', (

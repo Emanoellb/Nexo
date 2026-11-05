@@ -2,7 +2,8 @@
 <!-- Cores da splash nativa. Exceção à regra "sem hex": o XML do Android não lê
      os tokens do Flutter. Espelham os tokens do tema; se mudarem, atualize aqui.
      - nexo_splash_background = Colors/Semantic/Surface (#FAFAFB)
-     - nexo_splash_symbol     = Colors/Semantic/Primary (#567792), Brand/Mark claro -->
+     - nexo_splash_symbol     = Colors/Semantic/Brand/Mark claro (#567792)
+     O modo escuro do sistema usa values-night/colors.xml. -->
 <resources>
     <color name="nexo_splash_background">#FAFAFB</color>
     <color name="nexo_splash_symbol">#567792</color>

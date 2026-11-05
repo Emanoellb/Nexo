@@ -81,7 +81,10 @@ class NexoCheckbox extends StatelessWidget {
       focusNode: focusNode,
       borderRadius: BorderRadius.circular(context.shape.full),
       focusRingOutside: false,
-      child: SizedBox.square(dimension: 48, child: Center(child: box)),
+      child: SizedBox.square(
+        dimension: context.sizes.target,
+        child: Center(child: box),
+      ),
     );
 
     final hasCopy = label != null || labelText != null || helperText != null;
