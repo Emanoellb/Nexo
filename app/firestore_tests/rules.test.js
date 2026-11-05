@@ -823,18 +823,31 @@ describe('users/{uid}/tasks', () => {
 
 describe('users/{uid}/subjects', () => {
   const subject = (extra = {}) => ({
-    name: 'Cálculo I', icon: 'calculator', color: 'azul',
+    name: 'Cálculo I', icon: 'calculator',
     createdAt: serverTimestamp(), updatedAt: serverTimestamp(), ...extra,
   });
 
-  test('ícone e cor são obrigatórios', async () => {
+  test('nome e ícone são obrigatórios; cor saiu do MVP', async () => {
     const ref = doc(db(ALICE), `${USER}/subjects/sub1`);
-    const semCor = subject();
-    delete semCor.color;
-    await assertFails(setDoc(ref, semCor));
-    await assertFails(setDoc(ref, subject({ color: '' })));
+    const semIcone = subject();
+    delete semIcone.icon;
+    await assertFails(setDoc(ref, semIcone));
+    await assertFails(setDoc(ref, subject({ icon: '' })));
+    await assertFails(setDoc(ref, subject({ color: 'azul' })));
     await assertSucceeds(setDoc(ref, subject()));
-    await assertSucceeds(updateDoc(ref, { color: 'verde', updatedAt: serverTimestamp() }));
+    // depois de criada, a cor também não entra
+    await assertFails(updateDoc(ref, { color: 'verde', updatedAt: serverTimestamp() }));
+  });
+
+  test('documento antigo com cor: edita sem mexer nela ou remove; não altera', async () => {
+    await seed(`${USER}/subjects/antiga`, {
+      name: 'Física', icon: 'atom', color: 'azul', createdAt: ago(HOUR), updatedAt: ago(HOUR),
+    });
+    const ref = doc(db(ALICE), `${USER}/subjects/antiga`);
+    await assertSucceeds(updateDoc(ref, { name: 'Física I', updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { color: 'verde', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { color: deleteField(), updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { color: 'azul', updatedAt: serverTimestamp() }));
   });
 
   test('o dono cria, renomeia e apaga', async () => {

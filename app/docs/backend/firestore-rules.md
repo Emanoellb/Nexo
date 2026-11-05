@@ -1,6 +1,6 @@
 # Nexo · Security Rules do Cloud Firestore (MVP)
 
-Status: **v0.7 publicada em 04/11/2026**, com autorização do usuário ("pode publicar"): `deleting` passa a ser terminal e o plano em exclusão não recebe filhos novos (achado [4] da revisão de código de 04/11/2026). Antes: **v0.6 em 25/10/2026** (tópicos do plano, cor da disciplina, situação da entrega), com os **3 índices compostos** (seção 4.1), com autorização do usuário ("pode criar e publicar"). Antes: v0.5, publicada em 24/10/2026. Roteiro completo (etapas 1 a 11) decidido pelo usuário em 22 e 24/10/2026. **Deploy em 24/10/2026** no projeto `nexo-app-gestao-f97bb`, com autorização do usuário ("pode publicar"): regras compiladas e liberadas sem erro. · Sessão: segurança do Firestore · 24/10/2026
+Status: **v0.8 no repositório (branch `fix/regras-disciplina-sem-cor`), ainda não publicada:** a cor por disciplina sai do MVP; `subjects` volta a ser só nome e ícone (decisão do usuário de 04/11/2026). Publicada: **v0.7 em 04/11/2026**, com autorização do usuário ("pode publicar"): `deleting` passa a ser terminal e o plano em exclusão não recebe filhos novos (achado [4] da revisão de código de 04/11/2026). Antes: **v0.6 em 25/10/2026** (tópicos do plano, cor da disciplina, situação da entrega), com os **3 índices compostos** (seção 4.1), com autorização do usuário ("pode criar e publicar"). Antes: v0.5, publicada em 24/10/2026. Roteiro completo (etapas 1 a 11) decidido pelo usuário em 22 e 24/10/2026. **Deploy em 24/10/2026** no projeto `nexo-app-gestao-f97bb`, com autorização do usuário ("pode publicar"): regras compiladas e liberadas sem erro. · Sessão: segurança do Firestore · 24/10/2026
 Base: `docs/backend/firebase-setup.md` §7.2 (esqueleto e mapa), `docs/legal/inventario-dados-mvp.md` e as telas do `nexo.lib.pen` (`ca7IW` Regras e requisitos, `oXRSc` Fluxo do Plano de ação) e do `nexo.app.pen` (fluxo de entrada).
 
 Legenda: **[C]** confirmado na documentação oficial · **[NC]** não confirmado · **[D]** decisão do usuário.
@@ -29,6 +29,7 @@ Histórico de execuções:
 | 24/10/2026 | v0.5 | **64/64** (execução única antes do deploy). O processo Java do emulador ficou aberto de novo e foi encerrado ao final |
 | 25/10/2026 | v0.6 | **71/71** (execução única antes do deploy). Processo do emulador encerrado ao final |
 | 04/11/2026 | v0.7 | **75/75** (execução única antes do deploy; 4 testes novos em "plano em exclusão"). O processo Java soltou a porta 8080, mas ficou vivo; foi encerrado ao final |
+| 04/11/2026 | v0.8 | 1ª execução **interrompida**: o emulador caiu no meio (código `0xC000013A`, encerramento tipo Ctrl+C), sem teste reprovado; processos órfãos encerrados. 2ª execução, com autorização do usuário: **76/76**. Emulador encerrado ao final |
 
 Instalação global (uma vez por máquina, não muda o repositório): Node 20+, Firebase CLI e JDK 11+. Esta máquina tem Node 22.17, CLI 15.28.2 e JDK 23. O emulador do Firestore já está em `~/.cache/firebase/emulators`.
 
@@ -197,9 +198,11 @@ Telas: 05 Finalizar o dia, 06 Dia cumprido, 08 Calendário do plano. RF14–RF17
 
 ### `users/{uid}/subjects/{subjectId}` (etapa 7)
 
-`name` (1–80), `icon` (1–64, nome do ícone Lucide), **`color`** (1–32, nome de uma cor da **paleta fixa** do design, não código de cor livre), `createdAt`, `updatedAt`. Todos obrigatórios.
+`name` (1–80), `icon` (1–64, nome do ícone Lucide), `createdAt`, `updatedAt`. Todos obrigatórios.
 
-- O usuário escolhe ícone e cor (decisão de 25/10/2026). **Isso muda o que o inventário e o design diziam ("cor por disciplina = Future").** A paleta ainda precisa ser definida pelo design; quando estiver, as regras podem passar a aceitar só os nomes dela.
+- O usuário escolhe nome e ícone. **A cor por disciplina saiu do MVP** (decisão do usuário de 04/11/2026: "Tirar a cor do MVP"), voltando ao que o design aprovado e o inventário diziam. A decisão de 25/10 (ícone e cor) foi revertida.
+- `color` é negado no create e não pode ser acrescentado nem alterado no update.
+- **Documento antigo que ainda tenha `color`** (só existiria se gravado com a v0.6 ou a v0.7; não há dados reais): continua editável sem mexer na cor, e o update pode **removê-la** (`FieldValue.delete()`). Decisão desta sessão, para não prender a disciplina e não deixar a cor voltar.
 - "8 de 12 entregas" e a próxima entrega são **calculados pelo app** a partir das tarefas da disciplina.
 
 ### `users/{uid}/goals/{goalId}` (etapa 8)
@@ -279,7 +282,7 @@ Publicados em 25/10/2026 junto com as regras v0.6. Filtros simples são indexado
 | Tópicos | **Tópicos próprios de cada plano** (`topics`), vários por matéria; podem reaproveitar uma matéria ou ser novos. A sessão marca `topicId` (substitui a decisão de 24/10, "tópico = disciplina") | 25/10 |
 | Aviso noturno do plano | Fixo às **21h**, no app; sem campo no banco | 25/10 |
 | Nível | **A cada 20 pontos, sobe um nível**: nível = pontos ÷ 20 (parte inteira) + 1. Regra do app | 25/10 |
-| Disciplina | Usuário escolhe **ícone e cor** (paleta fixa) | 25/10 |
+| Disciplina | ~~Usuário escolhe ícone e cor (paleta fixa)~~ (25/10). **Revertida em 04/11:** só nome e ícone; cor fora do MVP | 04/11 |
 | Situação da entrega da tarefa | **Entra no MVP**: Não iniciada, Em andamento, Entregue, Aguardando correção | 25/10 |
 
 Itens do Perfil aprovados (22/10): editar nome, nível e conquistas, privacidade e dados (Termos, Política, pedir cópia dos dados, contato), alterar senha (só e-mail e senha), Sobre (versão e licenças), sair, excluir conta.
@@ -322,9 +325,9 @@ O Flutter e o design estão pausados até o fim da configuração do Firebase (d
 3. Divergência a registrar no `ca7IW`: o item 11 diz que uma Cloud Function recalcula o dia e fecha os dias à meia-noite; o item 10 fala em FCM. Agora o app faz os dois (sem Function, notificações locais).
 4. Nexo/Achievement e a documentação "07 / Achievement" dizem "≤ 8 medalhas no início" e dão "Semana em dia" como exemplo. O usuário decidiu por **9**, sem "Semana em dia" (24/10/2026): atualizar o texto e desenhar as 9 com os ícones da seção 4.
 5. **Tópicos do plano:** gerenciar tópicos no Novo plano/detalhe do plano (reaproveitar matéria ou criar novo); na tela 10 Registrar horas, trocar "Escolha uma disciplina cadastrada" por "Escolha um tópico do plano".
-6. **Disciplina com cor:** definir a paleta fixa de cores (com contraste nos dois temas) e desenhar a tela de criar/editar disciplina (nome, ícone, cor). Hoje o design marca "cor por disciplina" como Future.
+6. **Disciplina:** desenhar a tela de criar/editar disciplina com **nome e ícone**. ~~Paleta fixa de cores~~: a cor saiu do MVP (04/11/2026), e o design já marcava "cor por disciplina" como Future.
 
-**Dados e legal:** o inventário fala em "Tópico (texto livre)" na sessão; agora é um tópico do plano (nome digitado pelo usuário, ligado ou não a uma matéria). O inventário também dizia "cor por disciplina = Future" e "status de entrega = S"; os dois entraram no MVP (25/10). A Política já descreve notificações locais (confirmado pela sessão nexo-dados-legal em 22/10).
+**Dados e legal:** o inventário fala em "Tópico (texto livre)" na sessão; agora é um tópico do plano (nome digitado pelo usuário, ligado ou não a uma matéria). O inventário também dizia "status de entrega = S", que entrou no MVP (25/10). "Cor por disciplina = Future" **continua valendo**: a cor chegou a entrar em 25/10, mas saiu de novo em 04/11. Se o inventário tiver sido ajustado para incluir a cor, precisa voltar (fica com a sessão de dados e legal). A Política já descreve notificações locais (confirmado pela sessão nexo-dados-legal em 22/10).
 
 **Histórico de notificações (decisão do usuário de 04/11/2026; entra no bloco de integração com o Firebase):**
 

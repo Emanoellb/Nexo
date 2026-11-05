@@ -539,17 +539,18 @@ service cloud.firestore {
 
       // ----- Disciplinas -----
       // "8 de 12 entregas" e próxima entrega: calculados pelo app a partir
-      // das tarefas da disciplina. icon: nome do ícone Lucide; color: nome
-      // de uma cor da paleta fixa do design (não código de cor livre).
+      // das tarefas da disciplina. icon: nome do ícone Lucide.
+      // Cor por disciplina saiu do MVP (decisão de 04/11/2026). Documento
+      // antigo que ainda tenha color pode ser editado sem mexer nela, ou
+      // removê-la; criar ou alterar a cor é negado.
       match /subjects/{subjectId} {
         function subjectFields() {
-          return ['name', 'icon', 'color', 'createdAt', 'updatedAt'];
+          return ['name', 'icon', 'createdAt', 'updatedAt'];
         }
 
         function validSubject(d) {
           return isText(d.name, 1, 80)
-            && isText(d.icon, 1, 64)
-            && isText(d.color, 1, 32);
+            && isText(d.icon, 1, 64);
         }
 
         allow read, delete: if isVerifiedOwner(uid);
@@ -557,7 +558,8 @@ service cloud.firestore {
           && validCreate(subjectFields(), subjectFields())
           && validSubject(incoming());
         allow update: if isVerifiedOwner(uid)
-          && validUpdate(subjectFields())
+          && validUpdate(subjectFields().concat(['color']))
+          && (!('color' in changedKeys()) || !('color' in incoming()))
           && validSubject(incoming());
       }
 
