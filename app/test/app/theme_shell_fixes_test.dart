@@ -74,8 +74,8 @@ void main() {
 
   testWidgets('vidro: só a aba visível conta', (tester) async {
     await _pumpReady(tester);
-    // Abre Tarefas uma vez (monta a aba) e volta ao Início.
-    await tester.tap(find.byIcon(LucideIcons.listTodo));
+    // Abre Planos uma vez (monta a aba) e volta ao Início.
+    await tester.tap(find.byIcon(LucideIcons.target));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(LucideIcons.house));
     await tester.pumpAndSettle();
@@ -85,8 +85,8 @@ void main() {
     await tester.pump();
     expect(_overContent(tester), isFalse);
 
-    // Tarefas, fora da tela, avisa uma lista longa (ex.: teclado, rotação).
-    _reportList(_pageOf(tester, 'Tarefas'));
+    // Planos, fora da tela, avisa uma lista longa (ex.: teclado, rotação).
+    _reportList(_pageOf(tester, 'Planos'));
     await tester.pump();
     expect(_overContent(tester), isFalse);
 

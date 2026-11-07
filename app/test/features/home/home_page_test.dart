@@ -83,7 +83,11 @@ Finder _button(String label) => find.widgetWithText(NexoButton, label);
 
 /// Plano principal de 90 min por dia, iniciado 22 dias atrás, com [doneToday]
 /// minutos hoje, e tarefas variadas.
-Future<void> _seedDailyUse(ProviderContainer c, {int doneToday = 70}) async {
+Future<Plan> _seedDailyUse(
+  ProviderContainer c, {
+  int doneToday = 70,
+  PlanFrequency frequency = const DailyFrequency(),
+}) async {
   final plans = c.read(plansRepositoryProvider);
   final plan = await plans.createPlan(
     Plan(
@@ -91,7 +95,7 @@ Future<void> _seedDailyUse(ProviderContainer c, {int doneToday = 70}) async {
       name: 'Concurso Banco Horizonte',
       startDate: _today.addDays(-22),
       endDate: _today.addDays(277),
-      frequency: const DailyFrequency(),
+      frequency: frequency,
       dailyGoalMinutes: 90,
     ),
   );
@@ -118,7 +122,22 @@ Future<void> _seedDailyUse(ProviderContainer c, {int doneToday = 70}) async {
   ]) {
     await tasks.createTask(NexoTask(id: '', title: title, dueAt: due));
   }
+  return plan;
 }
+
+/// Plano extra ativo (para "Escolher plano principal").
+Future<Plan> _otherPlan(ProviderContainer c) => c
+    .read(plansRepositoryProvider)
+    .createPlan(
+      Plan(
+        id: '',
+        name: 'Inglês para intercâmbio',
+        startDate: _today.addDays(-5),
+        endDate: _today.addDays(60),
+        frequency: const DailyFrequency(),
+        dailyGoalMinutes: 45,
+      ),
+    );
 
 void main() {
   testWidgets('02 → 05: primeiros passos até a primeira sessão', (
@@ -236,12 +255,112 @@ void main() {
     tester,
   ) async {
     final c = await _pumpHome(tester);
+    await _seedDailyUse(c, doneToday: 105);
+    await tester.pumpAndSettle();
+    // +15 min (≥ 10 acima da meta): com horas a mais.
+    expect(find.text('Dia cumprido · 1h 45min'), findsOneWidget);
+    expect(find.text('+15 min da meta'), findsOneWidget);
+    expect(_button('Estudar mais'), findsOneWidget);
+    expect(_button('Finalizar o dia'), findsNothing);
+  });
+
+  testWidgets('09: até 9 min acima da meta é "Na meta"', (tester) async {
+    final c = await _pumpHome(tester);
     await _seedDailyUse(c, doneToday: 95);
     await tester.pumpAndSettle();
     expect(find.text('Dia cumprido · 1h 35min'), findsOneWidget);
-    expect(find.text('+5 min da meta'), findsOneWidget);
-    expect(_button('Estudar mais'), findsOneWidget);
-    expect(_button('Finalizar o dia'), findsNothing);
+    expect(find.text('Na meta'), findsOneWidget);
+  });
+
+  group('pacote B: estados do cartão do plano', () {
+    testWidgets('0 min: só Focar, sem "Finalizar o dia"', (tester) async {
+      final c = await _pumpHome(tester);
+      await _seedDailyUse(c, doneToday: 0);
+      await tester.pumpAndSettle();
+      expect(find.text('Hoje · 0 min de 1h 30min'), findsOneWidget);
+      expect(_button('Focar'), findsOneWidget);
+      expect(_button('Finalizar o dia'), findsNothing);
+    });
+
+    testWidgets('folga: "Estudar mesmo assim" e o próximo dia', (tester) async {
+      final c = await _pumpHome(tester);
+      // Quarta (hoje) fora de segunda e sexta.
+      await _seedDailyUse(
+        c,
+        doneToday: 0,
+        frequency: WeekdaysFrequency({1, 5}),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Folga'), findsOneWidget);
+      expect(find.text('Hoje é folga neste plano'), findsOneWidget);
+      expect(find.text('Próximo: sex, 06/11'), findsOneWidget);
+      expect(_button('Estudar mesmo assim'), findsOneWidget);
+      expect(_button('Focar'), findsNothing);
+
+      // Estudou na folga: vale como dia normal.
+      await _tap(tester, _button('Estudar mesmo assim'));
+      expect(find.text('Folga · estudo extra'), findsOneWidget);
+      expect(find.text('Hoje · 25 min de 1h 30min'), findsOneWidget);
+      expect(_button('Finalizar o dia'), findsOneWidget);
+    });
+
+    testWidgets('pausado: "Retomar plano" volta ao normal', (tester) async {
+      final c = await _pumpHome(tester);
+      final plan = await _seedDailyUse(c, doneToday: 0);
+      await c
+          .read(plansRepositoryProvider)
+          .updatePlan(
+            plan.copyWith(
+              status: PlanStatus.paused,
+              pauses: [PlanPause(start: _today.addDays(-2))],
+            ),
+          );
+      await tester.pumpAndSettle();
+      expect(find.text('Pausado'), findsOneWidget);
+      expect(find.text('Pausado desde 2/11'), findsOneWidget);
+      expect(find.text('Dias pausados não contam'), findsOneWidget);
+      expect(find.textContaining('sequência mantida'), findsOneWidget);
+
+      await _tap(tester, _button('Retomar plano'));
+      expect(find.text('Pausado'), findsNothing);
+      expect(find.text('Dia 23 de 300'), findsOneWidget);
+      expect(_button('Focar'), findsOneWidget);
+    });
+
+    testWidgets('arquivado com outro ativo: escolher leva aos Planos', (
+      tester,
+    ) async {
+      final c = await _pumpHome(tester);
+      final plan = await _seedDailyUse(c);
+      await _otherPlan(c);
+      await c
+          .read(plansRepositoryProvider)
+          .updatePlan(plan.copyWith(status: PlanStatus.archived));
+      await tester.pumpAndSettle();
+      expect(find.text('Arquivado'), findsOneWidget);
+      expect(find.text('Seu plano principal foi arquivado'), findsOneWidget);
+      expect(find.textContaining('dias seguidos'), findsNothing);
+
+      await _tap(tester, _button('Escolher plano principal'));
+      expect(find.text('Em construção · bloco 3 · Planos'), findsOneWidget);
+    });
+
+    testWidgets('encerrado sem outro ativo: "Criar plano" vira o principal', (
+      tester,
+    ) async {
+      final c = await _pumpHome(tester);
+      final plan = await _seedDailyUse(c);
+      await c
+          .read(plansRepositoryProvider)
+          .updatePlan(plan.copyWith(status: PlanStatus.completed));
+      await tester.pumpAndSettle();
+      expect(find.text('Encerrado'), findsOneWidget);
+      expect(find.text('Seu plano principal foi encerrado'), findsOneWidget);
+
+      await _tap(tester, _button('Criar plano'));
+      expect(find.text('Plano de exemplo 1'), findsOneWidget);
+      expect(find.text('Dia 1 de 300'), findsOneWidget);
+    });
   });
 
   testWidgets('10: sem conexão mostra o alerta e mantém os dados', (
@@ -342,7 +461,7 @@ void main() {
     expect(find.text('Atrasada · hoje, 18:00'), findsOneWidget);
   });
 
-  testWidgets('última etapa pelo "+": o aviso de conclusão aparece', (
+  testWidgets('"Nova tarefa" do "+" abre a tela e não conclui os passos', (
     tester,
   ) async {
     await _pumpHome(tester);
@@ -351,12 +470,36 @@ void main() {
     await _tap(tester, _button('Focar'));
     expect(find.text('Primeiros passos · 2 de 3'), findsOneWidget);
 
+    // O "+" agora abre "Em construção" (decisão do usuário, 05/11/2026).
     await _tap(tester, find.byType(NexoFab));
     await _tap(tester, find.text('Nova tarefa'));
-    // Aparece já, na frente das confirmações de criar (que saem da fila).
+    expect(find.text('Em construção · bloco 7 · Tarefas'), findsOneWidget);
+    expect(find.text('Primeiros passos concluídos.'), findsNothing);
+  });
+
+  testWidgets('última etapa pelo "Criar tarefa" do Hoje: só o aviso de '
+      'conclusão', (tester) async {
+    await _pumpHome(tester);
+    // Plano e sessão primeiro; falta a tarefa.
+    await _tap(tester, find.text('Crie seu primeiro plano'));
+    await _tap(tester, _button('Focar'));
+    expect(find.text('Primeiros passos · 2 de 3'), findsOneWidget);
+
+    await _tap(tester, _button('Criar tarefa'));
     expect(find.text('Primeiros passos concluídos.'), findsOneWidget);
     expect(find.textContaining('criada para hoje'), findsNothing);
     expect(find.textContaining('Primeiros passos ·'), findsNothing);
+  });
+
+  testWidgets('tocar na tarefa abre o detalhe, como em Tarefas', (
+    tester,
+  ) async {
+    final c = await _pumpHome(tester);
+    await _seedDailyUse(c);
+    await tester.pumpAndSettle();
+    await _tap(tester, find.text('Trabalho de modelagem do banco'));
+    expect(find.text('Em construção · bloco 7 · Tarefas'), findsOneWidget);
+    expect(find.text('Detalhe da tarefa'), findsWidgets);
   });
 
   testWidgets('Focar sem concluir os passos ainda confirma a sessão', (

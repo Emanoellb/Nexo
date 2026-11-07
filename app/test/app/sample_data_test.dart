@@ -81,12 +81,13 @@ void main() {
     expect(tasks.last.completed, isTrue);
 
     // Pontos do perfil = o que foi semeado: dias de 5 a 2 atrás (com menos
-    // 3, com mais 7, com menos 3, na meta 5) + 1 tarefa concluída.
+    // 3; 95 de 90 é na meta, 5, porque "com horas a mais" só vale a partir
+    // de +10 min; com menos 3; na meta 5) + 1 tarefa concluída.
     final profile = await container
         .read(userProfileRepositoryProvider)
         .watchProfile(FakeAuthRepository.prototypeUser.uid)
         .first;
-    expect(profile!.points, 3 + 7 + 3 + 5 + 1);
+    expect(profile!.points, 3 + 5 + 3 + 5 + 1);
   });
 
   test('conta nova começa vazia; a de protótipo é o plano principal', () async {

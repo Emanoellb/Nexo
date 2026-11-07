@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/core/domain/local_date.dart';
+import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
 import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/plans/domain/plan.dart';
@@ -112,5 +113,28 @@ void main() {
     expect((await _profile(c)).points, 0);
     await actions.setTaskCompleted(task.id, false);
     expect((await _profile(c)).points, 0);
+  });
+
+  test('retomar o plano recalcula os pontos de hoje', () async {
+    final c = await _container();
+    final actions = c.read(progressActionsProvider);
+    final plan = await actions.createPlan(_draft('Concurso Banco Horizonte'));
+    // Pausado desde hoje: o estudo de hoje fica fora da conta.
+    final plans = c.read(plansRepositoryProvider);
+    await plans.updatePlan(
+      plan.copyWith(
+        status: PlanStatus.paused,
+        pauses: [PlanPause(start: _today)],
+      ),
+    );
+    await actions.addFocusMinutes(plan.id, 95);
+    expect((await _profile(c)).points, 0);
+
+    // Retomar: hoje volta a contar (95 de 90, na meta) e soma 5.
+    await actions.resumePlan(plan.id);
+    expect((await _profile(c)).points, 5);
+    final resumed = await plans.watchPlan(plan.id).first;
+    expect(resumed!.status, PlanStatus.active);
+    expect(resumed.pauses.single.end, _today);
   });
 }

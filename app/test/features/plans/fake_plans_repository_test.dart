@@ -118,7 +118,10 @@ void main() {
     await repo.finalizeDay(plan.id, _today);
     expect((await repo.watchDays(plan.id).first).single.isFinalized, isTrue);
     await repo.undoFinalizeDay(plan.id, _today);
-    expect((await repo.watchDays(plan.id).first).single.isFinalized, isFalse);
+    final day = (await repo.watchDays(plan.id).first).single;
+    expect(day.isFinalized, isFalse);
+    // Contrato das regras v0.8: o campo fica, com null (não é apagado).
+    expect(day.toMap(), containsPair('finalizedAt', null));
   });
 
   test('desfazer o dia também respeita a janela de 7 dias', () async {

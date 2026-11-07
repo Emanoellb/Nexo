@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -11,6 +11,7 @@ import 'package:nexo/features/notifications/application/notifications_providers.
 import 'package:nexo/features/notifications/data/notifications_repository.dart';
 import 'package:nexo/features/notifications/domain/nexo_notification.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
+import 'package:nexo/features/tasks/presentation/tasks_page.dart';
 import 'package:nexo/core/ui/ui.dart';
 
 /// App logado com a conta pronta e, se pedido, avisos de exemplo.
@@ -44,18 +45,31 @@ Future<FakeNotificationsRepository> _pumpReady(WidgetTester tester) async {
   return notifications;
 }
 
+/// Aperta o voltar do Android (mensagem `popRoute` da plataforma).
+Future<void> _systemBack(WidgetTester tester) async {
+  await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+    'flutter/navigation',
+    const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute')),
+    (_) {},
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('usuário pronto abre no Início e navega pelas abas', (
     tester,
   ) async {
     await _pumpReady(tester);
     expect(find.byType(HomePage), findsOneWidget);
+    // Saudação só no Início (perfil "Ana" na conta pronta).
+    expect(find.text('Olá, Ana'), findsOneWidget);
 
     await tester.tap(find.byIcon(LucideIcons.target));
     await tester.pumpAndSettle();
     expect(find.text('Em construção · bloco 3 · Planos'), findsOneWidget);
     // O nome aparece na barra, no topo da aba e no título provisório.
     expect(find.text('Planos'), findsNWidgets(3));
+    expect(find.textContaining('Olá'), findsNothing);
 
     // "Calendário" virou "Agenda" no texto; a rota é a mesma.
     await tester.tap(find.byIcon(LucideIcons.calendarDays));
@@ -98,7 +112,7 @@ void main() {
       (await notifications.watchNotifications().first).single.read,
       isTrue,
     );
-    expect(find.text('Em construção · bloco 7 · Tarefas'), findsOneWidget);
+    expect(find.byType(TasksPage), findsOneWidget);
     expect(find.bySemanticsLabel('Notificações'), findsOneWidget);
   });
 
@@ -112,7 +126,7 @@ void main() {
     expect(find.text('Últimos 30 dias'), findsNothing);
   });
 
-  testWidgets('o "+" está em todas as abas; "Nova tarefa" cria um exemplo', (
+  testWidgets('o "+" está em todas as abas; "Nova tarefa" abre a tela', (
     tester,
   ) async {
     await _pumpReady(tester);
@@ -125,11 +139,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Nova tarefa'));
     await tester.pumpAndSettle();
-    expect(
-      find.text('"Tarefa de exemplo 1" criada para hoje.'),
-      findsOneWidget,
-    );
-    await tester.pumpAndSettle(const Duration(seconds: 5));
+    // Ainda sem design: "Em construção" por cima das abas, com voltar
+    // (decisão do usuário, 05/11/2026).
+    expect(find.text('Em construção · bloco 7 · Tarefas'), findsOneWidget);
+    await tester.tap(find.byTooltip('Voltar'));
+    await tester.pumpAndSettle();
+    expect(find.byType(HomePage), findsOneWidget);
   });
 
   testWidgets('sem login vai ao Login; ao entrar, vai ao Início', (
@@ -196,5 +211,46 @@ void main() {
     profiles.setProfile(user.uid, const UserProfile(displayName: 'Ana'));
     await tester.pumpAndSettle();
     expect(find.text('Objetivo e plano'), findsOneWidget);
+  });
+
+  testWidgets('voltar fora do Início vai ao Início; no Início pergunta', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        calls.add(call.method);
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    await _pumpReady(tester);
+
+    // Planos (raiz da aba): voltar leva ao Início.
+    await tester.tap(find.byIcon(LucideIcons.target));
+    await tester.pumpAndSettle();
+    await _systemBack(tester);
+    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.text('Olá, Ana'), findsOneWidget);
+
+    // No Início: pergunta; "Cancelar" fica no app.
+    await _systemBack(tester);
+    expect(find.text('Deseja sair do app?'), findsOneWidget);
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Deseja sair do app?'), findsNothing);
+    expect(calls, isNot(contains('SystemNavigator.pop')));
+
+    // "Sair" fecha o app.
+    await _systemBack(tester);
+    await tester.tap(find.text('Sair'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('SystemNavigator.pop'));
   });
 }

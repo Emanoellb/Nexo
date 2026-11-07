@@ -98,6 +98,48 @@ void main() {
     expect(find.text('Objetivo e plano'), findsNothing);
   });
 
+  testWidgets('"Começar" só aparece depois da animação do "Tudo pronto"', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await _pumpTutorial(tester);
+    await tester.tap(find.widgetWithText(NexoButton, 'Pular'));
+    // Troca de página + parte da animação: ainda sem o "Começar".
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1500));
+    expect(find.text('Tudo pronto'), findsOneWidget);
+    final fade = find.ancestor(
+      of: find.widgetWithText(NexoButton, 'Começar'),
+      matching: find.byType(AnimatedOpacity),
+    );
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
+    expect(find.bySemanticsLabel('Começar'), findsNothing);
+
+    // Fim da animação (o atraso inicial é um timer: avança o relógio).
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
+    expect(find.bySemanticsLabel('Começar'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('com "reduzir movimento", "Começar" aparece direto', (
+    tester,
+  ) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await _pumpTutorial(tester);
+    await tester.tap(find.widgetWithText(NexoButton, 'Pular'));
+    await tester.pump();
+    await tester.pump();
+    final fade = find.ancestor(
+      of: find.widgetWithText(NexoButton, 'Começar'),
+      matching: find.byType(AnimatedOpacity),
+    );
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
+  });
+
   testWidgets('deslizar e o voltar do Android trocam de passo', (tester) async {
     await _pumpTutorial(tester);
     await tester.drag(find.byType(PageView), const Offset(-300, 0));

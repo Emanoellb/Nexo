@@ -66,6 +66,87 @@ void main() {
       await expectLater(tester, meetsGuideline(textContrastGuideline));
       handle.dispose();
     });
+
+    group('saudação do Início', () {
+      Widget greeted(String name, {double width = 360, bool dark = false}) =>
+          MaterialApp(
+            theme: dark ? NexoTheme.dark() : NexoTheme.light(),
+            home: Scaffold(
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: width,
+                  child: NexoTabHeader(
+                    title: 'Início',
+                    greeting: greetingOf(name),
+                    unreadCount: 0,
+                    onNotifications: () {},
+                    initials: initialsOf(name),
+                    onProfile: () {},
+                  ),
+                ),
+              ),
+            ),
+          );
+
+      test('"Olá" fixo e só o primeiro nome; sem nome, só "Olá"', () {
+        expect(greetingOf('Ana Souza'), 'Olá, Ana');
+        expect(greetingOf('  Ana  '), 'Olá, Ana');
+        expect(greetingOf(''), 'Olá');
+        expect(greetingOf('   '), 'Olá');
+      });
+
+      for (final dark in [false, true]) {
+        testWidgets('duas linhas nos 64, lidas como um cabeçalho '
+            '(${dark ? 'escuro' : 'claro'})', (tester) async {
+          final handle = tester.ensureSemantics();
+          await tester.pumpWidget(greeted('Ana Souza', dark: dark));
+          final colors = dark ? NexoColors.dark : NexoColors.light;
+          final hello = tester.widget<Text>(find.text('Olá, Ana'));
+          final tab = tester.widget<Text>(find.text('Início'));
+          final theme = dark ? NexoTheme.dark() : NexoTheme.light();
+          expect(hello.style!.fontSize, theme.textTheme.titleLarge!.fontSize);
+          expect(hello.style!.color, colors.onSurface);
+          expect(tab.style!.fontSize, theme.textTheme.bodyMedium!.fontSize);
+          expect(tab.style!.color, colors.onSurfaceVariant);
+          expect(
+            tester.getSize(find.byType(NexoTabHeader)).height,
+            NexoTabHeader.height,
+          );
+          expect(
+            tester.getSemantics(find.bySemanticsLabel('Olá, Ana. Início')),
+            isSemantics(isHeader: true, label: 'Olá, Ana. Início'),
+          );
+          await expectLater(tester, meetsGuideline(textContrastGuideline));
+          handle.dispose();
+        });
+      }
+
+      testWidgets('sem nome no perfil: "Olá. Início"', (tester) async {
+        final handle = tester.ensureSemantics();
+        await tester.pumpWidget(greeted(''));
+        expect(find.text('Olá'), findsOneWidget);
+        expect(find.bySemanticsLabel('Olá. Início'), findsOneWidget);
+        handle.dispose();
+      });
+
+      testWidgets('nome longo em 2,0 corta com reticências, sem estourar', (
+        tester,
+      ) async {
+        tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await tester.pumpWidget(greeted('Maximiliana Escolástica'));
+        expect(tester.takeException(), isNull);
+        final hello = tester.widget<Text>(find.text('Olá, Maximiliana'));
+        expect(hello.maxLines, 1);
+        expect(hello.overflow, TextOverflow.ellipsis);
+        // O sino e o avatar continuam inteiros.
+        expect(
+          tester.getSize(find.bySemanticsLabel('Perfil')).width,
+          greaterThanOrEqualTo(48),
+        );
+      });
+    });
   });
 
   group('NexoNotificationPanel', () {

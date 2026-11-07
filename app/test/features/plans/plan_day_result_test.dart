@@ -69,6 +69,22 @@ void main() {
       );
     });
 
+    test('"com horas a mais" só a partir de 10 min acima da meta', () {
+      final s = _snapshot(
+        days: {
+          _sunday: (99, false), // +9: na meta
+          _sunday.addDays(1): (100, false), // +10: com horas a mais
+        },
+      );
+      expect(_status(s, _sunday), PlanDayStatus.met);
+      expect(_status(s, _sunday.addDays(1)), PlanDayStatus.metOver);
+    });
+
+    test('finalizou abaixo e estudou depois (RF16): o status sobe', () {
+      final s = _snapshot(days: {_today: (95, true)});
+      expect(_status(s, _today), PlanDayStatus.met);
+    });
+
     test('dia passado sem meta e sem finalizar = não cumprido (0)', () {
       final s = _snapshot(days: {_sunday: (30, false)});
       final r = planDayResult(s, _sunday, today: _today);
@@ -99,6 +115,28 @@ void main() {
       final later = _snapshot(start: _today);
       expect(_status(later, _sunday), PlanDayStatus.off);
     });
+
+    test('estudar na folga vale como dia normal ("estudo extra")', () {
+      // Quarta fora dos dias escolhidos (segunda e sexta).
+      final s = _snapshot(
+        frequency: WeekdaysFrequency({1, 5}),
+        days: {_today: (25, false), _sunday.addDays(2): (95, false)},
+      );
+      final today = planDayResult(s, _today, today: _today);
+      expect(today.restDay, isTrue);
+      expect(today.status, PlanDayStatus.inProgress);
+      // Terça, também fora: cumprida, com pontos.
+      expect(_status(s, _sunday.addDays(2)), PlanDayStatus.met);
+    });
+
+    test('folga sem estudo: próximo dia de estudo', () {
+      final s = _snapshot(frequency: WeekdaysFrequency({1, 5}));
+      expect(planDayResult(s, _today, today: _today).restDay, isTrue);
+      // Quarta → sexta, 06/11.
+      expect(nextStudyDay(s, today: _today), const LocalDate(2026, 11, 6));
+      final paused = _snapshot(pauses: [PlanPause(start: _today)]);
+      expect(nextStudyDay(paused, today: _today), isNull);
+    });
   });
 
   group('"× por semana" = cota semanal (decisão de 05/11/2026)', () {
@@ -111,17 +149,44 @@ void main() {
     test('cumprida a cota, os dias seguintes viram folga', () {
       final s = _snapshot(
         frequency: TimesPerWeekFrequency(2),
+        days: {_sunday: (90, false), _sunday.addDays(1): (60, true)},
+      );
+      expect(_status(s, _sunday), PlanDayStatus.met);
+      expect(_status(s, _sunday.addDays(1)), PlanDayStatus.metShort);
+      // Cota 2 cumprida: hoje é folga.
+      final today = planDayResult(s, _today, today: _today);
+      expect(today.status, PlanDayStatus.off);
+      expect(today.restDay, isTrue);
+    });
+
+    test('estudo depois da cota vale como dia normal', () {
+      final s = _snapshot(
+        frequency: TimesPerWeekFrequency(2),
         days: {
           _sunday: (90, false),
           _sunday.addDays(1): (60, true),
           _today: (100, false),
         },
       );
-      expect(_status(s, _sunday), PlanDayStatus.met);
-      expect(_status(s, _sunday.addDays(1)), PlanDayStatus.metShort);
-      // Terceiro dia de estudo na semana de cota 2: folga, sem pontos.
-      expect(_status(s, _today), PlanDayStatus.off);
-      expect(planWeekPoints(s, _today, today: _today), 5 + 3);
+      final today = planDayResult(s, _today, today: _today);
+      expect(today.restDay, isTrue);
+      expect(today.status, PlanDayStatus.metOver);
+      expect(planWeekPoints(s, _today, today: _today), 5 + 3 + 7);
+    });
+
+    test('dia com estudo abaixo da meta e sem finalizar não quebra', () {
+      final s = _snapshot(
+        frequency: TimesPerWeekFrequency(2),
+        start: const LocalDate(2026, 10, 25),
+        days: {
+          const LocalDate(2026, 10, 26): (90, false),
+          const LocalDate(2026, 10, 28): (90, false),
+          _sunday: (90, false),
+          _sunday.addDays(1): (20, false), // não cumprido, mas flexível
+        },
+      );
+      expect(_status(s, _sunday.addDays(1)), PlanDayStatus.missed);
+      expect(currentStreak(s, today: _today), 3);
     });
   });
 
