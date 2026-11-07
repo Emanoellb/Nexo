@@ -136,7 +136,8 @@ function newPlan(extra = {}) {
     dailyGoalMinutes: 120,
     status: 'active',
     goalId: null,
-    reminder: { enabled: true, time: '19:30' },
+    studyTime: '19:00',
+    reminderBefore: { enabled: true, minutesBefore: 15 },
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     ...extra,
@@ -153,7 +154,7 @@ function newSession(extra = {}) {
     endAt: ago(HOUR),
     durationSeconds: 3000,
     source: 'manual',
-    topicId: 'interpretacao-de-texto',
+    topicIds: [],
     note: 'Interpretação de texto — lista 4',
     day: isoDate(0),
     createdAt: serverTimestamp(),
@@ -188,7 +189,7 @@ function newTask(extra = {}) {
     priority: 'high',
     completed: false,
     completedAt: null,
-    reminderMinutesBefore: 1440,
+    remindersMinutesBefore: [1440],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     ...extra,
@@ -283,6 +284,23 @@ describe('users/{uid}: uso', () => {
     const ref = doc(db(ALICE), USER);
     await assertFails(updateDoc(ref, { displayName: 'Ana Paula' }));
     await assertSucceeds(updateDoc(ref, { displayName: 'Ana Paula', updatedAt: serverTimestamp() }));
+  });
+
+  test('aviso da manhã no cadastro e no Perfil (v0.9)', async () => {
+    const criar = doc(db(ALICE), USER);
+    await assertFails(setDoc(criar, newUser({ morningSummary: { enabled: true, time: '8h' } })));
+    await assertFails(setDoc(criar, newUser({ morningSummary: { enabled: true } })));
+    await assertFails(setDoc(criar, newUser({ morningSummary: { enabled: true, time: '08:00', extra: 1 } })));
+    await assertSucceeds(setDoc(criar, newUser({ morningSummary: { enabled: true, time: '08:00' } })));
+    await assertSucceeds(updateDoc(criar, { morningSummary: { enabled: false, time: '07:30' }, updatedAt: serverTimestamp() }));
+  });
+
+  test('preferências do aparelho não vão para o Firestore', async () => {
+    await seed(USER, storedUser());
+    const ref = doc(db(ALICE), USER);
+    for (const campo of ['theme', 'dndOnFocus', 'reduceTransparency']) {
+      await assertFails(updateDoc(ref, { [campo]: true, updatedAt: serverTimestamp() }));
+    }
   });
 
   test('o app mantém os pontos dentro dos limites', async () => {
@@ -422,7 +440,41 @@ describe('users/{uid}/plans', () => {
     await assertFails(setDoc(ref, newPlan({ dailyGoalMinutes: 1.5 })));
     await assertFails(setDoc(ref, newPlan({ status: 'deleted' })));
     await assertFails(setDoc(ref, newPlan({ status: 'deleting' })));
-    await assertFails(setDoc(ref, newPlan({ reminder: { enabled: true, time: '7h' } })));
+    await assertFails(setDoc(ref, newPlan({ studyTime: '7h' })));
+    await assertFails(setDoc(ref, newPlan({ reminderBefore: { enabled: true, minutesBefore: 10 } })));
+    await assertFails(setDoc(ref, newPlan({ reminderBefore: { enabled: 'sim', minutesBefore: 15 } })));
+    await assertFails(setDoc(ref, newPlan({ reminderBefore: { enabled: true } })));
+  });
+
+  test('horário do plano e aviso antes do horário (v0.9)', async () => {
+    const d = db(ALICE);
+    for (const [id, minutes] of [['a', 0], ['b', 15], ['c', 30], ['d', 60]]) {
+      await assertSucceeds(setDoc(doc(d, `${USER}/plans/${id}`),
+        newPlan({ studyTime: '06:30', reminderBefore: { enabled: true, minutesBefore: minutes } })));
+    }
+    // sem os campos: o app usa os padrões 19:00 e {true, 15}
+    const semAviso = newPlan();
+    delete semAviso.studyTime;
+    delete semAviso.reminderBefore;
+    await assertSucceeds(setDoc(doc(d, `${USER}/plans/e`), semAviso));
+    // o campo antigo não entra mais
+    await assertFails(setDoc(doc(d, `${USER}/plans/f`), newPlan({ reminder: { enabled: true, time: '19:00' } })));
+  });
+
+  test('plano antigo com reminder: edita sem mexer nele ou remove; não altera', async () => {
+    await seed(PLAN, storedPlan({ reminder: { enabled: true, time: '19:30' } }));
+    const ref = doc(db(ALICE), PLAN);
+    await assertSucceeds(updateDoc(ref, { name: 'Novo nome', updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { reminder: { enabled: false, time: '19:30' }, updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { reminder: deleteField(), updatedAt: serverTimestamp() }));
+  });
+
+  test('objetivo continua opcional', async () => {
+    const semObjetivo = newPlan();
+    delete semObjetivo.goalId;
+    await assertSucceeds(setDoc(doc(db(ALICE), PLAN), semObjetivo));
+    await assertSucceeds(updateDoc(doc(db(ALICE), PLAN), { goalId: 'g1', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(db(ALICE), PLAN), { goalId: null, updatedAt: serverTimestamp() }));
   });
 
   test('campos fora do contrato (isPrimary, totais) são negados', async () => {
@@ -652,7 +704,58 @@ describe('users/{uid}/plans/{planId}/sessions', () => {
 
   test('sessão encerrada (foco ou manual) é gravada', async () => {
     await assertSucceeds(setDoc(ref(), newSession()));
-    await assertSucceeds(setDoc(ref(ALICE, 's2'), newSession({ source: 'focus', topicId: null, note: null })));
+    await assertSucceeds(setDoc(ref(ALICE, 's2'), newSession({ source: 'focus', note: null })));
+    const semTopicos = newSession();
+    delete semTopicos.topicIds;
+    await assertSucceeds(setDoc(ref(ALICE, 's3'), semTopicos));
+  });
+
+  test('até 3 tópicos do próprio plano, sem repetidos (v0.9)', async () => {
+    for (const t of ['t1', 't2', 't3', 't4']) {
+      await seed(`${PLAN}/topics/${t}`, { name: t, subjectId: null, createdAt: ago(HOUR), updatedAt: ago(HOUR) });
+    }
+    await assertSucceeds(setDoc(ref(ALICE, 'a'), newSession({ topicIds: ['t1'] })));
+    await assertSucceeds(setDoc(ref(ALICE, 'b'), newSession({ topicIds: ['t1', 't2', 't3'] })));
+    await assertFails(setDoc(ref(ALICE, 'c'), newSession({ topicIds: ['t1', 't2', 't3', 't4'] })));
+    await assertFails(setDoc(ref(ALICE, 'd'), newSession({ topicIds: ['t1', 't1'] })));
+    await assertFails(setDoc(ref(ALICE, 'e'), newSession({ topicIds: ['nao-existe'] })));
+    await assertFails(setDoc(ref(ALICE, 'f'), newSession({ topicIds: [123] })));
+    await assertFails(setDoc(ref(ALICE, 'g'), newSession({ topicIds: 't1' })));
+    // o campo antigo não entra mais
+    await assertFails(setDoc(ref(ALICE, 'h'), newSession({ topicId: 't1' })));
+  });
+
+  test('tópico de outro plano é negado', async () => {
+    await seed(`${USER}/plans/p2`, storedPlan());
+    await seed(`${USER}/plans/p2/topics/outro`, { name: 'Outro', subjectId: null, createdAt: ago(HOUR), updatedAt: ago(HOUR) });
+    await assertFails(setDoc(ref(), newSession({ topicIds: ['outro'] })));
+  });
+
+  test('tópico criado no mesmo lote que a sessão', async () => {
+    const d = db(ALICE);
+    const batch = writeBatch(d);
+    batch.set(doc(d, `${PLAN}/topics/novo`), {
+      name: 'Juros simples', subjectId: null, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(d, `${PLAN}/sessions/s1`), newSession({ topicIds: ['novo'] }));
+    await assertSucceeds(batch.commit());
+  });
+
+  test('editar a sessão confere os tópicos só quando a lista muda', async () => {
+    await seed(`${PLAN}/topics/t1`, { name: 't1', subjectId: null, createdAt: ago(HOUR), updatedAt: ago(HOUR) });
+    // tópico apagado depois da sessão: a nota ainda pode ser editada
+    await seed(`${PLAN}/sessions/s1`, storedSession({ topicIds: ['t1', 'apagado'] }));
+    await assertSucceeds(updateDoc(ref(), { note: 'nova nota', updatedAt: serverTimestamp() }));
+    // trocar a lista exige tópicos existentes
+    await assertFails(updateDoc(ref(), { topicIds: ['t1', 'apagado'].reverse(), updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref(), { topicIds: ['t1'], updatedAt: serverTimestamp() }));
+  });
+
+  test('sessão antiga com topicId: edita sem mexer nele ou remove; não altera', async () => {
+    await seed(`${PLAN}/sessions/antiga`, storedSession({ topicId: 'porcentagem' }));
+    await assertSucceeds(updateDoc(ref(ALICE, 'antiga'), { note: 'x', updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref(ALICE, 'antiga'), { topicId: 'juros', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref(ALICE, 'antiga'), { topicId: deleteField(), updatedAt: serverTimestamp() }));
   });
 
   test('não existe sessão em andamento no Firestore', async () => {
@@ -690,7 +793,7 @@ describe('users/{uid}/plans/{planId}/sessions', () => {
     await assertSucceeds(setDoc(ref(), newSession()));
     await assertFails(getDoc(ref(BOB)));
     await assertFails(updateDoc(ref(BOB), { note: 'x', updatedAt: serverTimestamp() }));
-    await assertSucceeds(updateDoc(ref(), { topicId: 'porcentagem', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref(), { note: 'Porcentagem', updatedAt: serverTimestamp() }));
     await assertSucceeds(deleteDoc(ref()));
   });
 
@@ -760,16 +863,45 @@ describe('users/{uid}/tasks', () => {
 
   test('o dono cria tarefa com aviso e tarefa sem prazo', async () => {
     await assertSucceeds(setDoc(ref(), newTask()));
-    await assertSucceeds(setDoc(ref(ALICE, 't2'), newTask({ dueAt: null, reminderMinutesBefore: null, priority: 'none' })));
+    await assertSucceeds(setDoc(ref(ALICE, 't2'), newTask({ dueAt: null, remindersMinutesBefore: [], priority: 'none' })));
+    const semAvisos = newTask({ dueAt: null });
+    delete semAvisos.remindersMinutesBefore;
+    await assertSucceeds(setDoc(ref(ALICE, 't3'), semAvisos));
   });
 
-  test('aviso: 1 hora, 1 dia, 1 semana ou personalizado até 30 dias, só com prazo', async () => {
-    for (const [id, minutes] of [['a', 60], ['b', 1440], ['c', 10080], ['d', 45], ['e', 43200]]) {
-      await assertSucceeds(setDoc(ref(ALICE, id), newTask({ reminderMinutesBefore: minutes })));
-    }
-    await assertFails(setDoc(ref(ALICE, 'f'), newTask({ reminderMinutesBefore: 43201 })));
-    await assertFails(setDoc(ref(ALICE, 'g'), newTask({ reminderMinutesBefore: 0 })));
-    await assertFails(setDoc(ref(ALICE, 'h'), newTask({ dueAt: null, reminderMinutesBefore: 60 })));
+  test('avisos: até 3, de 1 min a 30 dias, sem repetidos, só com prazo (v0.9)', async () => {
+    await assertSucceeds(setDoc(ref(ALICE, 'a'), newTask({ remindersMinutesBefore: [60, 1440, 10080] })));
+    await assertSucceeds(setDoc(ref(ALICE, 'b'), newTask({ remindersMinutesBefore: [45, 43200] })));
+    await assertSucceeds(setDoc(ref(ALICE, 'c'), newTask({ remindersMinutesBefore: [1] })));
+    await assertFails(setDoc(ref(ALICE, 'd'), newTask({ remindersMinutesBefore: [60, 1440, 10080, 2880] })));
+    await assertFails(setDoc(ref(ALICE, 'e'), newTask({ remindersMinutesBefore: [60, 60] })));
+    await assertFails(setDoc(ref(ALICE, 'f'), newTask({ remindersMinutesBefore: [43201] })));
+    await assertFails(setDoc(ref(ALICE, 'g'), newTask({ remindersMinutesBefore: [0] })));
+    await assertFails(setDoc(ref(ALICE, 'h'), newTask({ remindersMinutesBefore: [1.5] })));
+    await assertFails(setDoc(ref(ALICE, 'i'), newTask({ remindersMinutesBefore: 1440 })));
+    await assertFails(setDoc(ref(ALICE, 'j'), newTask({ dueAt: null, remindersMinutesBefore: [60] })));
+    // o campo antigo não entra mais
+    await assertFails(setDoc(ref(ALICE, 'k'), newTask({ reminderMinutesBefore: 60 })));
+  });
+
+  test('tirar o prazo exige tirar os avisos', async () => {
+    await assertSucceeds(setDoc(ref(), newTask()));
+    await assertFails(updateDoc(ref(), { dueAt: null, updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref(), { dueAt: null, remindersMinutesBefore: [], updatedAt: serverTimestamp() }));
+  });
+
+  test('tarefa antiga com reminderMinutesBefore: edita sem mexer nele ou remove; não altera', async () => {
+    await seed(`${USER}/tasks/antiga`, {
+      title: 'Antiga', subjectId: null, dueAt: later(24 * HOUR), priority: 'none',
+      completed: false, completedAt: null, reminderMinutesBefore: 60,
+      createdAt: ago(HOUR), updatedAt: ago(HOUR),
+    });
+    const r = ref(ALICE, 'antiga');
+    await assertSucceeds(updateDoc(r, { title: 'Antiga 2', updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(r, { reminderMinutesBefore: 120, updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(r, {
+      reminderMinutesBefore: deleteField(), remindersMinutesBefore: [60], updatedAt: serverTimestamp(),
+    }));
   });
 
   test('conclusão coerente com completedAt do servidor', async () => {

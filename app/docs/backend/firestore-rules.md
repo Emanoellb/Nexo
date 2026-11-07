@@ -1,6 +1,6 @@
 # Nexo · Security Rules do Cloud Firestore (MVP)
 
-Status: **v0.8 publicada em 04/11/2026 pelo próprio usuário** (deploy a partir de `app/` na `main`, commit `bf84a48`; a CLI respondeu "Deploy complete!"): a cor por disciplina sai do MVP; `subjects` volta a ser só nome e ícone. Antes: **v0.7 em 04/11/2026**, com autorização do usuário ("pode publicar"): `deleting` passa a ser terminal e o plano em exclusão não recebe filhos novos (achado [4] da revisão de código de 04/11/2026). Antes: **v0.6 em 25/10/2026** (tópicos do plano, cor da disciplina, situação da entrega), com os **3 índices compostos** (seção 4.1), com autorização do usuário ("pode criar e publicar"). Antes: v0.5, publicada em 24/10/2026. Roteiro completo (etapas 1 a 11) decidido pelo usuário em 22 e 24/10/2026. **Deploy em 24/10/2026** no projeto `nexo-app-gestao-f97bb`, com autorização do usuário ("pode publicar"): regras compiladas e liberadas sem erro. · Sessão: segurança do Firestore · 24/10/2026
+Status: **v0.9 no repositório (branch `feat/regras-v0.9`), ainda não publicada:** pacote da Etapa 3c, vindo do design da 3b (aprovado pelo usuário: "Aprovo juntar as regras no começo da 3c"). Até 3 avisos por tarefa (`remindersMinutesBefore`); horário do plano e aviso antes do horário (`studyTime`, `reminderBefore`); aviso da manhã (`users.morningSummary`); até 3 tópicos por sessão (`topicIds`). Publicada: **v0.8 em 04/11/2026 pelo próprio usuário** (deploy a partir de `app/` na `main`, commit `bf84a48`; a CLI respondeu "Deploy complete!"): a cor por disciplina sai do MVP; `subjects` volta a ser só nome e ícone. Antes: **v0.7 em 04/11/2026**, com autorização do usuário ("pode publicar"): `deleting` passa a ser terminal e o plano em exclusão não recebe filhos novos (achado [4] da revisão de código de 04/11/2026). Antes: **v0.6 em 25/10/2026** (tópicos do plano, cor da disciplina, situação da entrega), com os **3 índices compostos** (seção 4.1), com autorização do usuário ("pode criar e publicar"). Antes: v0.5, publicada em 24/10/2026. Roteiro completo (etapas 1 a 11) decidido pelo usuário em 22 e 24/10/2026. **Deploy em 24/10/2026** no projeto `nexo-app-gestao-f97bb`, com autorização do usuário ("pode publicar"): regras compiladas e liberadas sem erro. · Sessão: segurança do Firestore · 24/10/2026
 Base: `docs/backend/firebase-setup.md` §7.2 (esqueleto e mapa), `docs/legal/inventario-dados-mvp.md` e as telas do `nexo.lib.pen` (`ca7IW` Regras e requisitos, `oXRSc` Fluxo do Plano de ação) e do `nexo.app.pen` (fluxo de entrada).
 
 Legenda: **[C]** confirmado na documentação oficial · **[NC]** não confirmado · **[D]** decisão do usuário.
@@ -30,6 +30,7 @@ Histórico de execuções:
 | 25/10/2026 | v0.6 | **71/71** (execução única antes do deploy). Processo do emulador encerrado ao final |
 | 04/11/2026 | v0.7 | **75/75** (execução única antes do deploy; 4 testes novos em "plano em exclusão"). O processo Java soltou a porta 8080, mas ficou vivo; foi encerrado ao final |
 | 04/11/2026 | v0.8 | 1ª execução **interrompida**: o emulador caiu no meio (código `0xC000013A`, encerramento tipo Ctrl+C), sem teste reprovado; processos órfãos encerrados. 2ª execução, com autorização do usuário: **76/76**. Emulador encerrado ao final |
+| 07/11/2026 | v0.9 | **88/88** (execução única antes do deploy; testes novos para avisos da tarefa, horário e aviso do plano, aviso da manhã, tópicos da sessão, preferências fora do Firestore e campos antigos). Emulador encerrado ao final |
 
 Instalação global (uma vez por máquina, não muda o repositório): Node 20+, Firebase CLI e JDK 11+. Esta máquina tem Node 22.17, CLI 15.28.2 e JDK 23. O emulador do Firestore já está em `~/.cache/firebase/emulators`.
 
@@ -82,6 +83,7 @@ Telas: 03 Cadastro, 03b Primeiro acesso com Google, 05 Verifique seu e-mail, 06 
 | `tutorialSeen` | qualquer uma das 3 saídas do passo 5 do tutorial | bool | não |
 | `primaryPlanId` | marcar plano principal (RF07) | id de um plano do próprio usuário (conferido com `existsAfter`) ou null | não |
 | `overloadThreshold` | Perfil: limite de "sobrecarregado" | int 1–20, em **tarefas por dia**. Vazio = padrão 5 no app | não |
+| `morningSummary` | Perfil: **Aviso da manhã** (resumo do dia, notificação local) | `{enabled: bool, time: "HH:mm"}`. Vazio = padrão `{true, "08:00"}` no app. Aceito já no cadastro (v0.9) | não |
 | `points` | progresso (etapa 9) | int 0–10.000.000. Começa em 0; o app soma e subtrai | não |
 | `deletionRequestedAt` | Excluir conta | serverTimestamp, gravado uma vez; não pode ser desfeito | não |
 | `createdAt`, `updatedAt` | servidor | serverTimestamp | sim |
@@ -91,6 +93,7 @@ Telas: 03 Cadastro, 03b Primeiro acesso com Google, 05 Verifique seu e-mail, 06 
 - Novo aceite (nova versão vigente) substitui o mapa inteiro. Regravar uma versão antiga é negado. O aceite não pode ser removido.
 - A idade é conferida pela data **UTC** do servidor: no horário de Brasília (UTC−3), os 16 anos passam a valer às 21h da véspera do aniversário. Diferença aceita.
 - Nível, sequência atual e maior sequência são calculados pelo app (nível a partir de `points`; sequências a partir dos dias). Não são guardados.
+- **Preferências só no aparelho** (decisão do usuário de 07/11/2026): Tema (Sistema · Claro · Escuro), "Ligar o Não perturbe ao focar" e "Reduzir transparência" não vão para o Firestore; as regras negam campos com esses dados. Reinstalando o app, voltam ao padrão.
 
 ### `users/{uid}/plans/{planId}` (etapa 3)
 
@@ -106,10 +109,13 @@ Telas: 02 Planos, 03 Novo plano, 07 Visão geral. MVP: RF01, RF02, RF04–RF07. 
 | `status` | Planos; pausar, encerrar, arquivar, excluir (RF05, RF06) | `active`, `paused`, `completed`, `endedEarly`, `archived`, `deleting` (este só em update, e sem volta) | sim |
 | `pauses` | Pausar/retomar (RF05) | lista de `{start, end}` (datas; `end` null enquanto pausado), até 100 itens | não |
 | `endedOn` | Encerrar antes (RF06) | `AAAA-MM-DD` dentro do período; **obrigatório** com `endedEarly`; continua se o plano for arquivado | não |
-| `goalId` | objetivo (etapa 8) | string 1–128 ou null | não |
-| `reminder` | Lembrete diário · 19:00 | `{enabled, time: "HH:mm"}`. Notificação local | não |
+| `goalId` | objetivo (etapa 8) | string 1–128 ou null. **Continua opcional**: no máximo um objetivo por plano (decisão do usuário de 07/11/2026; o design tem "Sem objetivo") | não |
+| `studyTime` | **Horário do plano** (passo 2 do Criar plano) | `"HH:mm"`. Vazio = padrão `"19:00"` no app (v0.9) | não |
+| `reminderBefore` | **Avisar antes do horário** + Antecedência | `{enabled: bool, minutesBefore: 0 \| 15 \| 30 \| 60}` (Na hora · 15 min · 30 min · 1 h). Vazio = padrão `{true, 15}` no app. Notificação local (v0.9) | não |
 | `createdAt`, `updatedAt` | servidor | serverTimestamp | sim |
 
+- **`reminder` saiu na v0.9** (07/11/2026): o antigo "Lembrete diário · 19:00" (`{enabled, time}`) foi substituído por `studyTime` + `reminderBefore` e pelo aviso da manhã do Perfil. O create com `reminder` é negado; um plano antigo que ainda o tenha pode ser editado sem mexer nele ou removê-lo, mas não alterá-lo.
+- Na interface: "Horário do plano" e "Avisar antes do horário" (terminologia neutra).
 - **Plano principal: `users.primaryPlanId`**, não `isPrimary` no plano. Para apagar o plano principal, o app limpa o `primaryPlanId` na mesma operação (lote).
 - **Pausa:** vale **a partir de hoje**, se o dia ainda não foi finalizado. Retomar também. Dias pausados viram "Folga/Pausado" e saem da conta (lógica do app).
 - **Semana: domingo a sábado.** Vale para o "× por semana" e para o calendário (como no design: D S T Q Q S S).
@@ -157,10 +163,14 @@ Telas: 04 Sessão de foco, 09 Sessões, 10 Registrar horas. RF08–RF13.
 | `durationSeconds` | int > 0 e ≤ fim − início (**duração líquida**, já sem as pausas) | sim |
 | `source` | `focus` ou `manual` | sim |
 | `day` | `AAAA-MM-DD`, o dia a que a sessão pertence; **dentro da janela de 7 dias** | sim |
-| `topicId` | "Tópico" = um **tópico do próprio plano** (`topics`), ou null | não |
+| `topicIds` | **até 3 tópicos do próprio plano** (`topics`): lista de 0 a 3 ids, sem repetidos. As regras conferem se cada id existe em `topics` do mesmo plano (v0.9) | não |
 | `note` | string 1–500 ou null | não |
 | `createdAt`, `updatedAt` | serverTimestamp | sim |
 
+- **Tópicos (v0.9, 07/11/2026):** escolhidos durante o foco ou ao encerrar. As **horas são divididas igualmente** entre os tópicos (duração ÷ número de tópicos), calculadas pelo app; não há campo novo.
+  - A existência dos tópicos é conferida no create e quando a lista muda (até 3 leituras); o tópico pode ser criado no mesmo lote (`existsAfter`). Editar só a nota não confere de novo.
+  - Tópico apagado depois: a sessão mantém o id e o app mostra "sem tópico". Para trocar a lista, o app manda só ids que ainda existem.
+  - `topicId` (um tópico) **saiu na v0.9**: o create com ele é negado; uma sessão antiga que ainda o tenha pode ser editada sem mexer nele ou removê-lo, mas não alterá-lo.
 - **O cronômetro em andamento fica no aparelho**: o horário de início é guardado localmente e a sessão só vai ao Firestore ao "Encerrar sessão". Não há sessão "aberta" no banco.
 - As pausas da sessão não são guardadas, só a duração líquida.
 - **Divisão à meia-noite (RF13):** cada dia tem meta, status e pontos próprios e fecha à meia-noite no fuso do usuário. Uma sessão das 23h30 à 0h45 vira duas: 30 min no primeiro dia e 45 min no seguinte. Quem divide é o app, ao salvar.
@@ -217,12 +227,14 @@ Telas: 05 Finalizar o dia, 06 Dia cumprido, 08 Calendário do plano. RF14–RF17
 | `completedAt` | null se não concluída; serverTimestamp quando muda para concluída | sim (pode ser null) |
 | `subjectId` | disciplina, ou null | não |
 | `dueAt` | timestamp ou null ("Sem prazo") | não |
-| `reminderMinutesBefore` | **aviso de entrega próxima** (notificação local): int 1–43.200 (até 30 dias). Opções da tela: 1 hora (60), 1 dia (1.440), 1 semana (10.080) ou personalizado. Só com prazo. Um aviso por tarefa | não |
+| `remindersMinutesBefore` | **avisos de entrega próxima** (notificações locais): lista de **até 3** inteiros, cada um de 1 a 43.200 (até 30 dias), **sem repetidos**. Opções da tela: 1 hora antes (60), 1 dia antes (1.440), 1 semana antes (10.080) ou personalizado (minutos, horas ou dias). Lista com itens **só com prazo**; lista vazia ou ausente = sem aviso (v0.9) | não |
 | `deliveryStatus` | **situação da entrega**: `notStarted` (Não iniciada), `inProgress` (Em andamento), `delivered` (Entregue), `awaitingGrade` (Aguardando correção), ou null. **Coerente com a conclusão:** pendente só `notStarted`/`inProgress`; concluída só `delivered`/`awaitingGrade` | não |
 | `createdAt`, `updatedAt` | serverTimestamp | sim |
 
 - **Situação da entrega entra no MVP** (decisão de 25/10/2026). Ao concluir uma tarefa com situação, o app troca para "Entregue" no mesmo gravar; ao reabrir, volta para "Em andamento".
 - "Notas" **ficam fora do MVP** (sem tela).
+- **Avisos (v0.9, 07/11/2026):** ao escolher um prazo, o app já sugere "1 dia antes" (`[1440]`). Para tirar o prazo, o app esvazia a lista no mesmo gravar (as regras negam lista com itens sem prazo). Na tarefa concluída, os avisos ficam desligados (regra do app; a lista pode continuar gravada).
+  - `reminderMinutesBefore` (um aviso) **saiu na v0.9**: o create com ele é negado; uma tarefa antiga que ainda o tenha pode ser editada sem mexer nele ou removê-lo (de preferência trocando por `remindersMinutesBefore` no mesmo gravar), mas não alterá-lo.
 - "Atrasada" é calculada pelo prazo.
 - Ponto da tarefa: +1 ao concluir, −1 ao reabrir (Desfazer), em `users.points`.
 
@@ -300,8 +312,8 @@ Publicados em 25/10/2026 junto com as regras v0.6. Filtros simples são indexado
 | Início do plano | Até 7 dias para trás | 22/10 |
 | Validação antes do deploy | Emulador uma vez antes de cada deploy (opção B) | 24/10 |
 | Cronômetro em andamento | **No aparelho**; a sessão vai ao Firestore só ao encerrar | 24/10 |
-| Tópico da sessão | **Disciplina cadastrada** (`subjectId`) | 24/10 |
-| Aviso de entrega da tarefa | 1 hora, 1 dia, 1 semana antes ou personalizado | 24/10 |
+| Tópico da sessão | ~~Disciplina cadastrada (`subjectId`)~~. Substituída em 25/10 (tópicos do plano) e em 07/11 (até 3 tópicos, `topicIds`) | 24/10 |
+| Aviso de entrega da tarefa | 1 hora, 1 dia, 1 semana antes ou personalizado. **Até 3 avisos desde 07/11** | 24/10 |
 | Status de entrega e notas da tarefa | Fora do MVP | 24/10 |
 | Pontos, conquistas e dias | **Pelo app, sem Cloud Function.** Pendência: em uma evolução do app, levar os pontos para funções no servidor | 24/10 |
 | Notificações | **Locais.** Saem `devices`, `notificationLog` e preferências de aviso no Firestore. A decisão anterior "o dono lê o `notificationLog`" deixou de existir | 24/10 |
@@ -309,12 +321,16 @@ Publicados em 25/10/2026 junto com as regras v0.6. Filtros simples são indexado
 | Login Google com menos de 16 | O app **apaga na hora** a conta vazia que o Auth criou | 24/10 |
 | Catálogo de medalhas | **9 medalhas** (seção 4), com sequências de 7, 14, 21 e 30 dias; "Semana em dia" removida por repetir "7 dias seguidos". Acima do "≤ 8 no início" do design system | 24/10 |
 | Teste no aparelho | Só depois da criação da seção Auth no app | 24/10 |
-| Tópicos | **Tópicos próprios de cada plano** (`topics`), vários por matéria; podem reaproveitar uma matéria ou ser novos. A sessão marca `topicId` (substitui a decisão de 24/10, "tópico = disciplina") | 25/10 |
-| Aviso noturno do plano | Fixo às **21h**, no app; sem campo no banco | 25/10 |
+| Tópicos | **Tópicos próprios de cada plano** (`topics`), vários por matéria; podem reaproveitar uma matéria ou ser novos. A sessão marca `topicId` (substitui a decisão de 24/10, "tópico = disciplina"). **Desde 07/11: até 3 tópicos (`topicIds`)** | 25/10 |
+| Aviso noturno do plano | Fixo às **21h**, no app; sem campo no banco. (O "Lembrete diário" do plano virou "Avisar antes do horário" + aviso da manhã em 07/11; o aviso noturno não foi citado nas especificações da 3b: a confirmar com o design) | 25/10 |
 | Nível | **A cada 20 pontos, sobe um nível**: nível = pontos ÷ 20 (parte inteira) + 1. Regra do app | 25/10 |
 | Disciplina | ~~Usuário escolhe ícone e cor (paleta fixa)~~ (25/10). **Revertida em 04/11:** só nome e ícone; cor fora do MVP | 04/11 |
 | Situação da entrega da tarefa | **Entra no MVP**: Não iniciada, Em andamento, Entregue, Aguardando correção | 25/10 |
 | Cálculo do dia (pacote B do Início) | 7 com R ≥ M + 10; 5 com M ≤ R < M + 10; 3 finalizado com 0 < R < M; 0 se o dia termina com R < M sem finalizar. Meta batida conta sem finalizar. `finalizedAt` só ao finalizar abaixo da meta ("Finalizar" oculto com 0 min e com R ≥ M); estudar depois sobe o status; Desfazer grava null. Estudar na folga vale como dia normal; folga sem estudo e pausado não contam. Sem Cloud Function (seção 4, days) | 05/11 |
+| Pacote da Etapa 3c (design da 3b) | Regras juntas antes do Flutter ("Aprovo juntar as regras no começo da 3c"): até 3 avisos por tarefa (`remindersMinutesBefore`); `studyTime` + `reminderBefore` no plano no lugar de `reminder`; `users.morningSummary`; até 3 tópicos por sessão (`topicIds`), com as horas divididas igualmente pelo app | 07/11 |
+| Objetivo do plano | **Continua opcional**, no máximo um por plano | 07/11 |
+| Preferências do Perfil | Tema, "Não perturbe ao focar" e "Reduzir transparência" **só no aparelho** | 07/11 |
+| Campos antigos (v0.9) | `reminder`, `topicId` e `reminderMinutesBefore`: create negado; o update pode só **remover** (decisão desta sessão; não há dados reais) | 07/11 |
 | Frequência "× por semana" | **Cota semanal:** todo dia é dia de estudo até cumprir X dias na semana (domingo a sábado); depois, os demais dias são folga. Dia sem estudo não vira "não cumprido". A sequência quebra quando a semana fecha abaixo da cota. Regra do app (seção 4, planos) | 05/11 |
 
 Itens do Perfil aprovados (22/10): editar nome, nível e conquistas, privacidade e dados (Termos, Política, pedir cópia dos dados, contato), alterar senha (só e-mail e senha), Sobre (versão e licenças), sair, excluir conta.
@@ -326,7 +342,8 @@ Itens do Perfil aprovados (22/10): editar nome, nível e conquistas, privacidade
 - **Pausas, semana e fuso:** as regras não conferem se a pausa começou hoje, a contagem do "× por semana" nem se `day` bate com `startAt` no fuso do usuário. É lógica do app.
 - **Coerência entre sessão e dia:** as regras não conferem se `days.doneMinutes` é a soma das sessões.
 - **Exclusão pelo app:** se o app fechar no meio, ficam dados parciais até o próximo login, quando o app retoma. As regras não conferem se as subcoleções estão vazias antes de apagar o usuário.
-- **Leituras extras (cobradas):** criar sessão ou dia (`exists` + `get` do plano, para checar o status), criar tópico ou versão (`getAfter` do plano), alterar `primaryPlanId`, apagar plano, criar conquista, aceite (`legalDocuments/current`) e as exclusões com "excluindo". Se o `exists` e o `get` do mesmo plano na mesma requisição contam como uma leitura só: [NC].
+- **Listas pequenas:** `remindersMinutesBefore` e `topicIds` são conferidas item a item (até 3), porque as regras não têm laço; por isso o limite de 3 é verificado antes.
+- **Leituras extras (cobradas):** criar sessão ou dia (`exists` + `get` do plano, para checar o status), tópicos da sessão (até 3 `existsAfter`, no create e quando `topicIds` muda), criar tópico ou versão (`getAfter` do plano), alterar `primaryPlanId`, apagar plano, criar conquista, aceite (`legalDocuments/current`) e as exclusões com "excluindo". Se o `exists` e o `get` do mesmo plano na mesma requisição contam como uma leitura só: [NC].
 - **Plano em exclusão:** update de sessão e de dia continua permitido num plano `deleting` (bloquear custaria uma leitura a mais em toda gravação). Fica limitado à janela de 7 dias e não reabre o histórico.
 - **Plano recriado com o mesmo id:** se o app apagar o documento do plano antes das subcoleções, sessões e dias órfãos continuam no banco; um plano novo criado com o mesmo id passaria a enxergá-los. O app deve usar ids automáticos para planos novos e apagar o plano por último (seção 7, item 11).
 
@@ -335,7 +352,7 @@ Itens do Perfil aprovados (22/10): editar nome, nível e conquistas, privacidade
 O Flutter e o design estão pausados até o fim da configuração do Firebase (decisão de 24/10). Esta lista é para quando voltarem; nenhuma mensagem foi enviada.
 
 **nexo-flutter (quando o app ligar o Firestore):**
-1. Usar os nomes e formatos da seção 4. Inteiros: `dailyGoalMinutes`, `durationSeconds`, `doneMinutes`, `reminderMinutesBefore`, `overloadThreshold`, `points`.
+1. Usar os nomes e formatos da seção 4. Inteiros: `dailyGoalMinutes`, `durationSeconds`, `doneMinutes`, cada item de `remindersMinutesBefore`, `reminderBefore.minutesBefore`, `overloadThreshold`, `points`.
 2. Carimbos com `FieldValue.serverTimestamp()`: `createdAt`, `updatedAt`, `consents.acceptedAt`, `completedAt`, `finalizedAt`, `earnedAt`, `deletionRequestedAt`.
 3. Cadastro: criar `users/{uid}` com `displayName`, `birthDate`, `timeZone` e `consents` (versões de `legalDocuments/current`). Depois do "Já confirmei": `reload()` + `getIdToken(true)`.
 4. **Login Google com menos de 16 anos:** na 03b, ao recusar a idade, apagar na hora a conta do Auth (`currentUser.delete()`; o login é recente, então o Firebase permite) e voltar ao Login.
@@ -347,9 +364,11 @@ O Flutter e o design estão pausados até o fim da configuração do Firebase (d
 8. Pontos: +1/−1 na tarefa; no dia, **7** com R ≥ M + 10, **5** com M ≤ R < M + 10, **3** finalizado com 0 < R < M, **0** se o dia termina abaixo da meta sem finalizar (seção 4, days), com os ajustes de Desfazer, RF16 (estudar depois de finalizar sobe de 3 para 5 ou 7) e edições dentro da janela. Folga sem estudo e pausado não somam. Gravar em `users.points`.
    - "Finalizar o dia" só aparece com 0 < R < M (oculto com 0 min e com R ≥ M). Desfazer grava `finalizedAt: null`, nunca `FieldValue.delete()` (as regras negam).
 9. Conquistas: gravar `achievements/{id}` com `earnedAt` quando o critério do catálogo for atingido.
-10. Notificações locais: lembrete diário do plano, aviso noturno **às 21h** se a meta não estiver completa, aviso 7 dias antes do fim do plano, aviso de entrega da tarefa (`reminderMinutesBefore`), limite de 1 aviso por plano/dia. Preferências de silêncio ficam no aparelho.
+10. Notificações locais: aviso antes do horário do plano (`studyTime` − `reminderBefore.minutesBefore`, se ligado), aviso da manhã (`users.morningSummary`), aviso noturno **às 21h** se a meta não estiver completa, aviso 7 dias antes do fim do plano, avisos de entrega da tarefa (cada item de `remindersMinutesBefore`), limite de 1 aviso por plano/dia. Preferências de silêncio ficam no aparelho.
+   - **v0.9 (07/11/2026):** sem os campos, usar os padrões `studyTime` "19:00", `reminderBefore` `{true, 15}` e `morningSummary` `{true, "08:00"}`. Ao escolher um prazo na tarefa, sugerir `[1440]`; ao tirar o prazo, gravar `remindersMinutesBefore: []` no mesmo gravar.
+   - Tema, "Não perturbe ao focar" e "Reduzir transparência" ficam só no aparelho (não gravar no Firestore).
 13. Nível: pontos ÷ 20 (parte inteira) + 1; a barra do Nexo/LevelProgress mostra "pontos atuais / 20" dentro do nível.
-14. Tópicos do plano: criar, renomear e apagar em `plans/{id}/topics`; ao criar, oferecer as matérias existentes ou um tópico novo. A sessão grava `topicId`.
+14. Tópicos do plano: criar, renomear e apagar em `plans/{id}/topics`; ao criar, oferecer as matérias existentes ou um tópico novo. A sessão grava **`topicIds`** (até 3, sem repetidos, só tópicos do próprio plano; v0.9); as horas por tópico = duração ÷ número de tópicos. Ao trocar a lista de uma sessão, mandar só ids que ainda existem.
 15. Tarefa: `deliveryStatus` coerente com `completed` (concluir → "Entregue"; reabrir → "Em andamento", no mesmo gravar).
 16. **Comentário desatualizado:** `app/lib/features/plans/domain/plan_schedule.dart:64` ainda diz que "quais dias contam como planejados é regra do item 05 do `ca7IW` (pendente)". Para o "× por semana", a regra foi decidida em 05/11/2026 (cota semanal, seção 4, planos). Atualizar o comentário. O `app/firestore.rules` não tem comentário pendente sobre isso.
 11. Excluir plano: confirmar com o usuário → `status: "deleting"` (sem volta: depois disso o plano não aceita update nem filhos novos) → apagar sessões, dias, tópicos e versões em lotes → limpar `primaryPlanId` e apagar o plano. Planos novos sempre com id automático.

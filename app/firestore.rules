@@ -95,6 +95,17 @@ service cloud.firestore {
       return v is list && v.size() <= max;
     }
 
+    // Campo antigo, fora do contrato atual: o update pode deixá-lo como está
+    // ou removê-lo, mas não criar nem alterar.
+    function onlyRemoves(field) {
+      return !(field in changedKeys()) || !(field in incoming());
+    }
+
+    // Lista de 0 a 3 itens sem repetidos.
+    function isDistinctListUpTo3(v) {
+      return v is list && v.size() <= 3 && v.toSet().size() == v.size();
+    }
+
     // Tolerância para relógio do aparelho adiantado.
     function notInFuture(t) {
       return t.toMillis() <= request.time.toMillis() + 5 * 60 * 1000;
@@ -135,15 +146,29 @@ service cloud.firestore {
 
       // birthDate entra só na criação: o app não altera (correção pelo
       // canal de contato). points é mantido pelo app (sem Function no MVP).
+      // morningSummary: aviso da manhã do Perfil (notificação local).
+      // Tema, "Não perturbe ao focar" e "Reduzir transparência" ficam só no
+      // aparelho (decisão de 07/11/2026).
       function userEditableFields() {
         return ['displayName', 'timeZone', 'tutorialSeen', 'primaryPlanId',
-                'overloadThreshold', 'points', 'consents', 'deletionRequestedAt',
-                'createdAt', 'updatedAt'];
+                'overloadThreshold', 'morningSummary', 'points', 'consents',
+                'deletionRequestedAt', 'createdAt', 'updatedAt'];
       }
 
       function userCreateFields() {
         return ['displayName', 'birthDate', 'timeZone', 'tutorialSeen',
-                'overloadThreshold', 'points', 'consents', 'createdAt', 'updatedAt'];
+                'overloadThreshold', 'morningSummary', 'points', 'consents',
+                'createdAt', 'updatedAt'];
+      }
+
+      // Aviso da manhã: {enabled, time "HH:mm"}. Sem o campo, o app usa o
+      // padrão {true, "08:00"}.
+      function validMorningSummary(m) {
+        return m is map
+          && m.keys().hasOnly(['enabled', 'time'])
+          && m.keys().hasAll(['enabled', 'time'])
+          && m.enabled is bool
+          && isTime(m.time);
       }
 
       function userRequired() {
@@ -198,6 +223,8 @@ service cloud.firestore {
           && d.get('tutorialSeen', false) is bool
           && (d.get('overloadThreshold', null) == null
               || isIntBetween(d.overloadThreshold, 1, 20))
+          && (d.get('morningSummary', null) == null
+              || validMorningSummary(d.morningSummary))
           && isIntBetween(d.get('points', 0), 0, 10000000);
       }
 
@@ -299,10 +326,14 @@ service cloud.firestore {
         // frequency e dailyGoalMinutes são a cópia da configuração mais
         // recente; o histórico com vigência fica em scheduleVersions (RF04).
         // Totais da Visão geral são calculados pelo app a partir dos dias.
+        // studyTime ("Horário do plano") e reminderBefore ("Avisar antes do
+        // horário") substituem o antigo reminder {enabled, time} (v0.9,
+        // 07/11/2026). Sem os campos, o app usa os padrões "19:00" e
+        // {true, 15}. goalId continua opcional (no máximo um objetivo).
         function planFields() {
           return ['name', 'startDate', 'endDate', 'frequency', 'dailyGoalMinutes',
-                  'status', 'pauses', 'endedOn', 'goalId', 'reminder',
-                  'createdAt', 'updatedAt'];
+                  'status', 'pauses', 'endedOn', 'goalId', 'studyTime',
+                  'reminderBefore', 'createdAt', 'updatedAt'];
         }
 
         function planRequired() {
@@ -310,12 +341,13 @@ service cloud.firestore {
                   'status', 'createdAt', 'updatedAt'];
         }
 
-        function validReminder(r) {
+        // Antecedência do aviso: na hora, 15, 30 ou 60 minutos antes.
+        function validReminderBefore(r) {
           return r is map
-            && r.keys().hasOnly(['enabled', 'time'])
-            && r.keys().hasAll(['enabled', 'time'])
+            && r.keys().hasOnly(['enabled', 'minutesBefore'])
+            && r.keys().hasAll(['enabled', 'minutesBefore'])
             && r.enabled is bool
-            && isTime(r.time);
+            && r.minutesBefore in [0, 15, 30, 60];
         }
 
         // Período de até 2 anos. endedOn ("encerrar antes", RF06) fica dentro do
@@ -337,7 +369,8 @@ service cloud.firestore {
             && (d.status != 'endedEarly' || d.get('endedOn', null) != null)
             && (d.get('pauses', null) == null || isListUpTo(d.pauses, 100))
             && isTextOrNull(d.get('goalId', null), 1, 128)
-            && (d.get('reminder', null) == null || validReminder(d.reminder));
+            && (d.get('studyTime', null) == null || isTime(d.studyTime))
+            && (d.get('reminderBefore', null) == null || validReminderBefore(d.reminderBefore));
         }
 
         allow read: if isVerifiedOwner(uid);
@@ -350,9 +383,11 @@ service cloud.firestore {
         // 'deleting' é terminal: o plano marcado fica congelado e só sai
         // apagando. Sem isso, um cliente modificado marcaria 'deleting',
         // apagaria o histórico antigo (planGone) e voltaria para 'active'.
+        // Plano antigo com reminder (antes da v0.9): pode removê-lo, não alterar.
         allow update: if isVerifiedOwner(uid)
           && resource.data.status != 'deleting'
-          && validUpdate(planFields())
+          && validUpdate(planFields().concat(['reminder']))
+          && onlyRemoves('reminder')
           && validPlan(incoming())
           && (!('startDate' in changedKeys()) || notBeforeLastWeek(incoming().startDate));
         // O plano principal não fica apontando para um plano apagado: o app
@@ -416,8 +451,28 @@ service cloud.firestore {
         // Criar, editar e excluir: só dentro da janela de 7 dias.
         match /sessions/{sessionId} {
           function sessionFields() {
-            return ['startAt', 'endAt', 'durationSeconds', 'source', 'topicId',
+            return ['startAt', 'endAt', 'durationSeconds', 'source', 'topicIds',
                     'note', 'day', 'createdAt', 'updatedAt'];
+          }
+
+          function topicPath(topicId) {
+            return /databases/$(database)/documents/users/$(uid)/plans/$(planId)/topics/$(topicId);
+          }
+
+          // Cada id existe em topics do próprio plano (o tópico pode ser
+          // criado no mesmo lote: existsAfter). Até 3 leituras, só quando a
+          // lista muda.
+          function topicIdsExist(t) {
+            return (t.size() < 1 || existsAfter(topicPath(t[0])))
+              && (t.size() < 2 || existsAfter(topicPath(t[1])))
+              && (t.size() < 3 || existsAfter(topicPath(t[2])));
+          }
+
+          function validTopicIds(t) {
+            return isDistinctListUpTo3(t)
+              && (t.size() < 1 || isText(t[0], 1, 128))
+              && (t.size() < 2 || isText(t[1], 1, 128))
+              && (t.size() < 3 || isText(t[2], 1, 128));
           }
 
           function sessionRequired() {
@@ -426,7 +481,8 @@ service cloud.firestore {
           }
 
           // Até 24 h; duração líquida (sem pausas) <= fim - início.
-          // topicId: um tópico do próprio plano (topics).
+          // topicIds: 0 a 3 tópicos do próprio plano, sem repetidos (v0.9).
+          // As horas por tópico (duração ÷ número de tópicos) são do app.
           function validSession(d) {
             return d.startAt is timestamp
               && d.endAt is timestamp
@@ -438,7 +494,7 @@ service cloud.firestore {
               && d.durationSeconds * 1000 <= d.endAt.toMillis() - d.startAt.toMillis()
               && d.source in ['focus', 'manual']
               && inLastWeek(d.day)
-              && isTextOrNull(d.get('topicId', null), 1, 128)
+              && (d.get('topicIds', null) == null || validTopicIds(d.topicIds))
               && isTextOrNull(d.get('note', null), 1, 500);
           }
 
@@ -447,11 +503,17 @@ service cloud.firestore {
             && exists(planPath())
             && planOpen()
             && validCreate(sessionFields(), sessionRequired())
-            && validSession(incoming());
+            && validSession(incoming())
+            && (incoming().get('topicIds', null) == null || topicIdsExist(incoming().topicIds));
+          // Sessão antiga com topicId (antes da v0.9): pode removê-lo, não alterar.
           allow update: if isVerifiedOwner(uid)
             && inLastWeek(resource.data.day)
-            && validUpdate(sessionFields())
-            && validSession(incoming());
+            && validUpdate(sessionFields().concat(['topicId']))
+            && onlyRemoves('topicId')
+            && validSession(incoming())
+            && (!('topicIds' in changedKeys())
+                || incoming().get('topicIds', null) == null
+                || topicIdsExist(incoming().topicIds));
           allow delete: if isVerifiedOwner(uid)
             && (inLastWeek(resource.data.day) || planGone() || userDeleting());
         }
@@ -490,16 +552,24 @@ service cloud.firestore {
       }
 
       // ----- Tarefas -----
-      // Aviso de entrega próxima: notificação local, reminderMinutesBefore
-      // minutos antes do prazo (1 h, 1 dia, 1 semana ou personalizado, até
-      // 30 dias). Só com prazo. Notas ficam fora do MVP.
+      // Avisos de entrega próxima: notificações locais, até 3 por tarefa
+      // (remindersMinutesBefore, v0.9): cada um de 1 a 43.200 minutos antes
+      // do prazo (até 30 dias), sem repetidos, só com prazo. Notas ficam fora
+      // do MVP. Tarefa antiga com reminderMinutesBefore pode removê-lo.
       // deliveryStatus (situação da entrega), coerente com a conclusão:
       // pendente = notStarted | inProgress; concluída = delivered | awaitingGrade.
       match /tasks/{taskId} {
         function taskFields() {
           return ['title', 'subjectId', 'dueAt', 'priority', 'completed',
-                  'completedAt', 'reminderMinutesBefore', 'deliveryStatus',
+                  'completedAt', 'remindersMinutesBefore', 'deliveryStatus',
                   'createdAt', 'updatedAt'];
+        }
+
+        function validReminders(r) {
+          return isDistinctListUpTo3(r)
+            && (r.size() < 1 || isIntBetween(r[0], 1, 43200))
+            && (r.size() < 2 || isIntBetween(r[1], 1, 43200))
+            && (r.size() < 3 || isIntBetween(r[2], 1, 43200));
         }
 
         function validDeliveryStatus(d) {
@@ -522,9 +592,9 @@ service cloud.firestore {
             && d.completed is bool
             && (d.completed == (d.completedAt != null))
             && (!completedAtChanged || d.completedAt == null || d.completedAt == request.time)
-            && (d.get('reminderMinutesBefore', null) == null
-                || (isIntBetween(d.reminderMinutesBefore, 1, 43200)
-                    && d.get('dueAt', null) != null))
+            && (d.get('remindersMinutesBefore', null) == null
+                || (validReminders(d.remindersMinutesBefore)
+                    && (d.remindersMinutesBefore.size() == 0 || d.get('dueAt', null) != null)))
             && validDeliveryStatus(d);
         }
 
@@ -533,7 +603,8 @@ service cloud.firestore {
           && validCreate(taskFields(), taskRequired())
           && validTask(incoming(), true);
         allow update: if isVerifiedOwner(uid)
-          && validUpdate(taskFields())
+          && validUpdate(taskFields().concat(['reminderMinutesBefore']))
+          && onlyRemoves('reminderMinutesBefore')
           && validTask(incoming(), 'completedAt' in changedKeys());
       }
 
