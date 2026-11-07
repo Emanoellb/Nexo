@@ -178,10 +178,34 @@ Telas: 05 Finalizar o dia, 06 Dia cumprido, 08 Calendário do plano. RF14–RF17
 | `createdAt`, `updatedAt` | serverTimestamp | sim |
 
 - O id do documento é a data local do dia.
-- **Meta, status e pontos do dia não são guardados**: o app calcula pela regra do `ca7IW` (item 05) a partir da meta da versão vigente, de `doneMinutes`, de `finalizedAt` e da data.
+- **Meta, status e pontos do dia não são guardados**: o app calcula a partir da meta da versão vigente, de `doneMinutes`, de `finalizedAt` e da data, pela tabela abaixo.
 - O documento só existe para dias com sessão ou finalização. Dia sem documento = 0 min, não finalizado.
 - Criar, atualizar e finalizar só dentro da janela de 7 dias (RF14 retroativo). Estudar depois de finalizar soma horas ao mesmo dia (RF16).
 - Delete só ao excluir o plano ou a conta.
+
+**Cálculo do dia** (design aprovado em 05/11/2026, pacote B do Início; fonte: `pen.dev/notas/inicio-pacote-b-especificacao.md` §1 e `ca7IW` itens 04–07). R = minutos realizados (`doneMinutes`), M = meta do dia (versão vigente):
+
+| Situação | Status | Pontos | Sequência |
+|---|---|---|---|
+| R ≥ M + 10 | Cumprido com horas a mais | 7 (5 + 2) | conta |
+| M ≤ R < M + 10 | Cumprido na meta | 5 | conta |
+| 0 < R < M e finalizado (`finalizedAt` preenchido) | Cumprido com horas a menos | 3 | conta |
+| o dia termina com R < M sem finalizar (inclui R = 0) | Não cumprido | 0 | quebra (frequência fixa); no "× por semana", só quebra se a semana fechar abaixo da cota |
+| folga sem estudo | Folga | não conta | não quebra |
+| pausado | Pausado | não conta | não quebra |
+
+- **Meta batida conta sem finalizar.** Com R ≥ M o dia já está cumprido e `finalizedAt` fica null.
+- **`finalizedAt` só é gravado ao finalizar abaixo da meta.** "Finalizar o dia" fica oculto com 0 min e com R ≥ M, então só aparece com 0 < R < M.
+- **Estudar depois de finalizar (RF16):** o status sobe de acordo com R ("na meta" ou "com horas a mais"). O app só atualiza `doneMinutes`; o `finalizedAt` continua gravado e deixa de influir no cálculo.
+- **Desfazer (RF17):** grava **`finalizedAt: null`**. Não usar `FieldValue.delete()`: as regras exigem o campo presente (ver abaixo).
+- **Folga:** vem da frequência (RF02), não é marcada no dia. Em "dias da semana", os dias fora da escolha são folga; no "× por semana", qualquer dia sem estudo é folga (cota semanal, seção 4, planos); em "todos os dias", não há folga, só pausa. **Estudar na folga vale como dia normal**: a meta passa a valer, com status, pontos e sequência. Folga sem estudo não conta nem penaliza. Pausado não conta.
+- **Sem Cloud Function:** o "dia termina" é calculado pelo app pela data, no fuso do usuário (`users.timeZone`). Não existe fechamento à meia-noite no servidor. A especificação do design (§1, "Fechamento") e o `ca7IW` (item 11) ainda citam a Cloud Function: está desatualizado (seção 7, prototipação item 3).
+- **Conferência com as regras v0.8 publicadas (05/11/2026): nenhuma mudança necessária.**
+  - gravar `finalizedAt` = hora do servidor ao finalizar: aceito (create e update);
+  - Desfazer com `finalizedAt: null`: aceito. Com `FieldValue.delete()` seria **negado**, porque `validDay` lê o campo e ele é obrigatório;
+  - subir o status estudando depois: só `doneMinutes` muda, aceito (até 1.440 min);
+  - meta batida sem finalizar: `finalizedAt` null, aceito;
+  - "Finalizar" só com 0 < R < M e estudo na folga: regra do app; as regras não conferem (seção 6).
 
 ### `users/{uid}/tasks/{taskId}` (etapa 6)
 
@@ -290,6 +314,7 @@ Publicados em 25/10/2026 junto com as regras v0.6. Filtros simples são indexado
 | Nível | **A cada 20 pontos, sobe um nível**: nível = pontos ÷ 20 (parte inteira) + 1. Regra do app | 25/10 |
 | Disciplina | ~~Usuário escolhe ícone e cor (paleta fixa)~~ (25/10). **Revertida em 04/11:** só nome e ícone; cor fora do MVP | 04/11 |
 | Situação da entrega da tarefa | **Entra no MVP**: Não iniciada, Em andamento, Entregue, Aguardando correção | 25/10 |
+| Cálculo do dia (pacote B do Início) | 7 com R ≥ M + 10; 5 com M ≤ R < M + 10; 3 finalizado com 0 < R < M; 0 se o dia termina com R < M sem finalizar. Meta batida conta sem finalizar. `finalizedAt` só ao finalizar abaixo da meta ("Finalizar" oculto com 0 min e com R ≥ M); estudar depois sobe o status; Desfazer grava null. Estudar na folga vale como dia normal; folga sem estudo e pausado não contam. Sem Cloud Function (seção 4, days) | 05/11 |
 | Frequência "× por semana" | **Cota semanal:** todo dia é dia de estudo até cumprir X dias na semana (domingo a sábado); depois, os demais dias são folga. Dia sem estudo não vira "não cumprido". A sequência quebra quando a semana fecha abaixo da cota. Regra do app (seção 4, planos) | 05/11 |
 
 Itens do Perfil aprovados (22/10): editar nome, nível e conquistas, privacidade e dados (Termos, Política, pedir cópia dos dados, contato), alterar senha (só e-mail e senha), Sobre (versão e licenças), sair, excluir conta.
@@ -318,7 +343,9 @@ O Flutter e o design estão pausados até o fim da configuração do Firebase (d
 6. Cronômetro: guardar o início no aparelho; gravar a sessão só ao encerrar; dividir à meia-noite (fuso do usuário); gravar a sessão e atualizar `days/{data}.doneMinutes` no mesmo lote.
 7. Calcular no app: meta, status e pontos de cada dia; totais da Visão geral e do Relatório; sequências; nível; contagens das disciplinas; "Atrasada".
    - **Sequências no "× por semana"** (05/11/2026): a sequência só quebra quando a semana (domingo a sábado) fecha abaixo da cota de X dias. Dia sem estudo dentro da semana é folga e não quebra (seção 4, planos).
-8. Pontos: +1/−1 na tarefa; 5/3/7/0 no dia (com os ajustes de Desfazer, RF16 e edições dentro da janela). Gravar em `users.points`.
+   - **Status do dia** (05/11/2026): pela tabela "Cálculo do dia" da seção 4 (days). Meta batida conta sem finalizar; estudar na folga vale como dia normal; o "dia termina" pela data no fuso do usuário, sem Cloud Function.
+8. Pontos: +1/−1 na tarefa; no dia, **7** com R ≥ M + 10, **5** com M ≤ R < M + 10, **3** finalizado com 0 < R < M, **0** se o dia termina abaixo da meta sem finalizar (seção 4, days), com os ajustes de Desfazer, RF16 (estudar depois de finalizar sobe de 3 para 5 ou 7) e edições dentro da janela. Folga sem estudo e pausado não somam. Gravar em `users.points`.
+   - "Finalizar o dia" só aparece com 0 < R < M (oculto com 0 min e com R ≥ M). Desfazer grava `finalizedAt: null`, nunca `FieldValue.delete()` (as regras negam).
 9. Conquistas: gravar `achievements/{id}` com `earnedAt` quando o critério do catálogo for atingido.
 10. Notificações locais: lembrete diário do plano, aviso noturno **às 21h** se a meta não estiver completa, aviso 7 dias antes do fim do plano, aviso de entrega da tarefa (`reminderMinutesBefore`), limite de 1 aviso por plano/dia. Preferências de silêncio ficam no aparelho.
 13. Nível: pontos ÷ 20 (parte inteira) + 1; a barra do Nexo/LevelProgress mostra "pontos atuais / 20" dentro do nível.
@@ -332,6 +359,7 @@ O Flutter e o design estão pausados até o fim da configuração do Firebase (d
 1. Tela de detalhe da tarefa com o aviso de entrega (1 h, 1 dia, 1 semana, personalizado) e a **situação da entrega** (Não iniciada, Em andamento, Entregue, Aguardando correção) na Tag/Status.
 2. Perfil com os itens aprovados, incluindo "Excluir conta" e o limite de sobrecarga (tarefas por dia).
 3. Divergência a registrar no `ca7IW`: o item 11 diz que uma Cloud Function recalcula o dia e fecha os dias à meia-noite; o item 10 fala em FCM. Agora o app faz os dois (sem Function, notificações locais).
+   - **A especificação aprovada do pacote B do Início** (`pen.dev/notas/inicio-pacote-b-especificacao.md`, §1) repete o erro: o título "o que o Flutter e a Cloud Function devem seguir" e o item "Fechamento" ("à meia-noite, no fuso do usuário (Cloud Function, regra 11)"). Está desatualizado: não há Cloud Function no MVP; o app calcula o fim do dia pela data. O item "Não confirmado" da especificação pode ser fechado: o contrato de `days` foi conferido (seção 4, days).
 4. Nexo/Achievement e a documentação "07 / Achievement" dizem "≤ 8 medalhas no início" e dão "Semana em dia" como exemplo. O usuário decidiu por **9**, sem "Semana em dia" (24/10/2026): atualizar o texto e desenhar as 9 com os ícones da seção 4.
 5. **Tópicos do plano:** gerenciar tópicos no Novo plano/detalhe do plano (reaproveitar matéria ou criar novo); na tela 10 Registrar horas, trocar "Escolha uma disciplina cadastrada" por "Escolha um tópico do plano".
 6. **Disciplina:** desenhar a tela de criar/editar disciplina com **nome e ícone**. ~~Paleta fixa de cores~~: a cor saiu do MVP (04/11/2026), e o design já marcava "cor por disciplina" como Future.

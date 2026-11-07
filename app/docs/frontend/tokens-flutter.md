@@ -36,6 +36,7 @@ Se esses tokens mudarem, atualize também esses arquivos.
 | `Shape/*` | `context.shape.xs … full` |
 | `Elevation/0..5` | `context.elevation.level(n)` (lista de `BoxShadow`) |
 | `Motion/*` | `context.motion.short`, `.standard` (`Cubic`), `.distanceSmall`… |
+| `Motion/Duration/Pulse` e `Motion/Opacity/PulseMin` (novos, 05/11/2026) | `context.motion.pulse` (1050 ms, meio ciclo do pulso) e `context.motion.pulseMinOpacity` (0,55): pulso do `NexoSkeleton`, que fica parado com "reduzir movimento" |
 | `Glass/Blur` | `context.glass.blur` (24). As cores `Colors/Semantic/Glass/*` ficam em `context.nexoColors.glass*`; as de repouso (`Glass/Rest/*`) em `glassRestFill`, `glassRestSheen`, `glassRestEdge` |
 | `Colors/Semantic/Unread` (novo, 04/11/2026) | `context.nexoColors.unread`: fundo da linha de aviso não lido. Claro `#F7F8F9` (igual ao antigo SurfaceContainerLow), escuro `#30353D` (mais claro que o cartão `#262A31`) |
 | `Colors/Semantic/StepMarker/Border` (novo, 05/11/2026) | `context.nexoColors.stepMarkerBorder`: borda de 1 px do marcador das etapas futuras dos "Primeiros passos" do Início. Claro `#F4F5F7` (igual ao fundo, não aparece); escuro `#858B96`, 4,7:1 sobre o Card/Default `#1D2127`, onde o SurfaceContainer do círculo se confunde com o cartão |
@@ -110,10 +111,26 @@ Decisões da lib (pen.dev), registradas em 05/11/2026 na auditoria de componente
 | FAB | 56, `Shape` 16 | 64, redondo (`Shape/Full`), ao lado da cápsula | Criação pelo "+" da barra; abre o menu do "+" (como o FAB menu do M3 Expressive) |
 | Dialog | Raio 28 | `Shape/LG` (16), 312 de largura, ícone e título alinhados à esquerda | Mesma família de raios do app |
 | Checkbox | Caixa de 18 | Caixa de 20 (`Shape/XS`, borda 2 em `Control/Border`), alvo de 48 | Leitura melhor com a borda de 2 px |
+| Segmented (`NexoSegmented`) | 40 de altura | Faixa de 48 (`Size/Target`) com a pílula de 40 dentro (padding XS); a faixa inteira é o alvo (a lib desenha 44) | Alvo ≥ 48 |
+| Chip de filtro (`NexoFilterChip`) | 32 de altura | Visual de 36 (`Shape/SM`) num alvo de 48 (a lib desenha 44); selecionado com check + PrimaryContainer | Alvo ≥ 48; estado não depende só da cor |
+| Bottom sheet (`showNexoBottomSheet`) | Raio 28 | `Shape/XL` em cima, Elevation/3, alça 32 × 4 com alvo de 48 ("Fechar" no leitor de tela), título TitleMedium; abre no navegador raiz, por cima da barra de abas | Dentro de uma aba, a barra de vidro ficaria por cima do painel |
+| Abas (`NexoTabs`) | Indicador das abas principais sob o conteúdo | Igual ao M3 e à lib: indicador de 3 px só sob rótulo e contagem; papéis `tabBar`/`tab` | — |
+| Menu (`showNexoMenu`) | Raio 4 | `Shape/MD`, 256; posição pelo tamanho medido (abaixo; acima se não couber; senão dentro da tela, com rolagem); foco com anel interno | Fonte ampliada não corta o menu |
 
 ## Comportamento de sistema
 
 - **Snackbar com ação** ("Desfazer"): some em 4 s, como no design. Com leitor de tela ativo (`MediaQuery.accessibleNavigationOf`), **não some sozinha** (`SnackBar.persist`) e ganha o botão Fechar (WCAG 2.2.1 e M3). `queue: true` entra na fila sem apagar a atual; `clearQueue: true` aparece na frente de tudo ("Primeiros passos concluídos.").
 - **Vibração**: só ao concluir uma tarefa (e, quando existirem, ao concluir um plano e um objetivo), leve (`HapticFeedback.lightImpact`), seguindo a configuração de vibração do sistema. Nada no "+" (decisão do usuário, 05/11/2026).
 - **Fonte ampliada**: os testes de layout cobrem 1,3 e 2,0 (o Android vai até 200%). Textos em linha usam `Wrap`/`Flexible`; as ações do cartão do plano empilham quando o Tertiary não cabe ao lado sem espremer o Focar.
+- **Excluir com "Desfazer"** (Tarefas e Disciplinas, design de 04/11/2026): sem confirmação. O item some na hora em todas as telas (`visibleTasksProvider` / `visibleSubjectsProvider`) e só é apagado quando a Snackbar some sem o toque em "Desfazer" (`deleteWithUndo` + `DeferredDeletion`). Presa à conta: trocar de conta antes do fim não apaga nem devolve nada na conta nova. Excluir uma disciplina mantém as tarefas, sem disciplina.
+- **Adiar para amanhã**: só em tarefa pendente com prazo até hoje (atrasada ou de hoje). De amanhã em diante, a ação não aparece (manteria ou adiantaria o prazo).
+- **"Agora" das telas com prazo**: `screenNowProvider`, renovado à meia-noite e no próximo prazo (`ScreenNowRefresh`) no Início, em Tarefas e no detalhe da disciplina: a tarefa vira "Atrasada" sozinha.
+- **Carregando**: `NexoDelayedSkeleton` (skeleton só depois de 300 ms) e `NexoSkeletonList` (bloco de lista), usados no Início e em Tarefas.
+- **Medidas de componente sem token na lib**: linha "Adicionar disciplina" com 56 de altura e ponto de 8 no botão "Visualização" (valores do design de Tarefas); ações do deslizar com 80 de largura (Concluir a 20 da borda).
+- **Deslizar na tarefa** (`NexoSwipeActions`): à direita conclui (fundo Success); à esquerda revela Adiar (PrimaryContainer) e Excluir (Error). As mesmas ações ficam no toque longo (menu) e no leitor de tela (ações personalizadas, num nó por linha). Espelha em idioma da direita para a esquerda. Sem animação com "reduzir movimento".
+- **Botões destrutivos**: `NexoButton.destructiveHigh` (Error/OnError, confirmação de ação irreversível num Dialog: `showNexoDialog(destructive: true)`) e `NexoButton.destructiveLow` (texto Error, ex.: "Excluir disciplina" no formulário).
+- **Disciplina sem cor**: o modelo é `{name, icon}`; a cor por disciplina saiu do MVP (regras v0.8 negam `color`). O ícone é um dos 12 do cadastro.
+- **Saudação do Início** (adendo do pacote B, 05/11/2026): `NexoTabHeader(greeting: greetingOf(nome))`, só na aba Início. Duas linhas nos mesmos 64: "Olá, {primeiro nome}" (TitleLarge, OnSurface) e "Início" (BodyMedium, OnSurfaceVariant), uma linha cada, com reticências; lidas como um cabeçalho ("Olá, Ana. Início"). Sem nome: "Olá". As outras abas mantêm o título (HeadingMedium).
+- **Lista em cartão**: `NexoCardList` (= `Content/List` num `NexoCard` com divisores OutlineVariant e recuo LG), usada no Início e em Tarefas. Segue as telas aprovadas do `nexo.app.pen` (`Shape/LG`, sem padding vertical), não o `Content/List` da lib (`Shape/MD` + padding XS): conferido em 05/11/2026.
+- **Linha da disciplina**: só o `Nexo/AcademicProgress` e o chevron, sem ícone (telas aprovadas de Tarefas 11). O ícone escolhido no cadastro ainda não aparece em nenhuma tela.
 - **Cartão**: `NexoCard` (= `Content/Card`: Card/Default, borda Card/Border, `Shape/MD`, padding LG). Não repita a decoração à mão.
