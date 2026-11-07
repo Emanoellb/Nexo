@@ -5,41 +5,6 @@ import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/ui.dart';
 import '../application/home_view.dart';
 
-/// Lista em cartão (Card/Default, Shape/LG, borda) com divisores
-/// (OutlineVariant, recuo LG), como os blocos Hoje e Próximas entregas.
-class HomeCardList extends StatelessWidget {
-  const HomeCardList({super.key, required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.nexoColors;
-    return NexoCard(
-      padding: EdgeInsets.zero,
-      radius: context.shape.lg,
-      clip: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: context.spacing.lg),
-                child: Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: c.outlineVariant,
-                ),
-              ),
-            children[i],
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 /// Título e texto acima dos primeiros passos (estados 02 e 03).
 class HomeWelcome extends StatelessWidget {
   const HomeWelcome({super.key, required this.steps});
@@ -433,43 +398,6 @@ class HomeSkeleton extends StatelessWidget {
     final spacing = context.spacing;
     final target = context.sizes.target;
 
-    Widget row() => Row(
-      children: [
-        NexoSkeleton(width: 20, height: 20, radius: context.shape.xs),
-        SizedBox(width: spacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const NexoSkeleton(height: 12),
-              SizedBox(height: spacing.sm),
-              const NexoSkeleton(width: 140, height: 10),
-            ],
-          ),
-        ),
-      ],
-    );
-
-    Widget list(double titleWidth) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        NexoSkeleton(width: titleWidth, height: 16),
-        SizedBox(height: spacing.md),
-        NexoCard(
-          radius: context.shape.lg,
-          child: Column(
-            children: [
-              row(),
-              SizedBox(height: spacing.lg),
-              row(),
-              SizedBox(height: spacing.lg),
-              row(),
-            ],
-          ),
-        ),
-      ],
-    );
-
     return NexoSkeletonScope(
       label: 'Carregando o Início',
       child: SingleChildScrollView(
@@ -515,9 +443,9 @@ class HomeSkeleton extends StatelessWidget {
               ),
             ),
             SizedBox(height: spacing.xl),
-            list(90),
+            const NexoSkeletonList(titleWidth: 90),
             SizedBox(height: spacing.xl),
-            list(150),
+            const NexoSkeletonList(titleWidth: 150),
           ],
         ),
       ),

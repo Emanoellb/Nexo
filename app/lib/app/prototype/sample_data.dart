@@ -41,18 +41,15 @@ final prototypeSampleDataProvider = FutureProvider<void>((ref) async {
   DateTime at(LocalDate day, int hour, [int minute = 0]) =>
       DateTime(day.year, day.month, day.day, hour, minute);
 
-  // Disciplinas. A cor é o nome da paleta fixa, ainda não definida pelo
-  // design: `primary` até lá.
+  // Disciplinas (nome + ícone; sem cor no MVP).
   final subjects = ref.read(subjectsRepositoryProvider);
   final calculo = await subjects.createSubject(
     name: 'Cálculo II',
-    icon: 'sigma',
-    color: 'primary',
+    icon: 'calculator',
   );
   final bancoDeDados = await subjects.createSubject(
     name: 'Banco de Dados',
     icon: 'database',
-    color: 'primary',
   );
 
   // Objetivo.

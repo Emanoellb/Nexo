@@ -221,6 +221,16 @@ class PlanDay {
 
   bool get isFinalized => finalizedAt != null;
 
+  /// Campos do documento. `finalizedAt` vai SEMPRE, `null` quando não
+  /// finalizado: o "Desfazer" (RF17) grava `finalizedAt: null`, nunca
+  /// `FieldValue.delete()`, porque as regras v0.8 (`validDay`) exigem o
+  /// campo (sessão das regras, 05/11/2026). O Firestore grava a hora do
+  /// servidor no lugar de [finalizedAt].
+  Map<String, Object?> toMap() => {
+    'doneMinutes': doneMinutes,
+    'finalizedAt': finalizedAt,
+  };
+
   PlanDay copyWith({
     int? doneMinutes,
     DateTime? finalizedAt,

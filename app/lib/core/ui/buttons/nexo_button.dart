@@ -5,9 +5,21 @@ import '../../theme/nexo_theme.dart';
 import '../feedback/nexo_spinner.dart';
 import '../foundation/nexo_tappable.dart';
 
-enum NexoButtonVariant { primary, secondary, tertiary }
+enum NexoButtonVariant {
+  primary,
+  secondary,
+  tertiary,
 
-/// `Actions/Button/Primary | Secondary | Tertiary` da lib.
+  /// `Actions/Button/Destructive/High`: fundo Error, rótulo OnError.
+  destructiveHigh,
+
+  /// `Actions/Button/Destructive/Low`: sem container, rótulo Error.
+  destructiveLow,
+}
+
+/// `Actions/Button/Primary | Secondary | Tertiary | Destructive/High |
+/// Destructive/Low` da lib. Destrutivo: rótulo com o verbo exato, nunca
+/// "OK"; só depois de contexto que explique a consequência.
 ///
 /// Estados: Default, Pressed, Focused, Disabled (`onPressed == null`) e
 /// Loading (`loading: true`: rótulo some, spinner no centro, sem toque).
@@ -54,6 +66,35 @@ class NexoButton extends StatelessWidget {
     this.focusNode,
   }) : variant = NexoButtonVariant.tertiary;
 
+  /// Confirmação de ação irreversível (ex.: "Excluir" num Dialog).
+  const NexoButton.destructiveHigh({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.leadingIcon,
+    this.loading = false,
+    this.expand = false,
+    this.focusNode,
+  }) : variant = NexoButtonVariant.destructiveHigh,
+       trailingIcon = null,
+       contentColor = null,
+       compact = false;
+
+  /// Ação destrutiva de baixa ênfase (ex.: "Excluir disciplina" no
+  /// formulário de edição), com Desfazer ou confirmação no fluxo.
+  const NexoButton.destructiveLow({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.leadingIcon,
+    this.loading = false,
+    this.expand = false,
+    this.focusNode,
+  }) : variant = NexoButtonVariant.destructiveLow,
+       trailingIcon = null,
+       contentColor = null,
+       compact = false;
+
   final String label;
   final VoidCallback? onPressed;
   final NexoButtonVariant variant;
@@ -78,9 +119,10 @@ class NexoButton extends StatelessWidget {
     Color iconColor;
 
     if (!enabled) {
-      background = variant == NexoButtonVariant.tertiary
-          ? null
-          : c.disabledBackground;
+      final noContainer =
+          variant == NexoButtonVariant.tertiary ||
+          variant == NexoButtonVariant.destructiveLow;
+      background = noContainer ? null : c.disabledBackground;
       foreground = c.disabledContent;
       iconColor = c.iconDisabled;
     } else {
@@ -97,6 +139,13 @@ class NexoButton extends StatelessWidget {
         case NexoButtonVariant.tertiary:
           foreground = contentColor ?? c.primary;
           iconColor = foreground;
+        case NexoButtonVariant.destructiveHigh:
+          background = c.error;
+          foreground = c.onError;
+          iconColor = c.onError;
+        case NexoButtonVariant.destructiveLow:
+          foreground = c.error;
+          iconColor = c.iconError;
       }
     }
 

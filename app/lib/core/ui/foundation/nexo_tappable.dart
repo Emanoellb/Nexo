@@ -14,6 +14,7 @@ class NexoTappable extends StatefulWidget {
     required this.child,
     required this.onTap,
     required this.borderRadius,
+    this.onLongPress,
     this.color,
     this.side = BorderSide.none,
     this.focusRingOutside = true,
@@ -25,6 +26,9 @@ class NexoTappable extends StatefulWidget {
 
   /// `null` deixa a superfície inerte (sem toque e sem foco).
   final VoidCallback? onTap;
+
+  /// Toque longo (ex.: menu de ações de uma linha de tarefa).
+  final VoidCallback? onLongPress;
   final BorderRadius borderRadius;
   final Color? color;
   final BorderSide side;
@@ -91,6 +95,7 @@ class _NexoTappableState extends State<NexoTappable> {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: widget.onTap,
+          onLongPress: widget.onLongPress,
           focusNode: widget.focusNode,
           autofocus: widget.autofocus,
           customBorder: shape,

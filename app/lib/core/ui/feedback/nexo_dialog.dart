@@ -6,7 +6,8 @@ import '../buttons/nexo_button.dart';
 /// `Feedback/Dialog` da lib: 312 de largura, padding XL, gap LG,
 /// SurfaceContainerLowest, Shape/LG, Elevation/3, centralizado sobre o
 /// Scrim. Ícone opcional, título em pergunta (HeadingMedium), texto com a
-/// consequência e as ações "Cancelar" (Tertiary) + verbo (Primary).
+/// consequência e as ações "Cancelar" (Tertiary) + verbo (Primary, ou
+/// Destructive/High com [destructive]: ícone padrão em Icon/Error).
 ///
 /// Devolve `true` só na confirmação. Fecha com Cancelar, voltar ou toque no
 /// fundo (`false`/`null`).
@@ -18,6 +19,7 @@ Future<bool> showNexoDialog(
   String cancelLabel = 'Cancelar',
   IconData? icon,
   Color? iconColor,
+  bool destructive = false,
 }) async {
   final c = context.nexoColors;
   final motion = context.motion;
@@ -40,7 +42,8 @@ Future<bool> showNexoDialog(
       confirmLabel: confirmLabel,
       cancelLabel: cancelLabel,
       icon: icon,
-      iconColor: iconColor,
+      iconColor: iconColor ?? (destructive ? c.iconError : null),
+      destructive: destructive,
       onCancel: () => Navigator.of(dialogContext).pop(false),
       onConfirm: () => Navigator.of(dialogContext).pop(true),
     ),
@@ -59,6 +62,7 @@ class NexoDialog extends StatelessWidget {
     required this.onConfirm,
     this.icon,
     this.iconColor,
+    this.destructive = false,
   });
 
   static const double width = 312;
@@ -71,6 +75,9 @@ class NexoDialog extends StatelessWidget {
   final VoidCallback onConfirm;
   final IconData? icon;
   final Color? iconColor;
+
+  /// Confirmação com `Actions/Button/Destructive/High` (ex.: excluir).
+  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
@@ -134,10 +141,16 @@ class NexoDialog extends StatelessWidget {
                           label: cancelLabel,
                           onPressed: onCancel,
                         ),
-                        NexoButton.primary(
-                          label: confirmLabel,
-                          onPressed: onConfirm,
-                        ),
+                        if (destructive)
+                          NexoButton.destructiveHigh(
+                            label: confirmLabel,
+                            onPressed: onConfirm,
+                          )
+                        else
+                          NexoButton.primary(
+                            label: confirmLabel,
+                            onPressed: onConfirm,
+                          ),
                       ],
                     ),
                   ],

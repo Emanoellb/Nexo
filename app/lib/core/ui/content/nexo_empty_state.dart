@@ -4,7 +4,9 @@ import '../../theme/nexo_theme.dart';
 import '../buttons/nexo_button.dart';
 
 /// `Content/EmptyState` da lib: ícone num círculo de 56, título, texto que
-/// guia o próximo passo e no máximo uma ação (Secondary).
+/// guia o próximo passo e no máximo uma ação: Secondary, ou Tertiary com
+/// [tertiaryAction] (ação de baixa ênfase, ex.: "Mostrar todas" num filtro
+/// sem resultado).
 class NexoEmptyState extends StatelessWidget {
   const NexoEmptyState({
     super.key,
@@ -14,6 +16,7 @@ class NexoEmptyState extends StatelessWidget {
     this.actionLabel,
     this.actionIcon,
     this.onAction,
+    this.tertiaryAction = false,
   });
 
   /// Círculo do ícone (lib: 56).
@@ -25,6 +28,7 @@ class NexoEmptyState extends StatelessWidget {
   final String? actionLabel;
   final IconData? actionIcon;
   final VoidCallback? onAction;
+  final bool tertiaryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -65,11 +69,18 @@ class NexoEmptyState extends StatelessWidget {
           ),
           if (actionLabel != null) ...[
             SizedBox(height: spacing.md),
-            NexoButton.secondary(
-              label: actionLabel!,
-              leadingIcon: actionIcon,
-              onPressed: onAction,
-            ),
+            if (tertiaryAction)
+              NexoButton.tertiary(
+                label: actionLabel!,
+                leadingIcon: actionIcon,
+                onPressed: onAction,
+              )
+            else
+              NexoButton.secondary(
+                label: actionLabel!,
+                leadingIcon: actionIcon,
+                onPressed: onAction,
+              ),
           ],
         ],
       ),

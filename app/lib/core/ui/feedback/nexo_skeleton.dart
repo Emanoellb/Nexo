@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../theme/nexo_theme.dart';
+import '../content/nexo_card.dart';
 
 /// `Feedback/Skeleton` da lib: bloco em SurfaceContainer com a forma do
 /// conteúdo final. Pulsa de leve; parado com "reduzir movimento". Oculto do
@@ -64,9 +67,8 @@ class _NexoSkeletonScopeState extends State<NexoSkeletonScope>
         ..stop()
         ..value = 1;
     } else if (!_pulse.isAnimating) {
-      // Sem token para laço: um ciclo lento, de 3 × Motion/Duration/Long.
       _pulse
-        ..duration = context.motion.long * 3
+        ..duration = context.motion.pulse
         ..repeat(reverse: true);
     }
   }
@@ -84,10 +86,95 @@ class _NexoSkeletonScopeState extends State<NexoSkeletonScope>
       liveRegion: true,
       child: ExcludeSemantics(
         child: FadeTransition(
-          opacity: Tween<double>(begin: 0.55, end: 1).animate(_pulse),
+          opacity: Tween<double>(
+            begin: context.motion.pulseMinOpacity,
+            end: 1,
+          ).animate(_pulse),
           child: widget.child,
         ),
       ),
     );
+  }
+}
+
+/// Skeleton de um bloco de lista (Início e Tarefas): título e um cartão com
+/// [rows] linhas de tarefa (caixinha + duas linhas de texto).
+class NexoSkeletonList extends StatelessWidget {
+  const NexoSkeletonList({super.key, required this.titleWidth, this.rows = 3});
+
+  final double titleWidth;
+  final int rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.spacing;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        NexoSkeleton(width: titleWidth, height: 16),
+        SizedBox(height: spacing.md),
+        NexoCard(
+          radius: context.shape.lg,
+          child: Column(
+            children: [
+              for (var i = 0; i < rows; i++) ...[
+                if (i > 0) SizedBox(height: spacing.lg),
+                Row(
+                  children: [
+                    NexoSkeleton(
+                      width: 20,
+                      height: 20,
+                      radius: context.shape.xs,
+                    ),
+                    SizedBox(width: spacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const NexoSkeleton(height: 12),
+                          SizedBox(height: spacing.sm),
+                          const NexoSkeleton(width: 140, height: 10),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Skeleton só se a carga passar de [skeletonDelay] (evita piscar em carga
+/// rápida). No `build`: enquanto carrega, `return whileLoading(skeleton)`;
+/// com os dados, chame [loaded].
+mixin NexoDelayedSkeleton<T extends StatefulWidget> on State<T> {
+  static const skeletonDelay = Duration(milliseconds: 300);
+
+  Timer? _skeletonTimer;
+  bool _skeletonDue = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _skeletonTimer = Timer(skeletonDelay, () {
+      if (mounted) setState(() => _skeletonDue = true);
+    });
+  }
+
+  /// O [skeleton] depois do atraso; antes, nada.
+  Widget whileLoading(Widget skeleton) =>
+      _skeletonDue ? skeleton : const SizedBox.expand();
+
+  /// Os dados chegaram: o skeleton não aparece mais.
+  void loaded() => _skeletonTimer?.cancel();
+
+  @override
+  void dispose() {
+    _skeletonTimer?.cancel();
+    super.dispose();
   }
 }

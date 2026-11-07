@@ -8,6 +8,11 @@ import '../foundation/nexo_tappable.dart';
 /// `Navigation/TabHeader` da lib (aprovado em 04/11/2026): topo das abas,
 /// com o nome da aba à esquerda e, à direita, o sino das notificações e o
 /// avatar do Perfil. 64 de altura, padding 8/4/8/16.
+///
+/// Com [greeting] (só no Início; adendo do pacote B, 05/11/2026), o título
+/// vira duas linhas nos mesmos 64: a saudação ("Olá, Ana", TitleLarge,
+/// OnSurface) e o nome da aba (BodyMedium, OnSurfaceVariant), lidas juntas
+/// como um cabeçalho ("Olá, Ana. Início"). Sino, avatar e altura não mudam.
 class NexoTabHeader extends StatelessWidget {
   const NexoTabHeader({
     super.key,
@@ -17,6 +22,7 @@ class NexoTabHeader extends StatelessWidget {
     required this.initials,
     required this.onProfile,
     this.bellKey,
+    this.greeting,
   });
 
   static const double height = 64;
@@ -33,6 +39,9 @@ class NexoTabHeader extends StatelessWidget {
 
   /// Para ancorar o painel de notificações embaixo do sino.
   final Key? bellKey;
+
+  /// "Olá, Ana" (ver [greetingOf]). `null`: só o nome da aba.
+  final String? greeting;
 
   @override
   Widget build(BuildContext context) {
@@ -59,18 +68,7 @@ class NexoTabHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Expanded(
-                  child: Semantics(
-                    header: true,
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.headlineMedium!
-                          .copyWith(color: c.onSurface),
-                    ),
-                  ),
-                ),
+                Expanded(child: _title(context)),
                 Stack(
                   key: bellKey,
                   clipBehavior: Clip.none,
@@ -106,6 +104,46 @@ class NexoTabHeader extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _title(BuildContext context) {
+    final c = context.nexoColors;
+    final textTheme = Theme.of(context).textTheme;
+    final greeting = this.greeting;
+    if (greeting == null) {
+      return Semantics(
+        header: true,
+        child: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: textTheme.headlineMedium!.copyWith(color: c.onSurface),
+        ),
+      );
+    }
+    return Semantics(
+      header: true,
+      label: '$greeting. $title',
+      excludeSemantics: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            greeting,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.titleLarge!.copyWith(color: c.onSurface),
+          ),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodyMedium!.copyWith(color: c.onSurfaceVariant),
+          ),
+        ],
       ),
     );
   }
@@ -162,4 +200,11 @@ String initialsOf(String name) {
   final first = parts.first.characters.first;
   final last = parts.length > 1 ? parts.last.characters.first : '';
   return (first + last).toUpperCase();
+}
+
+/// Saudação do Início: "Olá, {primeiro nome}" (fixa, sem variar pelo
+/// horário); sem nome no perfil, só "Olá".
+String greetingOf(String name) {
+  final first = name.trim().split(RegExp(r'\s+')).first;
+  return first.isEmpty ? 'Olá' : 'Olá, $first';
 }

@@ -73,6 +73,10 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
   /// "entrou na página" (ex.: "Pular" do passo 1 ao fechamento).
   bool _byButton = false;
 
+  /// Qual vez do "Tudo pronto" já terminou de animar: o "Começar" só aparece
+  /// depois disso (pedido do usuário, 06/11/2026).
+  int? _doneAnimatedPlay;
+
   @override
   void dispose() {
     _pages.dispose();
@@ -168,6 +172,8 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
                     _DonePage(
                       play: state.playsOf(TutorialSteps.done),
                       active: state.isDone,
+                      onAnimated: (play) =>
+                          setState(() => _doneAnimatedPlay = play),
                     ),
                   ],
                 ),
@@ -180,10 +186,13 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
                   spacing.xl,
                 ),
                 child: state.isDone
-                    ? NexoButton.primary(
-                        label: 'Começar',
-                        expand: true,
-                        loading: state.finishing,
+                    ? _StartButton(
+                        // Com "reduzir movimento" não há animação: já pronto.
+                        ready:
+                            reduceMotion ||
+                            _doneAnimatedPlay ==
+                                state.playsOf(TutorialSteps.done),
+                        finishing: state.finishing,
                         onPressed: controller.finish,
                       )
                     : Column(
@@ -323,12 +332,58 @@ class _StepPage extends StatelessWidget {
   }
 }
 
+/// "Começar" do fechamento: o lugar fica reservado (o conteúdo não pula) e
+/// o botão entra esmaecendo quando o "Tudo pronto" termina de animar. Antes
+/// disso, não recebe toque nem aparece para o leitor de tela.
+class _StartButton extends StatelessWidget {
+  const _StartButton({
+    required this.ready,
+    required this.finishing,
+    required this.onPressed,
+  });
+
+  final bool ready;
+  final bool finishing;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final motion = context.motion;
+    return AnimatedOpacity(
+      opacity: ready ? 1 : 0,
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : motion.short,
+      curve: motion.enter,
+      child: IgnorePointer(
+        ignoring: !ready,
+        child: ExcludeSemantics(
+          excluding: !ready,
+          child: NexoButton.primary(
+            label: 'Começar',
+            expand: true,
+            loading: finishing,
+            onPressed: onPressed,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Fechamento "Tudo pronto": o símbolo se desenha e os textos entram.
 class _DonePage extends StatelessWidget {
-  const _DonePage({required this.play, required this.active});
+  const _DonePage({
+    required this.play,
+    required this.active,
+    required this.onAnimated,
+  });
 
   final int play;
   final bool active;
+
+  /// A animação desta vez ([play]) terminou.
+  final ValueChanged<int> onAnimated;
 
   static double _phase(double t, double start, double end, Curve curve) =>
       curve.transform(((t - start) / (end - start)).clamp(0.0, 1.0));
@@ -345,6 +400,7 @@ class _DonePage extends StatelessWidget {
       active: active,
       duration: TutorialPage.doneDuration,
       delay: context.motion.long,
+      onComplete: () => onAnimated(play),
       builder: (context, t) {
         final words = _phase(t, 0.55, 0.9, motion.enter);
         return Center(

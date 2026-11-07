@@ -20,6 +20,12 @@ abstract interface class LocalFlags {
   bool firstStepsDone(String uid);
 
   Future<void> markFirstStepsDone(String uid);
+
+  /// Visualização da aba Tarefas: `byDue` (padrão) ou `tabs`. `null` = nunca
+  /// escolhida.
+  String? get taskView;
+
+  Future<void> setTaskView(String value);
 }
 
 /// Implementação com `shared_preferences`. Sem dado pessoal: só o uid
@@ -30,15 +36,28 @@ class SharedPreferencesLocalFlags implements LocalFlags {
   static const _firstOpenDoneKey = 'first_open_done';
   static const _themePreferenceKey = 'theme_preference';
   static const _firstStepsDoneKey = 'first_steps_done';
+  static const _taskViewKey = 'task_view';
 
   static Future<SharedPreferencesLocalFlags> create() async {
     final prefs = await SharedPreferencesWithCache.create(
       cacheOptions: const SharedPreferencesWithCacheOptions(
-        allowList: {_firstOpenDoneKey, _themePreferenceKey, _firstStepsDoneKey},
+        allowList: {
+          _firstOpenDoneKey,
+          _themePreferenceKey,
+          _firstStepsDoneKey,
+          _taskViewKey,
+        },
       ),
     );
     return SharedPreferencesLocalFlags._(prefs);
   }
+
+  @override
+  String? get taskView => _prefs.getString(_taskViewKey);
+
+  @override
+  Future<void> setTaskView(String value) =>
+      _prefs.setString(_taskViewKey, value);
 
   @override
   bool firstStepsDone(String uid) =>
@@ -71,6 +90,7 @@ class InMemoryLocalFlags implements LocalFlags {
   InMemoryLocalFlags({
     this.firstOpenDone = false,
     this.themePreference,
+    this.taskView,
     Set<String>? firstStepsDoneFor,
   }) : firstStepsDoneFor = {...?firstStepsDoneFor};
 
@@ -79,6 +99,12 @@ class InMemoryLocalFlags implements LocalFlags {
 
   @override
   String? themePreference;
+
+  @override
+  String? taskView;
+
+  @override
+  Future<void> setTaskView(String value) async => taskView = value;
 
   /// Contas que concluíram ou dispensaram os "Primeiros passos".
   final Set<String> firstStepsDoneFor;

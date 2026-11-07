@@ -35,8 +35,9 @@ class PrototypeActions {
         );
   }
 
-  /// Pelo [ProgressActions]: o primeiro plano vira o principal.
-  Future<Plan> createSamplePlan() {
+  /// Pelo [ProgressActions]: o primeiro plano vira o principal;
+  /// [makePrimary] força (cartão do plano encerrado, "Criar plano").
+  Future<Plan> createSamplePlan({bool makePrimary = false}) {
     final today = LocalDate.fromDateTime(_now);
     _plans++;
     return _ref
@@ -51,6 +52,7 @@ class PrototypeActions {
             dailyGoalMinutes: 90,
           ),
           topicNames: ['Tópico 1', 'Tópico 2'],
+          makePrimary: makePrimary,
         );
   }
 }

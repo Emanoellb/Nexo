@@ -16,6 +16,8 @@ import '../../features/legal/presentation/legal_document_page.dart';
 import '../../features/tutorial/presentation/tutorial_page.dart';
 import '../../features/splash/application/splash_providers.dart';
 import '../../features/splash/presentation/splash_page.dart';
+import '../../features/subjects/presentation/subject_detail_page.dart';
+import '../../features/tasks/presentation/tasks_page.dart';
 import '../shell/nexo_shell.dart';
 import '../shell/under_construction_page.dart';
 import 'entry_redirect.dart';
@@ -99,7 +101,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state, navigationShell) => _fadePage(
           context,
           state,
-          NexoShell(navigationShell: navigationShell),
+          NexoShell(
+            navigationShell: navigationShell,
+            // O detalhe da disciplina tem a própria barra de topo.
+            showTabHeader: !AppRoutes.isSubjectDetail(state.uri.path),
+          ),
         ),
         branches: [
           StatefulShellBranch(
@@ -110,8 +116,23 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.tasks,
+                builder: (context, state) => const TasksPage(),
+                routes: [
+                  GoRoute(
+                    path: AppRoutes.subjectDetailSegment,
+                    builder: (context, state) => SubjectDetailPage(
+                      subjectId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
           for (final (path, title, block) in const [
-            (AppRoutes.tasks, 'Tarefas', 'bloco 7 · Tarefas'),
             (AppRoutes.plans, 'Planos', 'bloco 3 · Planos'),
             // "Calendário" virou "Agenda" só no texto (04/11/2026).
             (AppRoutes.calendar, 'Agenda', 'bloco 9 · Calendário'),
@@ -127,23 +148,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
         ],
       ),
-      // O Perfil saiu da barra (04/11/2026) e vai virar o avatar no topo das
-      // abas, ainda não aprovado. A rota continua, sem acesso por enquanto.
-      GoRoute(
-        path: AppRoutes.profile,
-        // Aberto pelo avatar do topo das abas, por cima delas.
-        pageBuilder: (context, state) => _fadePage(
-          context,
-          state,
-          Scaffold(
-            appBar: NexoTopAppBar(title: 'Perfil', onBack: () => context.pop()),
-            body: const UnderConstructionPage(
-              title: 'Perfil',
-              block: 'bloco 11 · Perfil',
+      // Telas por cima das abas ainda sem design.
+      for (final (path, title, block) in const [
+        (AppRoutes.profile, 'Perfil', 'bloco 11 · Perfil'),
+        (AppRoutes.newTask, 'Nova tarefa', 'bloco 7 · Tarefas'),
+        (AppRoutes.taskDetail, 'Detalhe da tarefa', 'bloco 7 · Tarefas'),
+      ])
+        GoRoute(
+          path: path,
+          // Por cima das abas, com voltar (Perfil pelo avatar do topo; nova
+          // tarefa pelo "+"; detalhe pelo toque na tarefa).
+          pageBuilder: (context, state) => _fadePage(
+            context,
+            state,
+            Scaffold(
+              appBar: NexoTopAppBar(title: title, onBack: () => context.pop()),
+              body: UnderConstructionPage(title: title, block: block),
             ),
           ),
         ),
-      ),
     ],
   );
 

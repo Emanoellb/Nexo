@@ -19,6 +19,19 @@ abstract final class AppRoutes {
   static const plans = '/plans';
   static const calendar = '/calendar';
 
+  /// Detalhe da disciplina, dentro da aba Tarefas (a barra continua):
+  /// [subjectDetailSegment] é a rota filha de [tasks].
+  static const subjectDetailSegment = 'subject/:id';
+  static String subjectDetailOf(String id) => '$tasks/subject/$id';
+  static bool isSubjectDetail(String path) =>
+      path.startsWith('$tasks/subject/');
+
+  /// Telas ainda sem design (decisão do usuário, 05/11/2026): abrem
+  /// "Em construção" por cima das abas.
+  static const newTask = '/new-task';
+  static const taskDetail = '/task/:id';
+  static String taskDetailOf(String id) => '/task/$id';
+
   /// Fora da barra desde 04/11/2026 (vai para o avatar no topo das abas).
   static const profile = '/profile';
 

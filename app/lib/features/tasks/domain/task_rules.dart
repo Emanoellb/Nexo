@@ -52,6 +52,25 @@ bool isTaskOverdue({
   required DateTime now,
 }) => !completed && dueAt != null && now.isAfter(dueAt);
 
+/// "Adiar para amanhã" (deslizar à esquerda): amanhã, no mesmo horário do
+/// prazo (design de 04/11/2026). "Amanhã" é a partir de hoje, não do prazo
+/// antigo.
+DateTime postponedDue(DateTime due, {required DateTime now}) =>
+    DateTime(now.year, now.month, now.day + 1, due.hour, due.minute);
+
+/// Adiar só existe para tarefa pendente com prazo até hoje (atrasada ou de
+/// hoje): para as de amanhã em diante, "para amanhã" manteria ou adiantaria
+/// o prazo (achado do code review, 05/11/2026).
+bool canPostponeTask({
+  required bool completed,
+  required DateTime? dueAt,
+  required DateTime now,
+}) {
+  if (completed || dueAt == null) return false;
+  final tomorrow = DateTime(now.year, now.month, now.day + 1);
+  return dueAt.isBefore(tomorrow);
+}
+
 /// Pontos da tarefa em `users.points`: +1 ao concluir, −1 ao reabrir.
 int taskPointsDelta({required bool wasCompleted, required bool isCompleted}) {
   if (wasCompleted == isCompleted) return 0;

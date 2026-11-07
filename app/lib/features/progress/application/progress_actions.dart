@@ -8,6 +8,7 @@ import '../../focus/domain/session_split.dart';
 import '../../plans/application/plans_providers.dart';
 import '../../plans/domain/plan.dart';
 import '../../plans/domain/plan_day_result.dart';
+import '../../plans/domain/plan_schedule.dart';
 import '../../tasks/application/tasks_providers.dart';
 
 /// Ações que mexem em pontos ou no plano principal, sempre com o ajuste no
@@ -63,22 +64,50 @@ class ProgressActions {
   // ---------- Planos ----------
 
   /// Cria o plano; se ainda não há principal, ele vira o principal.
-  Future<Plan> createPlan(Plan draft, {List<String> topicNames = const []}) =>
-      _serial(() async {
-        final plan = await _ref
-            .read(plansRepositoryProvider)
-            .createPlan(draft, topicNames: topicNames);
-        final uid = _uid;
-        if (uid == null) return plan;
-        // Lê do repositório (não do provider em cache): dois planos criados em
-        // seguida não podem os dois virar principal.
-        final profiles = _ref.read(userProfileRepositoryProvider);
-        final profile = await profiles.watchProfile(uid).first;
-        if (profile != null && profile.primaryPlanId == null) {
-          await profiles.setPrimaryPlan(uid, plan.id);
-        }
-        return plan;
-      });
+  /// [makePrimary]: vira o principal de qualquer jeito ("Criar plano" no
+  /// cartão do plano encerrado, sem outro ativo).
+  Future<Plan> createPlan(
+    Plan draft, {
+    List<String> topicNames = const [],
+    bool makePrimary = false,
+  }) => _serial(() async {
+    final plan = await _ref
+        .read(plansRepositoryProvider)
+        .createPlan(draft, topicNames: topicNames);
+    final uid = _uid;
+    if (uid == null) return plan;
+    // Lê do repositório (não do provider em cache): dois planos criados em
+    // seguida não podem os dois virar principal.
+    final profiles = _ref.read(userProfileRepositoryProvider);
+    final profile = await profiles.watchProfile(uid).first;
+    if (profile != null && (makePrimary || profile.primaryPlanId == null)) {
+      await profiles.setPrimaryPlan(uid, plan.id);
+    }
+    return plan;
+  });
+
+  /// "Retomar plano" (RF05): a pausa em aberto termina hoje (os dias
+  /// pausados continuam fora da conta) e o plano volta a ativo. Hoje volta a
+  /// contar (e, na cota semanal, pode mudar outros dias da semana): os
+  /// pontos da semana são refeitos antes e depois.
+  Future<void> resumePlan(String planId) {
+    final today = _today;
+    return _withWeekPoints(planId, {today}, () async {
+      final repository = _ref.read(plansRepositoryProvider);
+      final plan = await repository.watchPlan(planId).first;
+      if (plan == null) return false;
+      await repository.updatePlan(
+        plan.copyWith(
+          status: PlanStatus.active,
+          pauses: [
+            for (final p in plan.pauses)
+              p.end == null ? PlanPause(start: p.start, end: today) : p,
+          ],
+        ),
+      );
+      return true;
+    });
+  }
 
   /// Registra uma sessão de foco de [minutes] terminando agora (dividida à
   /// meia-noite, se for o caso).

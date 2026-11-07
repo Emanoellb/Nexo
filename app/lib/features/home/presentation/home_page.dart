@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,9 +8,12 @@ import '../../../core/data/connectivity.dart';
 import '../../../core/domain/local_date.dart';
 import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/ui.dart';
+import '../../plans/domain/plan.dart';
 import '../../plans/domain/plan_day_result.dart';
 import '../../progress/application/progress_actions.dart';
+import '../../tasks/application/screen_now.dart';
 import '../../tasks/domain/task.dart';
+import '../../tasks/presentation/task_list.dart';
 import '../application/home_view.dart';
 import 'home_text.dart';
 import 'home_widgets.dart';
@@ -37,58 +38,22 @@ class HomePage extends ConsumerStatefulWidget {
   /// Até quantos itens cada lista mostra (Miller).
   static const maxItems = 3;
 
-  /// O skeleton só aparece se a carga passar disto (evita piscar).
-  static const skeletonDelay = Duration(milliseconds: 300);
-
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> {
-  Timer? _skeletonTimer;
-  bool _showSkeleton = false;
-
-  /// Renova o "agora" do Início à meia-noite e no próximo prazo.
-  Timer? _refreshTimer;
-  DateTime? _refreshAt;
-
-  @override
-  void initState() {
-    super.initState();
-    _skeletonTimer = Timer(HomePage.skeletonDelay, () {
-      if (mounted) setState(() => _showSkeleton = true);
-    });
-  }
-
-  @override
-  void dispose() {
-    _skeletonTimer?.cancel();
-    _refreshTimer?.cancel();
-    super.dispose();
-  }
-
-  void _scheduleRefresh(HomeView view) {
-    final now = ref.read(homeNowProvider);
-    final at = nextHomeRefresh(now, [
-      ...view.today.tasks,
-      ...view.upcoming.tasks,
-    ]);
-    if (at == _refreshAt) return;
-    _refreshAt = at;
-    _refreshTimer?.cancel();
-    // +1 s: já do outro lado da virada.
-    _refreshTimer = Timer(at.difference(now) + const Duration(seconds: 1), () {
-      if (mounted) ref.invalidate(homeNowProvider);
-    });
-  }
-
+class _HomePageState extends ConsumerState<HomePage>
+    with
+        NexoDelayedSkeleton<HomePage>,
+        TaskListActions<HomePage>,
+        ScreenNowRefresh<HomePage> {
   // Lidos antes dos awaits: depois deles a tela pode já ter saído (logout,
   // troca de conta) e o `ref` não pode mais ser usado.
   ProgressActions get _progress => ref.read(progressActionsProvider);
   PrototypeActions get _prototype => ref.read(prototypeActionsProvider);
 
   /// O dia que o cartão mostra (o mesmo "agora" da tela).
-  LocalDate get _today => LocalDate.fromDateTime(ref.read(homeNowProvider));
+  LocalDate get _today => LocalDate.fromDateTime(ref.read(screenNowProvider));
 
   void _snack(
     String message, {
@@ -109,13 +74,28 @@ class _HomePageState extends ConsumerState<HomePage> {
   // ---------- Ações ----------
 
   Future<void> _createTask() async {
+    // Se esta tarefa conclui os primeiros passos, quem avisa é a Snackbar
+    // "Primeiros passos concluídos." (estado 05), não esta.
+    final view = ref.read(homeViewProvider);
+    final steps = view?.firstSteps;
+    final completesFirstSteps =
+        view != null &&
+        view.showFirstSteps &&
+        !steps!.task &&
+        steps.plan &&
+        steps.session;
     final task = await _prototype.createSampleTask();
-    _snack('"${task.title}" criada para hoje.');
+    if (!completesFirstSteps) _snack('"${task.title}" criada para hoje.');
   }
 
-  Future<void> _createPlan() async {
-    final plan = await _prototype.createSamplePlan();
+  Future<void> _createPlan({bool makePrimary = false}) async {
+    final plan = await _prototype.createSamplePlan(makePrimary: makePrimary);
     _snack('"${plan.name}" criado.');
+  }
+
+  Future<void> _resume(HomePlanToday plan) async {
+    await _progress.resumePlan(plan.plan.id);
+    _snack('Plano retomado.');
   }
 
   Future<void> _focus(HomePlanToday plan) async {
@@ -137,10 +117,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> _finalize(HomePlanToday plan) async {
     final result = plan.today;
-    if (result.doneMinutes == 0) {
-      _snack('Registre um tempo de estudo antes de finalizar o dia.');
-      return;
-    }
     final progress = _progress;
     final day = _today;
     // RF15: só pede confirmação abaixo da meta.
@@ -167,18 +143,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       actionLabel: 'Desfazer',
       onAction: () => progress.undoFinalizeDay(planId, day),
     );
-  }
-
-  Future<void> _setCompleted(NexoTask task, bool completed) async {
-    final progress = _progress;
-    await progress.setTaskCompleted(task.id, completed);
-    if (completed) {
-      _snack(
-        'Tarefa concluída.',
-        actionLabel: 'Desfazer',
-        onAction: () => progress.setTaskCompleted(task.id, false),
-      );
-    }
   }
 
   void _goToBranch(int index) =>
@@ -211,11 +175,9 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
     });
 
-    if (view == null) {
-      return _showSkeleton ? const HomeSkeleton() : const SizedBox.expand();
-    }
-    _skeletonTimer?.cancel();
-    _scheduleRefresh(view);
+    if (view == null) return whileLoading(const HomeSkeleton());
+    loaded();
+    scheduleNowRefresh([...view.today.tasks, ...view.upcoming.tasks]);
 
     final spacing = context.spacing;
     final bottom = MediaQuery.paddingOf(context).bottom;
@@ -275,7 +237,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
 
     return [
-      if (plan != null) _planCard(plan) else _noPlanCard(),
+      if (plan != null) _planCard(plan),
       if (plan != null && view.showFirstSteps)
         FirstStepsLine(
           steps: steps,
@@ -286,31 +248,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     ];
   }
 
-  /// Sem plano, mas já sem os primeiros passos (dispensados): convite.
-  Widget _noPlanCard() => NexoEmptyState(
-    icon: LucideIcons.target,
-    title: 'Sem plano principal',
-    message: 'Crie um plano para o Início mostrar sua meta do dia.',
-    actionLabel: 'Criar plano',
-    actionIcon: LucideIcons.plus,
-    onAction: _createPlan,
-  );
-
+  /// `Nexo/PlanCard` nos 8 estados do pacote B (aprovado em 05/11/2026,
+  /// pen.dev/notas/inicio-pacote-b-especificacao.md §2).
   Widget _planCard(HomePlanToday plan) {
     final result = plan.today;
     final done = formatMinutes(result.doneMinutes);
     final goal = formatMinutes(result.goalMinutes);
     final status = result.status;
-
-    final String dayLabel;
-    if (plan.dayNumber < 1) {
-      dayLabel = 'Começa em ${plan.plan.startDate.toDisplay()}';
-    } else if (plan.dayNumber > plan.totalDays) {
-      dayLabel = 'Período encerrado';
-    } else {
-      dayLabel = 'Dia ${plan.dayNumber} de ${plan.totalDays}';
-    }
-
+    final streak = streakText(plan.streak);
     final focus = NexoButton.primary(
       label: 'Focar',
       leadingIcon: LucideIcons.play,
@@ -318,6 +263,66 @@ class _HomePageState extends ConsumerState<HomePage> {
       onPressed: () => _focus(plan),
     );
 
+    // Arquivado ou encerrado: escolher outro principal ou criar um (nada é
+    // promovido sozinho). O fim do período conta como encerrado.
+    final ended = plan.isClosed || plan.dayNumber > plan.totalDays;
+    if (ended) {
+      final archived = plan.plan.status == PlanStatus.archived;
+      return NexoPlanCard(
+        dayLabel: archived ? 'Arquivado' : 'Encerrado',
+        title: plan.plan.name,
+        progressLabel: archived
+            ? 'Seu plano principal foi arquivado'
+            : 'Seu plano principal foi encerrado',
+        progress: null,
+        primaryAction: plan.otherActivePlans
+            ? NexoButton.primary(
+                label: 'Escolher plano principal',
+                leadingIcon: LucideIcons.target,
+                expand: true,
+                // Lista de planos sem design: vai à aba Planos (decisão do
+                // usuário, 05/11/2026).
+                onPressed: () => _goToBranch(2),
+              )
+            : NexoButton.primary(
+                label: 'Criar plano',
+                leadingIcon: LucideIcons.plus,
+                expand: true,
+                onPressed: () => _createPlan(makePrimary: true),
+              ),
+      );
+    }
+
+    if (plan.isPaused) {
+      final since = plan.openPause?.start;
+      return NexoPlanCard(
+        dayLabel: 'Pausado',
+        title: plan.plan.name,
+        progressLabel: since == null
+            ? 'Plano pausado'
+            : 'Pausado desde ${since.day}/${since.month}',
+        progressDetail: 'Dias pausados não contam',
+        progress: null,
+        streakLabel: '$streak · sequência mantida',
+        primaryAction: NexoButton.secondary(
+          label: 'Retomar plano',
+          leadingIcon: LucideIcons.play,
+          expand: true,
+          onPressed: () => _resume(plan),
+        ),
+      );
+    }
+
+    final String dayLabel;
+    if (plan.dayNumber < 1) {
+      dayLabel = 'Começa em ${plan.plan.startDate.toDisplay()}';
+    } else if (result.restDay) {
+      dayLabel = result.doneMinutes > 0 ? 'Folga · estudo extra' : 'Folga';
+    } else {
+      dayLabel = 'Dia ${plan.dayNumber} de ${plan.totalDays}';
+    }
+
+    // Cumprido (meta batida, com ou sem finalizar; ou finalizado abaixo).
     if (status.isFulfilled) {
       final diff = result.differenceMinutes;
       return NexoPlanCard(
@@ -334,7 +339,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             : result.doneMinutes / result.goalMinutes,
         completed: true,
         progressSemantics: '$done de $goal',
-        streakLabel: streakText(plan.streak),
+        streakLabel: streak,
         primaryAction: NexoButton.secondary(
           label: 'Estudar mais',
           leadingIcon: LucideIcons.play,
@@ -344,19 +349,32 @@ class _HomePageState extends ConsumerState<HomePage> {
       );
     }
 
+    // Folga sem estudo: "Estudar mesmo assim" (Tertiary), sem Focar como
+    // ação principal. Também antes do início do plano.
     if (status == PlanDayStatus.off) {
+      final next = plan.nextStudyDay;
       return NexoPlanCard(
         dayLabel: dayLabel,
         title: plan.plan.name,
-        progressLabel: 'Hoje é folga neste plano',
-        progressDetail: result.doneMinutes > 0 ? '$done estudados' : '',
+        progressLabel: plan.dayNumber < 1
+            ? 'O plano ainda não começou'
+            : 'Hoje é folga neste plano',
+        progressDetail: next == null ? null : 'Próximo: ${shortDayText(next)}',
         progress: null,
-        streakLabel: streakText(plan.streak),
-        primaryAction: focus,
+        streakLabel: streak,
+        primaryAction: NexoButton.tertiary(
+          label: 'Estudar mesmo assim',
+          leadingIcon: LucideIcons.play,
+          expand: true,
+          onPressed: () => _focus(plan),
+        ),
       );
     }
 
+    // Normal (ou folga com estudo). "Finalizar o dia" só com estudo e
+    // abaixo da meta: oculto com 0 min.
     final missing = (result.goalMinutes - result.doneMinutes).clamp(0, 1440);
+    final canFinalize = result.doneMinutes > 0;
     return NexoPlanCard(
       dayLabel: dayLabel,
       title: plan.plan.name,
@@ -366,16 +384,16 @@ class _HomePageState extends ConsumerState<HomePage> {
           ? 0
           : result.doneMinutes / result.goalMinutes,
       progressSemantics: '$done de $goal',
-      streakLabel: streakText(plan.streak),
+      streakLabel: streak,
       primaryAction: focus,
-      tertiaryLabel: 'Finalizar o dia',
-      onTertiary: () => _finalize(plan),
+      tertiaryLabel: canFinalize ? 'Finalizar o dia' : null,
+      onTertiary: canFinalize ? () => _finalize(plan) : null,
     );
   }
 
   Widget _tasksBlock(HomeView view, {required bool todayBlock}) {
     final group = todayBlock ? view.today : view.upcoming;
-    final now = ref.read(homeNowProvider);
+    final now = ref.read(screenNowProvider);
     final String count;
     if (!todayBlock) {
       count = '7 dias';
@@ -394,7 +412,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     final Widget body;
     if (group.isEmpty) {
-      body = HomeCardList(
+      body = NexoCardList(
         children: [
           NexoEmptyState(
             icon: LucideIcons.circleCheck,
@@ -409,14 +427,14 @@ class _HomePageState extends ConsumerState<HomePage> {
         ],
       );
     } else {
-      body = HomeCardList(
+      body = NexoCardList(
         children: [
           for (final task in group.tasks.take(HomePage.maxItems))
             NexoTaskItem(
               key: ValueKey(task.id),
               title: task.title,
               completed: task.completed,
-              onCompletedChanged: (value) => _setCompleted(task, value),
+              onCompletedChanged: (value) => setTaskCompleted(task, value),
               subject: view.subjects[task.subjectId],
               highPriority: task.priority == TaskPriority.high,
               deadline: task.dueAt == null
@@ -427,6 +445,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       completed: task.completed,
                       markToday: todayBlock,
                     ),
+              // Tocar abre o detalhe, como em Tarefas.
+              onTap: () => openTask(task),
             ),
         ],
       );

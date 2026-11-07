@@ -270,6 +270,8 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
     required this.distanceSmall,
     required this.distanceMedium,
     required this.distanceLarge,
+    required this.pulse,
+    required this.pulseMinOpacity,
   });
 
   static const standardMotion = NexoMotion(
@@ -284,6 +286,8 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
     distanceSmall: 4,
     distanceMedium: 8,
     distanceLarge: 16,
+    pulse: Duration(milliseconds: 1050),
+    pulseMinOpacity: 0.55,
   );
 
   /// `Motion/Duration/Instant`
@@ -319,6 +323,13 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
   /// `Motion/Distance/Large`
   final double distanceLarge;
 
+  /// `Motion/Duration/Pulse` (1050 ms): meia-volta do pulso do skeleton
+  /// (com reverse, em laço). Lib, 05/11/2026.
+  final Duration pulse;
+
+  /// `Motion/Opacity/PulseMin` (0,55): opacidade mínima do pulso (vai até 1).
+  final double pulseMinOpacity;
+
   @override
   NexoMotion copyWith({
     Duration? instant,
@@ -332,6 +343,8 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
     double? distanceSmall,
     double? distanceMedium,
     double? distanceLarge,
+    Duration? pulse,
+    double? pulseMinOpacity,
   }) {
     return NexoMotion(
       instant: instant ?? this.instant,
@@ -345,6 +358,8 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
       distanceSmall: distanceSmall ?? this.distanceSmall,
       distanceMedium: distanceMedium ?? this.distanceMedium,
       distanceLarge: distanceLarge ?? this.distanceLarge,
+      pulse: pulse ?? this.pulse,
+      pulseMinOpacity: pulseMinOpacity ?? this.pulseMinOpacity,
     );
   }
 

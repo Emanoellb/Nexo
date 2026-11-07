@@ -19,9 +19,9 @@ class NexoPlanCard extends StatelessWidget {
     required this.dayLabel,
     required this.title,
     required this.progressLabel,
-    required this.progressDetail,
+    this.progressDetail,
     required this.progress,
-    required this.streakLabel,
+    this.streakLabel,
     required this.primaryAction,
     this.tertiaryLabel,
     this.onTertiary,
@@ -36,8 +36,9 @@ class NexoPlanCard extends StatelessWidget {
   /// "Hoje · 1h 10min de 1h 30min" ou "Dia cumprido · 1h 35min".
   final String progressLabel;
 
-  /// "Faltam 20 min", "+5 min da meta"…
-  final String progressDetail;
+  /// "Faltam 20 min", "+15 min da meta"… `null`: sem detalhe (arquivado,
+  /// encerrado).
+  final String? progressDetail;
 
   /// 0–1. `null` esconde a barra (ex.: dia de folga).
   final double? progress;
@@ -46,8 +47,9 @@ class NexoPlanCard extends StatelessWidget {
   /// Valor lido pelo leitor de tela na barra.
   final String? progressSemantics;
 
-  /// "12 dias seguidos" ou "Comece sua sequência hoje".
-  final String streakLabel;
+  /// "12 dias seguidos" ou "Comece sua sequência hoje". `null` esconde a
+  /// linha (plano arquivado ou encerrado).
+  final String? streakLabel;
 
   /// Ação principal, que ocupa o espaço que sobra (Focar ou Estudar mais),
   /// já montada com `expand: true`.
@@ -105,7 +107,7 @@ class NexoPlanCard extends StatelessWidget {
                     .textStyle(NexoTextStyles.labelMediumEmphasis)
                     .copyWith(color: c.onSurface),
               ),
-              Text(progressDetail, style: small),
+              if (progressDetail != null) Text(progressDetail!, style: small),
             ],
           ),
           if (progress != null) ...[
@@ -117,14 +119,16 @@ class NexoPlanCard extends StatelessWidget {
               semanticsValue: progressSemantics,
             ),
           ],
-          SizedBox(height: spacing.md),
-          Row(
-            children: [
-              Icon(LucideIcons.flame, size: 16, color: c.secondary),
-              SizedBox(width: spacing.xs),
-              Flexible(child: Text(streakLabel, style: small)),
-            ],
-          ),
+          if (streakLabel != null) ...[
+            SizedBox(height: spacing.md),
+            Row(
+              children: [
+                Icon(LucideIcons.flame, size: 16, color: c.secondary),
+                SizedBox(width: spacing.xs),
+                Flexible(child: Text(streakLabel!, style: small)),
+              ],
+            ),
+          ],
           SizedBox(height: spacing.md),
           _actions(context),
         ],

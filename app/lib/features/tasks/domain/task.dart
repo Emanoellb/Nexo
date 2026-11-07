@@ -66,6 +66,27 @@ class NexoTask {
   bool isOverdue(DateTime now) =>
       isTaskOverdue(completed: completed, dueAt: dueAt, now: now);
 
+  /// Dá para "Adiar para amanhã" (ver [canPostponeTask]).
+  bool canPostpone({required DateTime now}) =>
+      canPostponeTask(completed: completed, dueAt: dueAt, now: now);
+
+  /// Cópia com outro prazo ou outra disciplina. Os parâmetros são funções
+  /// para poder limpar (`() => null`).
+  NexoTask copyWith({
+    DateTime? Function()? dueAt,
+    String? Function()? subjectId,
+  }) => NexoTask(
+    id: id,
+    title: title,
+    priority: priority,
+    completed: completed,
+    completedAt: completedAt,
+    subjectId: subjectId == null ? this.subjectId : subjectId(),
+    dueAt: dueAt == null ? this.dueAt : dueAt(),
+    reminderMinutesBefore: reminderMinutesBefore,
+    deliveryStatus: deliveryStatus,
+  );
+
   /// Concluir ou reabrir, já com a situação da entrega coerente (mesmo
   /// gravar). O `completedAt` real é o carimbo do servidor; aqui, [now].
   NexoTask withCompleted(bool value, {required DateTime now}) {

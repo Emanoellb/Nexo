@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../theme/nexo_theme.dart';
+import '../foundation/nexo_tappable.dart';
 import '../selection/nexo_checkbox.dart';
 
 /// Tom do `Nexo/Deadline`: a cor nunca é o único sinal ("Atrasada" vem
@@ -36,10 +37,13 @@ class NexoDeadline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.nexoColors;
-    final iconColor = switch (tone) {
-      NexoDeadlineTone.normal => c.iconSecondary,
-      NexoDeadlineTone.today => c.iconSelected,
-      NexoDeadlineTone.overdue => c.iconError,
+    // Ícone e texto no mesmo tom (design de 05/11/2026): "Hoje" em Primary,
+    // "Atrasada" em Error; o texto "Atrasada" garante que a cor não é o
+    // único sinal.
+    final (iconColor, textColor) = switch (tone) {
+      NexoDeadlineTone.normal => (c.iconSecondary, c.onSurfaceVariant),
+      NexoDeadlineTone.today => (c.iconSelected, c.primary),
+      NexoDeadlineTone.overdue => (c.iconError, c.error),
     };
     return Semantics(
       label: semanticsLabel,
@@ -54,7 +58,7 @@ class NexoDeadline extends StatelessWidget {
             child: Text(
               text,
               style: Theme.of(context).textTheme.labelSmall!
-                  .copyWith(color: c.onSurfaceVariant),
+                  .copyWith(color: textColor),
             ),
           ),
         ],
@@ -67,6 +71,9 @@ class NexoDeadline extends StatelessWidget {
 /// linha de meta (disciplina + prazo) e a bandeira de prioridade alta
 /// (`Nexo/Priority`, só a Alta aparece na lista). Sem container próprio:
 /// vive numa lista com divisores.
+///
+/// [onTap] abre a tarefa; [onLongPress] abre o menu de ações (as mesmas do
+/// deslizar). O Checkbox continua com o próprio toque.
 class NexoTaskItem extends StatelessWidget {
   const NexoTaskItem({
     super.key,
@@ -76,6 +83,8 @@ class NexoTaskItem extends StatelessWidget {
     this.subject,
     this.deadline,
     this.highPriority = false,
+    this.onTap,
+    this.onLongPress,
   });
 
   final String title;
@@ -86,6 +95,8 @@ class NexoTaskItem extends StatelessWidget {
   final String? subject;
   final NexoDeadline? deadline;
   final bool highPriority;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +106,7 @@ class NexoTaskItem extends StatelessWidget {
     final small = textTheme.labelSmall!.copyWith(color: c.onSurfaceVariant);
     final hasMeta = subject != null || deadline != null;
 
-    return Padding(
+    final row = Padding(
       padding: EdgeInsetsDirectional.fromSTEB(
         spacing.xs,
         spacing.sm,
@@ -175,6 +186,13 @@ class NexoTaskItem extends StatelessWidget {
           ],
         ],
       ),
+    );
+    if (onTap == null && onLongPress == null) return row;
+    return NexoTappable(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      borderRadius: BorderRadius.zero,
+      child: row,
     );
   }
 }

@@ -43,7 +43,10 @@ abstract interface class PlansRepository {
   /// Apaga a sessão e desconta do dia (dentro da janela de 7 dias).
   Future<void> deleteSession(String planId, String sessionId);
 
-  /// Finalizar o dia (RF14) e o "Desfazer" (RF17).
+  /// Finalizar o dia (RF14): grava `finalizedAt` (hora do servidor).
   Future<void> finalizeDay(String planId, LocalDate day);
+
+  /// "Desfazer" (RF17): grava `finalizedAt: null` e mantém o documento do
+  /// dia. Nunca `FieldValue.delete()`: as regras v0.8 exigem o campo.
   Future<void> undoFinalizeDay(String planId, LocalDate day);
 }

@@ -16,6 +16,7 @@ class TutorialAnimation extends StatefulWidget {
     required this.duration,
     required this.builder,
     this.delay = Duration.zero,
+    this.onComplete,
   });
 
   final int play;
@@ -29,16 +30,23 @@ class TutorialAnimation extends StatefulWidget {
   /// [t] vai de 0 a 1.
   final Widget Function(BuildContext context, double t) builder;
 
+  /// Chamado quando a animação termina de tocar (não com "reduzir
+  /// movimento", em que não há animação: quem usa decide na hora).
+  final VoidCallback? onComplete;
+
   @override
   State<TutorialAnimation> createState() => _TutorialAnimationState();
 }
 
 class _TutorialAnimationState extends State<TutorialAnimation>
     with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(
-    vsync: this,
-    duration: widget.duration,
-  );
+  late final _controller =
+      AnimationController(vsync: this, duration: widget.duration)
+        ..addStatusListener((status) {
+          if (status == AnimationStatus.completed && !_reduceMotion) {
+            widget.onComplete?.call();
+          }
+        });
 
   Timer? _wait;
 

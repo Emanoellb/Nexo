@@ -1,15 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/data/clock.dart';
 import '../../../core/data/local_flags.dart';
 import '../../../core/domain/local_date.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../plans/application/plans_providers.dart';
 import '../../plans/domain/plan.dart';
 import '../../plans/domain/plan_day_result.dart';
-import '../../subjects/application/subjects_providers.dart';
-import '../../tasks/application/tasks_providers.dart';
+import '../../plans/domain/plan_schedule.dart';
+import '../../subjects/application/subject_actions.dart';
+import '../../tasks/application/screen_now.dart';
+import '../../tasks/application/task_actions.dart';
 import '../../tasks/domain/task.dart';
 
 /// O plano principal hoje (cartão `Nexo/PlanCard`).
@@ -21,6 +22,8 @@ class HomePlanToday {
     required this.dayNumber,
     required this.totalDays,
     required this.streak,
+    this.nextStudyDay,
+    this.otherActivePlans = false,
   });
 
   final Plan plan;
@@ -31,6 +34,26 @@ class HomePlanToday {
   final int dayNumber;
   final int totalDays;
   final int streak;
+
+  /// Próximo dia de estudo ("Próximo: seg, 10/11" na folga).
+  final LocalDate? nextStudyDay;
+
+  /// Há outro plano ativo para escolher como principal (plano principal
+  /// arquivado ou encerrado).
+  final bool otherActivePlans;
+
+  /// Pausado agora: a pausa em aberto (sem fim).
+  PlanPause? get openPause =>
+      plan.pauses.where((p) => p.end == null).lastOrNull;
+
+  bool get isPaused => plan.status == PlanStatus.paused || openPause != null;
+
+  /// Arquivado ou encerrado (antes do fim ou no fim): o Início pede para
+  /// escolher outro principal ou criar um. Nada é promovido sozinho.
+  bool get isClosed =>
+      plan.status == PlanStatus.archived ||
+      plan.status == PlanStatus.completed ||
+      plan.status == PlanStatus.endedEarly;
 }
 
 /// "Primeiros passos" (estados 02–05): criar tarefa, criar plano, focar.
@@ -60,18 +83,6 @@ class HomeTaskGroup {
 
   int get completed => tasks.where((t) => t.completed).length;
   bool get isEmpty => tasks.isEmpty;
-}
-
-/// O próximo instante em que o Início precisa se recalcular: a meia-noite
-/// ou o prazo pendente mais próximo, o que vier antes.
-DateTime nextHomeRefresh(DateTime now, Iterable<NexoTask> tasks) {
-  var next = DateTime(now.year, now.month, now.day + 1);
-  for (final task in tasks) {
-    final due = task.dueAt;
-    if (task.completed || due == null || !due.isAfter(now)) continue;
-    if (due.isBefore(next)) next = due;
-  }
-  return next;
 }
 
 /// Tudo o que o Início mostra, já decidido. `null` em [homeViewProvider]
@@ -150,11 +161,6 @@ class FirstStepsDone extends Notifier<bool> {
   );
 }
 
-/// "Agora" do Início. Lido uma vez e renovado pela tela (timer) à meia-noite
-/// e na hora do próximo prazo: sem isso, o cartão ficaria no dia anterior e
-/// prazos vencidos não virariam "Atrasada" até algum dado mudar.
-final homeNowProvider = Provider<DateTime>((ref) => ref.watch(clockProvider)());
-
 /// Sequência do plano, à parte do Início: só refaz quando o plano, as
 /// versões, os dias ou o "agora" mudam (não a cada toque numa tarefa).
 /// `null` enquanto carrega.
@@ -163,7 +169,7 @@ final planStreakProvider = Provider.family<int?, String>((ref, planId) {
   final versions = ref.watch(planVersionsProvider(planId));
   final days = ref.watch(planDaysProvider(planId));
   if (plan == null || !versions.hasValue || !days.hasValue) return null;
-  final today = LocalDate.fromDateTime(ref.watch(homeNowProvider));
+  final today = LocalDate.fromDateTime(ref.watch(screenNowProvider));
   return currentStreak(
     PlanSnapshot(plan: plan, versions: versions.value!, days: days.value!),
     today: today,
@@ -173,15 +179,18 @@ final planStreakProvider = Provider.family<int?, String>((ref, planId) {
 final homeViewProvider = Provider<HomeView?>((ref) {
   final profile = ref.watch(userProfileProvider);
   final plans = ref.watch(plansProvider);
-  final tasks = ref.watch(tasksProvider);
-  final subjects = ref.watch(subjectsProvider);
+  // Sem as de exclusão pendente (somem na hora em todas as telas).
+  final tasks = ref.watch(visibleTasksProvider);
+  final subjects = ref.watch(visibleSubjectsProvider);
   if (!profile.hasValue || !plans.hasValue || !tasks.hasValue) return null;
 
-  final now = ref.watch(homeNowProvider);
+  final now = ref.watch(screenNowProvider);
   final today = LocalDate.fromDateTime(now);
   final planList = plans.value!;
 
-  // Plano principal; se ele sumiu, o primeiro ativo.
+  // Plano principal, em qualquer situação (pausado, arquivado, encerrado:
+  // o cartão mostra o estado; nada é promovido sozinho). Sem principal
+  // gravado (dado antigo) ou se ele não existe mais, o primeiro ativo.
   final primaryId = profile.value?.primaryPlanId;
   final primary =
       planList.where((p) => p.id == primaryId).firstOrNull ??
@@ -200,12 +209,19 @@ final homeViewProvider = Provider<HomeView?>((ref) {
       days: days.value!,
     );
     hasSession = days.value!.any((d) => d.doneMinutes > 0);
+    final result = planDayResult(snapshot, today, today: today);
     planToday = HomePlanToday(
       plan: primary,
-      today: planDayResult(snapshot, today, today: today),
+      today: result,
       dayNumber: primary.startDate.daysUntil(today) + 1,
       totalDays: primary.startDate.daysUntil(primary.endDate) + 1,
       streak: streak,
+      nextStudyDay: result.restDay
+          ? nextStudyDay(snapshot, today: today)
+          : null,
+      otherActivePlans: planList.any(
+        (p) => p.id != primary.id && p.status == PlanStatus.active,
+      ),
     );
   }
 

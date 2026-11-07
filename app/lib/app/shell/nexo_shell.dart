@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -39,9 +40,17 @@ const nexoDestinations = [
 /// passa por trás da barra flutuante de vidro; o "+" fica no mesmo lugar em
 /// todas as abas.
 class NexoShell extends ConsumerStatefulWidget {
-  const NexoShell({super.key, required this.navigationShell});
+  const NexoShell({
+    super.key,
+    required this.navigationShell,
+    this.showTabHeader = true,
+  });
 
   final StatefulNavigationShell navigationShell;
+
+  /// `false` em telas de detalhe dentro de uma aba (ex.: disciplina), que
+  /// têm a própria TopAppBar; a barra de baixo continua.
+  final bool showTabHeader;
 
   @override
   ConsumerState<NexoShell> createState() => _NexoShellState();
@@ -112,8 +121,8 @@ class _NexoShellState extends ConsumerState<NexoShell> {
 
   void _openCreateMenu() {
     final actions = ref.read(prototypeActionsProvider);
-    // Telas de criar ainda não desenhadas: o toque cria um exemplo nos dados
-    // fake (decisão do usuário, 04/11/2026).
+    // "Nova tarefa" abre "Em construção" (decisão do usuário, 05/11/2026);
+    // "Novo plano" ainda cria um exemplo nos dados fake (04/11/2026).
     // Na fila: se criar concluir os "Primeiros passos", o aviso do Início
     // (mostrado na mesma hora) não é apagado por este.
     void created(String message) {
@@ -127,10 +136,7 @@ class _NexoShellState extends ConsumerState<NexoShell> {
         NexoFabMenuOption(
           icon: LucideIcons.listTodo,
           label: 'Nova tarefa',
-          onSelected: () async {
-            final task = await actions.createSampleTask();
-            created('"${task.title}" criada para hoje.');
-          },
+          onSelected: () => context.push(AppRoutes.newTask),
         ),
         NexoFabMenuOption(
           icon: LucideIcons.target,
@@ -144,6 +150,28 @@ class _NexoShellState extends ConsumerState<NexoShell> {
     );
   }
 
+  /// Voltar do aparelho na tela raiz de uma aba (pedido do usuário,
+  /// 06/11/2026): fora do Início, vai para o Início; no Início, pergunta se
+  /// quer sair. Telas abertas dentro de uma aba (ex.: disciplina) voltam
+  /// antes, pelo navegador da aba, sem chegar aqui.
+  Future<void> _onBack(bool didPop, Object? _) async {
+    if (didPop) return;
+    if (_shell.currentIndex != 0) {
+      _shell.goBranch(0);
+      return;
+    }
+    final exit = await showNexoDialog(
+      context,
+      icon: LucideIcons.logOut,
+      title: 'Deseja sair do app?',
+      message:
+          'Você pode voltar quando quiser: suas tarefas e planos ficam '
+          'salvos.',
+      confirmLabel: 'Sair',
+    );
+    if (exit) await SystemNavigator.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final solid =
@@ -151,47 +179,55 @@ class _NexoShellState extends ConsumerState<NexoShell> {
         ref.watch(reduceTransparencyProvider);
     final name = ref.watch(userProfileProvider).value?.displayName ?? '';
 
-    return Scaffold(
-      // O conteúdo rola por trás do vidro. O Scaffold soma a altura da barra
-      // ao padding de baixo, e a Snackbar flutuante aparece acima dela.
-      extendBody: true,
-      body: Column(
-        children: [
-          NexoTabHeader(
-            title: nexoDestinations[_shell.currentIndex].label,
-            unreadCount: ref.watch(unreadNotificationsProvider),
-            onNotifications: _openNotifications,
-            bellKey: _bellKey,
-            initials: initialsOf(name),
-            onProfile: () => context.push(AppRoutes.profile),
-          ),
-          // O topo já respeita a barra de status.
-          Expanded(
-            child: NotificationListener<ScrollMetricsNotification>(
-              onNotification: (n) => _onScroll(n.metrics, n.depth, n.context),
-              child: NotificationListener<ScrollUpdateNotification>(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: _onBack,
+      child: Scaffold(
+        // O conteúdo rola por trás do vidro. O Scaffold soma a altura da barra
+        // ao padding de baixo, e a Snackbar flutuante aparece acima dela.
+        extendBody: true,
+        body: Column(
+          children: [
+            if (widget.showTabHeader)
+              NexoTabHeader(
+                title: nexoDestinations[_shell.currentIndex].label,
+                unreadCount: ref.watch(unreadNotificationsProvider),
+                onNotifications: _openNotifications,
+                bellKey: _bellKey,
+                initials: initialsOf(name),
+                onProfile: () => context.push(AppRoutes.profile),
+                // Saudação só no Início (adendo do pacote B, 05/11/2026).
+                greeting: _shell.currentIndex == 0 ? greetingOf(name) : null,
+              ),
+            // O topo já respeita a barra de status.
+            Expanded(
+              child: NotificationListener<ScrollMetricsNotification>(
                 onNotification: (n) => _onScroll(n.metrics, n.depth, n.context),
-                child: MediaQuery.removePadding(
-                  context: context,
-                  removeTop: true,
-                  child: _shell,
+                child: NotificationListener<ScrollUpdateNotification>(
+                  onNotification: (n) =>
+                      _onScroll(n.metrics, n.depth, n.context),
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: widget.showTabHeader,
+                    child: _shell,
+                  ),
                 ),
               ),
             ),
+          ],
+        ),
+        bottomNavigationBar: NexoBottomBar(
+          destinations: nexoDestinations,
+          selectedIndex: _shell.currentIndex,
+          solid: solid,
+          overContent: _overContent[_shell.currentIndex] ?? false,
+          fabKey: _fabKey,
+          onCreate: _openCreateMenu,
+          onSelected: (index) => _shell.goBranch(
+            index,
+            // Tocar de novo na aba atual volta ao início dela.
+            initialLocation: index == _shell.currentIndex,
           ),
-        ],
-      ),
-      bottomNavigationBar: NexoBottomBar(
-        destinations: nexoDestinations,
-        selectedIndex: _shell.currentIndex,
-        solid: solid,
-        overContent: _overContent[_shell.currentIndex] ?? false,
-        fabKey: _fabKey,
-        onCreate: _openCreateMenu,
-        onSelected: (index) => _shell.goBranch(
-          index,
-          // Tocar de novo na aba atual volta ao início dela.
-          initialLocation: index == _shell.currentIndex,
         ),
       ),
     );

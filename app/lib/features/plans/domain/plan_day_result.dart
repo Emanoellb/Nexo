@@ -9,22 +9,27 @@ enum PlanDayStatus {
   /// Dia de estudo ainda aberto (hoje ou adiante) e abaixo da meta.
   inProgress,
 
-  /// Cumprido na meta: realizado = meta.
+  /// Cumprido na meta: meta ≤ realizado < meta + 10 min. Conta sozinho ao
+  /// bater a meta, sem finalizar.
   met,
 
-  /// Cumprido com horas a menos: finalizado abaixo da meta (com algum
-  /// estudo).
+  /// Cumprido com horas a menos: finalizado abaixo da meta, com algum
+  /// estudo (0 < realizado < meta).
   metShort,
 
-  /// Cumprido com horas a mais: realizado > meta.
+  /// Cumprido com horas a mais: realizado ≥ meta + 10 min.
   metOver,
 
-  /// Não cumprido: o dia passou sem meta e sem finalizar.
+  /// Não cumprido: o dia passou com realizado < meta e sem finalizar.
   missed,
 
-  /// Folga ou pausado: fora da frequência, do período, pausado, antes da
-  /// primeira versão ou com a cota semanal já cumprida. Não entra na conta.
+  /// Folga sem estudo, pausado, fora do período ou antes da primeira
+  /// versão. Não entra na conta.
   off;
+
+  /// A partir de quantos minutos acima da meta o dia é "com horas a mais"
+  /// (decisão do usuário, 05/11/2026).
+  static const overMarginMinutes = 10;
 
   /// Pontos do dia (lib, Conteúdo/06): 5 na meta, 3 com horas a menos,
   /// 7 com horas a mais (5 + 2), 0 não cumprido. Sem bônus de sequência.
@@ -48,10 +53,20 @@ class PlanDayResult {
     required this.goalMinutes,
     required this.doneMinutes,
     required this.finalized,
+    this.restDay = false,
+    this.flexible = false,
   });
 
   final LocalDate day;
   final PlanDayStatus status;
+
+  /// Folga pela frequência (dia fora dos escolhidos ou cota semanal já
+  /// cumprida). Com estudo, vale como dia normal ("Folga · estudo extra").
+  final bool restDay;
+
+  /// Dia de um plano "× por semana": "não cumprido" não quebra a sequência
+  /// sozinho (só a semana fechada abaixo da cota).
+  final bool flexible;
 
   /// Meta da versão vigente; 0 quando não há versão.
   final int goalMinutes;
@@ -81,9 +96,13 @@ class PlanSnapshot {
 
 /// Os 7 dias da semana (domingo a sábado) que contém [day].
 ///
-/// "× por semana" é uma cota (decisão do usuário, 05/11/2026): todo dia é de
-/// estudo até a pessoa cumprir X dias na semana; depois, os dias restantes
-/// viram folga. Dia sem estudo nesse plano não vira "não cumprido" sozinho.
+/// Regras (lib, Conteúdo/05; spec do pacote B, 05/11/2026):
+/// - folga vem da frequência: dia fora dos escolhidos ("dias da semana") ou,
+///   no "× por semana", qualquer dia depois de cumprida a cota (todo dia é
+///   de estudo até lá) e qualquer dia passado sem estudo;
+/// - estudar na folga (> 0 min) vale como dia normal: a meta passa a valer,
+///   com status, pontos e sequência; folga sem estudo não conta;
+/// - pausado, fora do período ou antes da primeira versão: não conta.
 List<PlanDayResult> planWeekResults(
   PlanSnapshot snapshot,
   LocalDate day, {
@@ -92,15 +111,7 @@ List<PlanDayResult> planWeekResults(
   var fulfilled = 0;
   final results = <PlanDayResult>[];
   for (final d in NexoWeek.daysOf(day)) {
-    final version = _activeVersion(snapshot, d);
-    var result = _baseResult(snapshot, d, version, today);
-    if (version != null && version.frequency is TimesPerWeekFrequency) {
-      final quota = (version.frequency as TimesPerWeekFrequency).timesPerWeek;
-      if (result.status != PlanDayStatus.off &&
-          (fulfilled >= quota || result.status == PlanDayStatus.missed)) {
-        result = _withStatus(result, PlanDayStatus.off);
-      }
-    }
+    final result = _dayResult(snapshot, d, today, fulfilledBefore: fulfilled);
     if (result.status.isFulfilled) fulfilled++;
     results.add(result);
   }
@@ -130,6 +141,20 @@ int planWeekPoints(
   day,
   today: today,
 ).fold(0, (sum, r) => sum + r.points);
+
+/// Próximo dia de estudo depois de [today] (para "Próximo: seg, 10/11" na
+/// folga), em até 4 semanas; `null` se o plano acabar ou ficar pausado.
+LocalDate? nextStudyDay(PlanSnapshot snapshot, {required LocalDate today}) {
+  for (
+    var d = today.addDays(1);
+    !d.isAfter(today.addDays(28));
+    d = d.addDays(1)
+  ) {
+    final r = planDayResult(snapshot, d, today: today);
+    if (r.status != PlanDayStatus.off && !r.restDay) return d;
+  }
+  return null;
+}
 
 /// Pontos de todos os dias do plano, do início até a semana de [today]
 /// (ex.: para alinhar `users.points` aos dados de exemplo).
@@ -167,7 +192,7 @@ int currentStreak(PlanSnapshot snapshot, {required LocalDate today}) {
       if (r.day.isAfter(today) || r.day.isBefore(start)) continue;
       if (r.status.isFulfilled) {
         streak++;
-      } else if (r.status == PlanDayStatus.missed) {
+      } else if (r.status == PlanDayStatus.missed && !r.flexible) {
         return streak;
       }
     }
@@ -215,23 +240,55 @@ ScheduleVersion? _activeVersion(PlanSnapshot s, LocalDate day) {
   return versionFor(s.versions, day);
 }
 
-PlanDayResult _baseResult(
+/// [fulfilledBefore]: dias cumpridos antes deste na semana (cota).
+PlanDayResult _dayResult(
   PlanSnapshot s,
   LocalDate day,
-  ScheduleVersion? version,
-  LocalDate today,
-) {
+  LocalDate today, {
+  required int fulfilledBefore,
+}) {
+  final version = _activeVersion(s, day);
   final record = s.days[day];
   final done = record?.doneMinutes ?? 0;
   final finalized = record?.isFinalized ?? false;
   final goal = version?.dailyGoalMinutes ?? 0;
 
-  PlanDayStatus status;
-  if (version == null || isScheduledWeekday(version.frequency, day) == false) {
-    status = PlanDayStatus.off;
-  } else if (done > goal) {
+  PlanDayResult result(
+    PlanDayStatus status, {
+    bool restDay = false,
+    bool flexible = false,
+  }) => PlanDayResult(
+    day: day,
+    status: status,
+    goalMinutes: goal,
+    doneMinutes: done,
+    finalized: finalized,
+    restDay: restDay,
+    flexible: flexible,
+  );
+
+  if (version == null) return result(PlanDayStatus.off);
+
+  final frequency = version.frequency;
+  final flexible = frequency is TimesPerWeekFrequency;
+  final bool restDay = switch (frequency) {
+    TimesPerWeekFrequency(:final timesPerWeek) =>
+      fulfilledBefore >= timesPerWeek,
+    _ => isScheduledWeekday(frequency, day) == false,
+  };
+
+  // Sem estudo: folga (inclusive, no "× por semana", o dia passado sem
+  // estudo). Hoje e adiante, se for dia de estudo, fica em andamento.
+  if (done == 0 && !finalized) {
+    if (restDay || (flexible && day.isBefore(today))) {
+      return result(PlanDayStatus.off, restDay: true, flexible: flexible);
+    }
+  }
+
+  final PlanDayStatus status;
+  if (done >= goal + PlanDayStatus.overMarginMinutes) {
     status = PlanDayStatus.metOver;
-  } else if (done == goal) {
+  } else if (done >= goal) {
     status = PlanDayStatus.met;
   } else if (finalized && done > 0) {
     status = PlanDayStatus.metShort;
@@ -240,21 +297,5 @@ PlanDayResult _baseResult(
   } else {
     status = PlanDayStatus.missed;
   }
-
-  return PlanDayResult(
-    day: day,
-    status: status,
-    goalMinutes: goal,
-    doneMinutes: done,
-    finalized: finalized,
-  );
+  return result(status, restDay: restDay, flexible: flexible);
 }
-
-PlanDayResult _withStatus(PlanDayResult r, PlanDayStatus status) =>
-    PlanDayResult(
-      day: r.day,
-      status: status,
-      goalMinutes: r.goalMinutes,
-      doneMinutes: r.doneMinutes,
-      finalized: r.finalized,
-    );

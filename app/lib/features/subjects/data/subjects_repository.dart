@@ -3,16 +3,16 @@ import '../domain/subject.dart';
 
 /// `users/{uid}/subjects`. A versão Firestore entra no bloco de integração.
 abstract interface class SubjectsRepository {
-  /// Em ordem alfabética.
+  /// Em ordem alfabética (sem diferença de acento e maiúsculas).
   Stream<List<Subject>> watchSubjects();
 
-  Future<Subject> createSubject({
-    required String name,
-    required String icon,
-    required String color,
-  });
+  Future<Subject> createSubject({required String name, required String icon});
 
   Future<void> updateSubject(Subject subject);
+
+  /// Apaga a disciplina. As tarefas dela continuam, sem disciplina: quem
+  /// chama limpa o `subjectId` delas no mesmo lote (no Firestore, um
+  /// `WriteBatch`; ver `SubjectActions`).
   Future<void> deleteSubject(String subjectId);
 }
 
@@ -21,21 +21,16 @@ class FakeSubjectsRepository implements SubjectsRepository {
   final _subjects = InMemoryStore<Subject>(const [], (s) => s.id);
 
   @override
-  Stream<List<Subject>> watchSubjects() =>
-      _subjects.watch(sort: (a, b) => a.name.compareTo(b.name));
+  Stream<List<Subject>> watchSubjects() => _subjects.watch(
+    sort: (a, b) => subjectNameKey(a.name).compareTo(subjectNameKey(b.name)),
+  );
 
   @override
   Future<Subject> createSubject({
     required String name,
     required String icon,
-    required String color,
   }) async {
-    final subject = Subject(
-      id: _ids.next(),
-      name: name,
-      icon: icon,
-      color: color,
-    );
+    final subject = Subject(id: _ids.next(), name: name.trim(), icon: icon);
     _subjects.put(subject);
     return subject;
   }
