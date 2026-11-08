@@ -151,8 +151,7 @@ mixin TaskListActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     message: 'Tarefa excluída.',
   );
 
-  /// Detalhe da tarefa: "Em construção" por enquanto (decisão do usuário,
-  /// 05/11/2026).
+  /// Detalhe da tarefa (já editável).
   void openTask(NexoTask task) => context.push(AppRoutes.taskDetailOf(task.id));
 
   /// As ações do deslizar, para o toque longo.
@@ -239,7 +238,6 @@ mixin TaskListActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
             completed: task.completed,
             onCompletedChanged: (value) => setTaskCompleted(task, value),
             subject: subject,
-            highPriority: task.priority == TaskPriority.high,
             deadline: completedSection && task.completed
                 ? completedFor(task.completedAt ?? now, now)
                 : task.dueAt == null

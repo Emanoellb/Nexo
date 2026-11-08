@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../app/prototype/prototype_actions.dart';
+import '../../../app/router/routes.dart';
 import '../../../core/data/connectivity.dart';
 import '../../../core/domain/local_date.dart';
 import '../../../core/theme/nexo_theme.dart';
@@ -12,7 +13,6 @@ import '../../plans/domain/plan.dart';
 import '../../plans/domain/plan_day_result.dart';
 import '../../progress/application/progress_actions.dart';
 import '../../tasks/application/screen_now.dart';
-import '../../tasks/domain/task.dart';
 import '../../tasks/presentation/task_list.dart';
 import '../application/home_view.dart';
 import 'home_text.dart';
@@ -32,7 +32,7 @@ import 'home_widgets.dart';
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
-  /// Sessão simulada pelo Focar e pelo Estudar mais.
+  /// Sessão simulada pelo Focar e pelo Focar mais.
   static const focusMinutes = 25;
 
   /// Até quantos itens cada lista mostra (Miller).
@@ -73,20 +73,10 @@ class _HomePageState extends ConsumerState<HomePage>
 
   // ---------- Ações ----------
 
-  Future<void> _createTask() async {
-    // Se esta tarefa conclui os primeiros passos, quem avisa é a Snackbar
-    // "Primeiros passos concluídos." (estado 05), não esta.
-    final view = ref.read(homeViewProvider);
-    final steps = view?.firstSteps;
-    final completesFirstSteps =
-        view != null &&
-        view.showFirstSteps &&
-        !steps!.task &&
-        steps.plan &&
-        steps.session;
-    final task = await _prototype.createSampleTask();
-    if (!completesFirstSteps) _snack('"${task.title}" criada para hoje.');
-  }
+  /// Nova tarefa em tela cheia (design da Tarefa, 07/11/2026). A tela
+  /// confirma com "Tarefa criada."; se ela concluir os primeiros passos,
+  /// o aviso do estado 05 toma o lugar.
+  void _createTask() => context.push(AppRoutes.newTask);
 
   Future<void> _createPlan({bool makePrimary = false}) async {
     final plan = await _prototype.createSamplePlan(makePrimary: makePrimary);
@@ -127,7 +117,7 @@ class _HomePageState extends ConsumerState<HomePage>
       iconColor: context.nexoColors.iconSuccess,
       title: 'Finalizar o dia agora?',
       message:
-          'Você estudou ${formatMinutes(result.doneMinutes)} de '
+          'Você fez ${formatMinutes(result.doneMinutes)} de '
           '${formatMinutes(result.goalMinutes)}. O dia conta como cumprido, '
           'com $short a menos no relatório, e a sequência continua. Ainda '
           'dá para registrar horas até 7 dias depois.',
@@ -317,7 +307,7 @@ class _HomePageState extends ConsumerState<HomePage>
     if (plan.dayNumber < 1) {
       dayLabel = 'Começa em ${plan.plan.startDate.toDisplay()}';
     } else if (result.restDay) {
-      dayLabel = result.doneMinutes > 0 ? 'Folga · estudo extra' : 'Folga';
+      dayLabel = result.doneMinutes > 0 ? 'Folga · sessão extra' : 'Folga';
     } else {
       dayLabel = 'Dia ${plan.dayNumber} de ${plan.totalDays}';
     }
@@ -341,7 +331,7 @@ class _HomePageState extends ConsumerState<HomePage>
         progressSemantics: '$done de $goal',
         streakLabel: streak,
         primaryAction: NexoButton.secondary(
-          label: 'Estudar mais',
+          label: 'Focar mais',
           leadingIcon: LucideIcons.play,
           expand: true,
           onPressed: () => _focus(plan),
@@ -363,7 +353,7 @@ class _HomePageState extends ConsumerState<HomePage>
         progress: null,
         streakLabel: streak,
         primaryAction: NexoButton.tertiary(
-          label: 'Estudar mesmo assim',
+          label: 'Focar mesmo assim',
           leadingIcon: LucideIcons.play,
           expand: true,
           onPressed: () => _focus(plan),
@@ -436,7 +426,6 @@ class _HomePageState extends ConsumerState<HomePage>
               completed: task.completed,
               onCompletedChanged: (value) => setTaskCompleted(task, value),
               subject: view.subjects[task.subjectId],
-              highPriority: task.priority == TaskPriority.high,
               deadline: task.dueAt == null
                   ? null
                   : deadlineFor(

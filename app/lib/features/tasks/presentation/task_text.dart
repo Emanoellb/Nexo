@@ -106,3 +106,51 @@ String nextDeliveryText(String title, DateTime due, DateTime now) {
         );
   return 'Próxima: $title · $when';
 }
+
+String _plural(int n, String one, String many) => '$n ${n == 1 ? one : many}';
+
+/// Rótulo do aviso de entrega no `Chip/Input`: "1 semana", "2 dias",
+/// "1 dia", "3 horas" ou "90 min".
+String reminderLabel(int minutes) {
+  if (minutes % 10080 == 0) {
+    return _plural(minutes ~/ 10080, 'semana', 'semanas');
+  }
+  if (minutes % 1440 == 0) return _plural(minutes ~/ 1440, 'dia', 'dias');
+  if (minutes % 60 == 0) return _plural(minutes ~/ 60, 'hora', 'horas');
+  return '$minutes min';
+}
+
+/// Valor do campo Prazo: "Hoje, 07/11/2026" ou "Sex, 14/11/2026".
+String dueDateFieldText(LocalDate day, LocalDate today) {
+  final word = day == today ? 'Hoje' : _weekdayShort[day.weekday - 1];
+  return '$word, ${_ddmm(day)}/${day.year}';
+}
+
+/// "HH:mm".
+String hhmm(DateTime t) => _hhmm(t);
+
+/// Resumo no topo do detalhe da tarefa e se ele é um alerta (atrasada, em
+/// Error): "Prazo hoje, 18:00", "Atrasada · venceu ontem, 23:59",
+/// "Concluída em qua, 05/11" ou "Sem prazo".
+({String text, bool overdue}) taskSummaryText({
+  required bool completed,
+  required DateTime? completedAt,
+  required DateTime? dueAt,
+  required DateTime now,
+}) {
+  final today = LocalDate.fromDateTime(now);
+  if (completed) {
+    final day = LocalDate.fromDateTime(completedAt ?? now);
+    return (
+      text: 'Concluída em ${weekdayShortLower(day)}, ${_ddmm(day)}',
+      overdue: false,
+    );
+  }
+  if (dueAt == null) return (text: 'Sem prazo', overdue: false);
+  final when =
+      '${relativeDayText(LocalDate.fromDateTime(dueAt), today)}, ${_hhmm(dueAt)}';
+  if (dueAt.isBefore(now)) {
+    return (text: 'Atrasada · venceu $when', overdue: true);
+  }
+  return (text: 'Prazo $when', overdue: false);
+}

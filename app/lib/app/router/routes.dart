@@ -26,8 +26,7 @@ abstract final class AppRoutes {
   static bool isSubjectDetail(String path) =>
       path.startsWith('$tasks/subject/');
 
-  /// Telas ainda sem design (decisão do usuário, 05/11/2026): abrem
-  /// "Em construção" por cima das abas.
+  /// Nova tarefa e detalhe da tarefa, por cima das abas.
   static const newTask = '/new-task';
   static const taskDetail = '/task/:id';
   static String taskDetailOf(String id) => '/task/$id';

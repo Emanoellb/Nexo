@@ -127,7 +127,7 @@ final prototypeSampleDataProvider = FutureProvider<void>((ref) async {
       priority: TaskPriority.high,
       subjectId: calculo.id,
       dueAt: at(today.addDays(1), 18),
-      reminderMinutesBefore: TaskReminder.oneDay,
+      remindersMinutesBefore: TaskReminder.suggested,
       deliveryStatus: DeliveryStatus.inProgress,
     ),
   );
@@ -138,7 +138,7 @@ final prototypeSampleDataProvider = FutureProvider<void>((ref) async {
       priority: TaskPriority.medium,
       subjectId: bancoDeDados.id,
       dueAt: at(today.addDays(6), 23, 59),
-      reminderMinutesBefore: TaskReminder.oneDay,
+      remindersMinutesBefore: TaskReminder.suggested,
       deliveryStatus: DeliveryStatus.notStarted,
     ),
   );

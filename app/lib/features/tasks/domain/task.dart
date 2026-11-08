@@ -31,15 +31,19 @@ class NexoTask {
     this.completedAt,
     this.subjectId,
     this.dueAt,
-    this.reminderMinutesBefore,
+    List<int> remindersMinutesBefore = const [],
     this.deliveryStatus,
-  }) : title = checkText(title, 'title', 1, 200) {
+  }) : title = checkText(title, 'title', 1, 200),
+       remindersMinutesBefore = List.unmodifiable(remindersMinutesBefore) {
     checkTextOrNull(subjectId, 'subjectId', 1, 128);
     if (!TaskReminder.isValid(
-      minutesBefore: reminderMinutesBefore,
+      minutesBefore: this.remindersMinutesBefore,
       dueAt: dueAt,
     )) {
-      throw ArgumentError('Aviso de entrega só com prazo e até 30 dias antes.');
+      throw ArgumentError(
+        'Avisos de entrega: só com prazo, até 3, sem repetidos e até 30 dias '
+        'antes.',
+      );
     }
     if (!isDeliveryStatusCoherent(
       completed: completed,
@@ -60,7 +64,9 @@ class NexoTask {
 
   /// `null` = "Sem prazo".
   final DateTime? dueAt;
-  final int? reminderMinutesBefore;
+
+  /// Avisos antes do prazo, em minutos (v0.9). Vazia = sem aviso.
+  final List<int> remindersMinutesBefore;
   final DeliveryStatus? deliveryStatus;
 
   bool isOverdue(DateTime now) =>
@@ -70,22 +76,34 @@ class NexoTask {
   bool canPostpone({required DateTime now}) =>
       canPostponeTask(completed: completed, dueAt: dueAt, now: now);
 
-  /// Cópia com outro prazo ou outra disciplina. Os parâmetros são funções
-  /// para poder limpar (`() => null`).
+  /// Cópia com campos trocados. Os anuláveis vêm como funções para poder
+  /// limpar (`() => null`). Tirar o prazo esvazia os avisos no mesmo gravar
+  /// (as regras negam aviso sem prazo).
   NexoTask copyWith({
+    String? title,
+    TaskPriority? priority,
     DateTime? Function()? dueAt,
     String? Function()? subjectId,
-  }) => NexoTask(
-    id: id,
-    title: title,
-    priority: priority,
-    completed: completed,
-    completedAt: completedAt,
-    subjectId: subjectId == null ? this.subjectId : subjectId(),
-    dueAt: dueAt == null ? this.dueAt : dueAt(),
-    reminderMinutesBefore: reminderMinutesBefore,
-    deliveryStatus: deliveryStatus,
-  );
+    List<int>? remindersMinutesBefore,
+    DeliveryStatus? Function()? deliveryStatus,
+  }) {
+    final due = dueAt == null ? this.dueAt : dueAt();
+    return NexoTask(
+      id: id,
+      title: title ?? this.title,
+      priority: priority ?? this.priority,
+      completed: completed,
+      completedAt: completedAt,
+      subjectId: subjectId == null ? this.subjectId : subjectId(),
+      dueAt: due,
+      remindersMinutesBefore: due == null
+          ? const []
+          : remindersMinutesBefore ?? this.remindersMinutesBefore,
+      deliveryStatus: deliveryStatus == null
+          ? this.deliveryStatus
+          : deliveryStatus(),
+    );
+  }
 
   /// Concluir ou reabrir, já com a situação da entrega coerente (mesmo
   /// gravar). O `completedAt` real é o carimbo do servidor; aqui, [now].
@@ -99,7 +117,7 @@ class NexoTask {
       completedAt: value ? now : null,
       subjectId: subjectId,
       dueAt: dueAt,
-      reminderMinutesBefore: reminderMinutesBefore,
+      remindersMinutesBefore: remindersMinutesBefore,
       deliveryStatus: value
           ? deliveryStatusOnComplete(deliveryStatus)
           : deliveryStatusOnReopen(deliveryStatus),
@@ -113,7 +131,7 @@ class NexoTask {
     'completedAt': completedAt,
     'subjectId': subjectId,
     'dueAt': dueAt,
-    'reminderMinutesBefore': reminderMinutesBefore,
+    'remindersMinutesBefore': remindersMinutesBefore,
     'deliveryStatus': deliveryStatus?.value,
   };
 }

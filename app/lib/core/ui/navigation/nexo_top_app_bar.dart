@@ -15,6 +15,7 @@ class NexoTopAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.title,
     this.onBack,
     this.backEnabled = true,
+    this.closeIcon = false,
     this.actions = const [],
   });
 
@@ -27,6 +28,10 @@ class NexoTopAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// `false` mostra o voltar desabilitado (ex.: enquanto a tela grava), sem
   /// tirar a barra e sem o layout pular.
   final bool backEnabled;
+
+  /// X ("Fechar") no lugar da seta: telas de criar em tela cheia (ex.:
+  /// Nova tarefa).
+  final bool closeIcon;
   final List<Widget> actions;
 
   @override
@@ -54,8 +59,8 @@ class NexoTopAppBar extends StatelessWidget implements PreferredSizeWidget {
                 children: [
                   if (onBack != null)
                     NexoIconButton(
-                      icon: LucideIcons.arrowLeft,
-                      tooltip: 'Voltar',
+                      icon: closeIcon ? LucideIcons.x : LucideIcons.arrowLeft,
+                      tooltip: closeIcon ? 'Fechar' : 'Voltar',
                       color: c.iconDefault,
                       onPressed: backEnabled ? onBack : null,
                     ),

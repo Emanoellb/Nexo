@@ -22,17 +22,22 @@ enum NexoDeadlineTone {
 /// `Nexo/Deadline` da lib: relógio de 16 + texto curto ("Hoje · 18:00",
 /// "Sex · 19:00", "Atrasada · ontem, 23:59"). O leitor de tela recebe
 /// [semanticsLabel] (ex.: "Prazo: hoje às 18:00").
+///
+/// Sem o relógio ([showIcon] falso) na lista enxuta do `Content/TaskItem`
+/// (design da Tarefa, 07/11/2026).
 class NexoDeadline extends StatelessWidget {
   const NexoDeadline({
     super.key,
     required this.text,
     required this.semanticsLabel,
     this.tone = NexoDeadlineTone.normal,
+    this.showIcon = true,
   });
 
   final String text;
   final String semanticsLabel;
   final NexoDeadlineTone tone;
+  final bool showIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -51,8 +56,10 @@ class NexoDeadline extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(LucideIcons.clock3, size: 16, color: iconColor),
-          SizedBox(width: context.spacing.xs),
+          if (showIcon) ...[
+            Icon(LucideIcons.clock3, size: 16, color: iconColor),
+            SizedBox(width: context.spacing.xs),
+          ],
           // Encolhe e quebra em telas estreitas ou com fonte ampliada.
           Flexible(
             child: Text(
@@ -67,10 +74,12 @@ class NexoDeadline extends StatelessWidget {
   }
 }
 
-/// `Content/TaskItem` da lib: Checkbox (conclui), título (BodyLarge),
-/// linha de meta (disciplina + prazo) e a bandeira de prioridade alta
-/// (`Nexo/Priority`, só a Alta aparece na lista). Sem container próprio:
-/// vive numa lista com divisores.
+/// `Content/TaskItem` da lib, na lista enxuta (design da Tarefa,
+/// 07/11/2026): Checkbox (conclui), título (BodyLarge) e a linha de meta
+/// só em texto (disciplina e prazo, com "Atrasada" por extenso). Sem ícone
+/// de disciplina, relógio, bandeira de prioridade ou ícone da situação:
+/// prioridade e situação ficam só no detalhe. Sem container próprio: vive
+/// numa lista com divisores.
 ///
 /// [onTap] abre a tarefa; [onLongPress] abre o menu de ações (as mesmas do
 /// deslizar). O Checkbox continua com o próprio toque.
@@ -82,7 +91,6 @@ class NexoTaskItem extends StatelessWidget {
     required this.onCompletedChanged,
     this.subject,
     this.deadline,
-    this.highPriority = false,
     this.onTap,
     this.onLongPress,
   });
@@ -91,10 +99,11 @@ class NexoTaskItem extends StatelessWidget {
   final bool completed;
   final ValueChanged<bool>? onCompletedChanged;
 
-  /// Nome da disciplina (ícone `book-open`).
+  /// Nome da disciplina, só em texto.
   final String? subject;
+
+  /// Prazo; a lista o mostra sem o relógio.
   final NexoDeadline? deadline;
-  final bool highPriority;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
@@ -151,39 +160,25 @@ class NexoTaskItem extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       if (subject != null)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              LucideIcons.bookOpen,
-                              size: 16,
-                              color: c.iconSecondary,
-                            ),
-                            SizedBox(width: spacing.xs),
-                            Flexible(
-                              child: Text(
-                                subject!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: small,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          subject!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: small,
                         ),
-                      ?deadline,
+                      if (deadline case final d?)
+                        NexoDeadline(
+                          text: d.text,
+                          semanticsLabel: d.semanticsLabel,
+                          tone: d.tone,
+                          showIcon: false,
+                        ),
                     ],
                   ),
                 ],
               ],
             ),
           ),
-          if (highPriority) ...[
-            SizedBox(width: spacing.xs),
-            Semantics(
-              label: 'Prioridade alta',
-              child: Icon(LucideIcons.flag, size: 20, color: c.iconWarning),
-            ),
-          ],
         ],
       ),
     );

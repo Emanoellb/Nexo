@@ -48,7 +48,7 @@ class FakeTasksRepository implements TasksRepository {
       priority: draft.priority,
       subjectId: draft.subjectId,
       dueAt: draft.dueAt,
-      reminderMinutesBefore: draft.reminderMinutesBefore,
+      remindersMinutesBefore: draft.remindersMinutesBefore,
       deliveryStatus: draft.deliveryStatus,
     ).withCompleted(draft.completed, now: clock());
     _tasks.put(task);

@@ -77,18 +77,37 @@ int taskPointsDelta({required bool wasCompleted, required bool isCompleted}) {
   return isCompleted ? 1 : -1;
 }
 
-/// Aviso de entrega próxima (`reminderMinutesBefore`): opções da tela.
+/// Avisos de entrega próxima (`remindersMinutesBefore`, v0.9): até 3 por
+/// tarefa, cada um de 1 a 43.200 minutos antes do prazo, sem repetidos e só
+/// com prazo. Lista vazia = sem aviso.
 abstract final class TaskReminder {
   static const oneHour = 60;
   static const oneDay = 1440;
   static const oneWeek = 10080;
 
+  /// Sugerido ao escolher um prazo ("1 dia antes").
+  static const suggested = [oneDay];
+
   /// Limite das regras: até 30 dias.
   static const maxMinutes = 43200;
 
-  /// Válido só com prazo e dentro de 1–43.200 minutos.
-  static bool isValid({required int? minutesBefore, required DateTime? dueAt}) {
-    if (minutesBefore == null) return true;
-    return dueAt != null && minutesBefore >= 1 && minutesBefore <= maxMinutes;
+  /// Até 3 avisos por tarefa.
+  static const maxCount = 3;
+
+  /// Um valor dentro de 1–43.200.
+  static bool isValidValue(int minutes) =>
+      minutes >= 1 && minutes <= maxMinutes;
+
+  /// Lista válida: vazia, ou com prazo, até [maxCount] itens válidos e
+  /// sem repetidos.
+  static bool isValid({
+    required List<int> minutesBefore,
+    required DateTime? dueAt,
+  }) {
+    if (minutesBefore.isEmpty) return true;
+    return dueAt != null &&
+        minutesBefore.length <= maxCount &&
+        minutesBefore.toSet().length == minutesBefore.length &&
+        minutesBefore.every(isValidValue);
   }
 }

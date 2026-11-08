@@ -5,35 +5,18 @@ import '../../core/domain/local_date.dart';
 import '../../features/progress/application/progress_actions.dart';
 import '../../features/plans/domain/plan.dart';
 import '../../features/plans/domain/plan_schedule.dart';
-import '../../features/tasks/application/tasks_providers.dart';
-import '../../features/tasks/domain/task.dart';
 
-/// Ações simuladas da prototipação (decisão do usuário, 04/11/2026): as
-/// telas de criar tarefa e plano ainda não existem, então "Nova tarefa" e
-/// "Novo plano" criam um exemplo fictício nos dados fake. Saem quando as
-/// telas reais entrarem.
+/// Ações simuladas da prototipação (decisão do usuário, 04/11/2026): a
+/// tela de criar plano ainda não existe, então "Novo plano" cria um exemplo
+/// fictício nos dados fake. Sai quando a tela real entrar (a de tarefa
+/// entrou em 07/11/2026).
 class PrototypeActions {
   PrototypeActions(this._ref);
 
   final Ref _ref;
-  var _tasks = 0;
   var _plans = 0;
 
   DateTime get _now => _ref.read(clockProvider)();
-
-  Future<NexoTask> createSampleTask() {
-    final now = _now;
-    _tasks++;
-    return _ref
-        .read(tasksRepositoryProvider)
-        .createTask(
-          NexoTask(
-            id: '',
-            title: 'Tarefa de exemplo $_tasks',
-            dueAt: DateTime(now.year, now.month, now.day, 18),
-          ),
-        );
-  }
 
   /// Pelo [ProgressActions]: o primeiro plano vira o principal;
   /// [makePrimary] força (cartão do plano encerrado, "Criar plano").

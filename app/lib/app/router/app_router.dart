@@ -17,6 +17,7 @@ import '../../features/tutorial/presentation/tutorial_page.dart';
 import '../../features/splash/application/splash_providers.dart';
 import '../../features/splash/presentation/splash_page.dart';
 import '../../features/subjects/presentation/subject_detail_page.dart';
+import '../../features/tasks/presentation/task_form_page.dart';
 import '../../features/tasks/presentation/tasks_page.dart';
 import '../shell/nexo_shell.dart';
 import '../shell/under_construction_page.dart';
@@ -148,16 +149,28 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
         ],
       ),
+      // Nova tarefa (pelo "+" e pelos vazios) e detalhe da tarefa (pelo
+      // toque na tarefa), em tela cheia por cima das abas.
+      GoRoute(
+        path: AppRoutes.newTask,
+        pageBuilder: (context, state) =>
+            _fadePage(context, state, const TaskFormPage.create()),
+      ),
+      GoRoute(
+        path: AppRoutes.taskDetail,
+        pageBuilder: (context, state) => _fadePage(
+          context,
+          state,
+          TaskFormPage.detail(taskId: state.pathParameters['id']!),
+        ),
+      ),
       // Telas por cima das abas ainda sem design.
       for (final (path, title, block) in const [
         (AppRoutes.profile, 'Perfil', 'bloco 11 · Perfil'),
-        (AppRoutes.newTask, 'Nova tarefa', 'bloco 7 · Tarefas'),
-        (AppRoutes.taskDetail, 'Detalhe da tarefa', 'bloco 7 · Tarefas'),
       ])
         GoRoute(
           path: path,
-          // Por cima das abas, com voltar (Perfil pelo avatar do topo; nova
-          // tarefa pelo "+"; detalhe pelo toque na tarefa).
+          // Por cima das abas, com voltar (Perfil pelo avatar do topo).
           pageBuilder: (context, state) => _fadePage(
             context,
             state,

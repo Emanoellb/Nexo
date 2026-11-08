@@ -165,7 +165,7 @@ class FirstStepsCard extends StatelessWidget {
       // estado 04).
       (
         title: 'Faça uma sessão de foco',
-        description: 'O tempo estudado entra no plano',
+        description: 'O tempo de foco entra no plano',
         done: steps.session,
         onTap: null,
       ),
