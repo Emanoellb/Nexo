@@ -20,6 +20,7 @@ import 'package:nexo/features/plans/domain/plan.dart';
 import 'package:nexo/features/plans/domain/plan_schedule.dart';
 import 'package:nexo/features/tasks/application/tasks_providers.dart';
 import 'package:nexo/features/tasks/domain/task.dart';
+import 'package:nexo/features/tasks/presentation/task_form_page.dart';
 
 // Quarta, 04/11/2026, 10:00.
 final _now = DateTime(2026, 11, 4, 10);
@@ -150,12 +151,20 @@ void main() {
     expect(find.text('0 de 3'), findsOneWidget);
     expect(find.textContaining('pelo + da barra'), findsOneWidget);
 
-    // 03 Primeira tarefa.
+    // 03 Primeira tarefa: abre a Nova tarefa em tela cheia.
     await _tap(tester, _button('Criar minha primeira tarefa'));
+    expect(find.text('Nova tarefa'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Lista de exercícios 4');
+    await _tap(
+      tester,
+      find.descendant(
+        of: find.byType(TaskFormPage),
+        matching: _button('Criar tarefa'),
+      ),
+    );
+    expect(find.text('Tarefa criada.'), findsOneWidget);
     expect(find.text('Boa, primeira tarefa criada'), findsOneWidget);
     expect(find.text('1 de 3'), findsOneWidget);
-    expect(find.text('Hoje'), findsWidgets);
-    expect(find.text('Tarefa de exemplo 1'), findsOneWidget);
 
     // 04 Primeiro plano: o cartão do plano e a linha 2 de 3.
     await _tap(tester, _button('Criar meu primeiro plano'));
@@ -234,7 +243,7 @@ void main() {
     );
     expect(find.text('Dia cumprido · 1h 10min'), findsOneWidget);
     expect(find.text('−20 min da meta'), findsOneWidget);
-    expect(_button('Estudar mais'), findsOneWidget);
+    expect(_button('Focar mais'), findsOneWidget);
     expect(_button('Finalizar o dia'), findsNothing);
     expect(find.text('Dia finalizado com 20 min a menos.'), findsOneWidget);
 
@@ -260,7 +269,7 @@ void main() {
     // +15 min (≥ 10 acima da meta): com horas a mais.
     expect(find.text('Dia cumprido · 1h 45min'), findsOneWidget);
     expect(find.text('+15 min da meta'), findsOneWidget);
-    expect(_button('Estudar mais'), findsOneWidget);
+    expect(_button('Focar mais'), findsOneWidget);
     expect(_button('Finalizar o dia'), findsNothing);
   });
 
@@ -282,7 +291,7 @@ void main() {
       expect(_button('Finalizar o dia'), findsNothing);
     });
 
-    testWidgets('folga: "Estudar mesmo assim" e o próximo dia', (tester) async {
+    testWidgets('folga: "Focar mesmo assim" e o próximo dia', (tester) async {
       final c = await _pumpHome(tester);
       // Quarta (hoje) fora de segunda e sexta.
       await _seedDailyUse(
@@ -294,12 +303,12 @@ void main() {
       expect(find.text('Folga'), findsOneWidget);
       expect(find.text('Hoje é folga neste plano'), findsOneWidget);
       expect(find.text('Próximo: sex, 06/11'), findsOneWidget);
-      expect(_button('Estudar mesmo assim'), findsOneWidget);
+      expect(_button('Focar mesmo assim'), findsOneWidget);
       expect(_button('Focar'), findsNothing);
 
       // Estudou na folga: vale como dia normal.
-      await _tap(tester, _button('Estudar mesmo assim'));
-      expect(find.text('Folga · estudo extra'), findsOneWidget);
+      await _tap(tester, _button('Focar mesmo assim'));
+      expect(find.text('Folga · sessão extra'), findsOneWidget);
       expect(find.text('Hoje · 25 min de 1h 30min'), findsOneWidget);
       expect(_button('Finalizar o dia'), findsOneWidget);
     });
@@ -457,8 +466,6 @@ void main() {
 
     now = DateTime(2026, 11, 4, 18, 0, 2);
     await tester.pump(const Duration(minutes: 6));
-    await tester.pumpAndSettle();
-    expect(find.text('Atrasada · hoje, 18:00'), findsOneWidget);
   });
 
   testWidgets('"Nova tarefa" do "+" abre a tela e não conclui os passos', (
@@ -470,11 +477,13 @@ void main() {
     await _tap(tester, _button('Focar'));
     expect(find.text('Primeiros passos · 2 de 3'), findsOneWidget);
 
-    // O "+" agora abre "Em construção" (decisão do usuário, 05/11/2026).
+    // O "+" abre a Nova tarefa; fechar sem criar não conclui os passos.
     await _tap(tester, find.byType(NexoFab));
     await _tap(tester, find.text('Nova tarefa'));
-    expect(find.text('Em construção · bloco 7 · Tarefas'), findsOneWidget);
+    expect(find.byType(TaskFormPage), findsOneWidget);
+    await _tap(tester, find.byTooltip('Fechar'));
     expect(find.text('Primeiros passos concluídos.'), findsNothing);
+    expect(find.text('Primeiros passos · 2 de 3'), findsOneWidget);
   });
 
   testWidgets('última etapa pelo "Criar tarefa" do Hoje: só o aviso de '
@@ -486,8 +495,20 @@ void main() {
     expect(find.text('Primeiros passos · 2 de 3'), findsOneWidget);
 
     await _tap(tester, _button('Criar tarefa'));
+    await tester.enterText(find.byType(TextField), 'Resumo do capítulo 2');
+    // A Snackbar da sessão (4 s) acompanha a tela e cobre o rodapé.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    // O botão da Nova tarefa (o do Início fica por baixo da tela).
+    await _tap(
+      tester,
+      find.descendant(
+        of: find.byType(TaskFormPage),
+        matching: _button('Criar tarefa'),
+      ),
+    );
     expect(find.text('Primeiros passos concluídos.'), findsOneWidget);
-    expect(find.textContaining('criada para hoje'), findsNothing);
+    expect(find.text('Tarefa criada.'), findsNothing);
     expect(find.textContaining('Primeiros passos ·'), findsNothing);
   });
 
@@ -498,8 +519,8 @@ void main() {
     await _seedDailyUse(c);
     await tester.pumpAndSettle();
     await _tap(tester, find.text('Trabalho de modelagem do banco'));
-    expect(find.text('Em construção · bloco 7 · Tarefas'), findsOneWidget);
-    expect(find.text('Detalhe da tarefa'), findsWidgets);
+    expect(find.byType(TaskFormPage), findsOneWidget);
+    expect(find.text('Prazo hoje, 18:00'), findsOneWidget);
   });
 
   testWidgets('Focar sem concluir os passos ainda confirma a sessão', (

@@ -139,10 +139,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Nova tarefa'));
     await tester.pumpAndSettle();
-    // Ainda sem design: "Em construção" por cima das abas, com voltar
-    // (decisão do usuário, 05/11/2026).
-    expect(find.text('Em construção · bloco 7 · Tarefas'), findsOneWidget);
-    await tester.tap(find.byTooltip('Voltar'));
+    // Nova tarefa em tela cheia, por cima das abas, com o X.
+    expect(find.text('Criar tarefa'), findsOneWidget);
+    await tester.tap(find.byTooltip('Fechar'));
     await tester.pumpAndSettle();
     expect(find.byType(HomePage), findsOneWidget);
   });

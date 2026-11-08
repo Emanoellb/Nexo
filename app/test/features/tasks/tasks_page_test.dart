@@ -140,7 +140,8 @@ void main() {
     expect(find.byTooltip('Visualização'), findsNothing);
 
     await _tap(tester, find.text('Criar uma tarefa'));
-    expect(find.text('Em construção · bloco 7 · Tarefas'), findsOneWidget);
+    expect(find.text('Nova tarefa'), findsOneWidget);
+    expect(find.byTooltip('Fechar'), findsOneWidget);
   });
 
   testWidgets('por prazo: seções na ordem, Concluídas recolhida', (
@@ -324,8 +325,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tap(tester, find.text('Ler capítulo 4'));
-    expect(find.text('Em construção · bloco 7 · Tarefas'), findsOneWidget);
-    expect(find.text('Detalhe da tarefa'), findsWidgets);
+    expect(find.text('Tarefa'), findsOneWidget);
+    expect(find.text('Sem prazo'), findsWidgets);
   });
 
   testWidgets('excluída some também do Início enquanto o aviso dura', (

@@ -14,8 +14,26 @@ void main() {
 
     test('aviso de entrega só com prazo', () {
       expect(
-        () => NexoTask(id: 't', title: 'Lista 3', reminderMinutesBefore: 60),
+        () => NexoTask(
+          id: 't',
+          title: 'Lista 3',
+          remindersMinutesBefore: const [60],
+        ),
         throwsArgumentError,
+      );
+    });
+
+    test('tirar o prazo esvazia os avisos no mesmo gravar', () {
+      final task = NexoTask(
+        id: 't',
+        title: 'Lista 3',
+        dueAt: _now,
+        remindersMinutesBefore: TaskReminder.suggested,
+      );
+      expect(task.copyWith(dueAt: () => null).remindersMinutesBefore, isEmpty);
+      expect(
+        task.copyWith(dueAt: () => _now).remindersMinutesBefore,
+        TaskReminder.suggested,
       );
     });
 
@@ -37,12 +55,13 @@ void main() {
         title: 'Lista 3',
         priority: TaskPriority.high,
         dueAt: _now,
-        reminderMinutesBefore: TaskReminder.oneHour,
+        remindersMinutesBefore: const [TaskReminder.oneHour, 1440],
         deliveryStatus: DeliveryStatus.notStarted,
       ).toMap();
       expect(map['priority'], 'high');
       expect(map['deliveryStatus'], 'notStarted');
-      expect(map['reminderMinutesBefore'], 60);
+      expect(map['remindersMinutesBefore'], [60, 1440]);
+      expect(map.containsKey('reminderMinutesBefore'), isFalse);
       expect(map['completed'], isFalse);
     });
   });

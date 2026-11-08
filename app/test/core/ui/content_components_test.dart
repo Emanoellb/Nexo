@@ -30,7 +30,6 @@ void main() {
                     completed: false,
                     onCompletedChanged: (_) {},
                     subject: 'Cálculo II',
-                    highPriority: true,
                     deadline: const NexoDeadline(
                       text: 'Atrasada · ontem, 23:59',
                       semanticsLabel: 'Atrasada. Prazo: ontem às 23:59',
@@ -50,7 +49,11 @@ void main() {
             dark: dark,
           ),
         );
-        expect(find.bySemanticsLabel('Prioridade alta'), findsOneWidget);
+        // Lista enxuta: sem bandeira, relógio nem ícone de disciplina.
+        expect(find.bySemanticsLabel('Prioridade alta'), findsNothing);
+        expect(find.byIcon(LucideIcons.flag), findsNothing);
+        expect(find.byIcon(LucideIcons.clock3), findsNothing);
+        expect(find.byIcon(LucideIcons.bookOpen), findsNothing);
         expect(
           find.bySemanticsLabel('Atrasada. Prazo: ontem às 23:59'),
           findsOneWidget,
@@ -146,7 +149,7 @@ void main() {
                       context,
                       icon: LucideIcons.circleCheck,
                       title: 'Finalizar o dia agora?',
-                      message: 'Você estudou 1h 10min de 1h 30min.',
+                      message: 'Você fez 1h 10min de 1h 30min.',
                       cancelLabel: 'Agora não',
                       confirmLabel: 'Finalizar o dia',
                     ),

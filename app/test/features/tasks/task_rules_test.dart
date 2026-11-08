@@ -110,15 +110,18 @@ void main() {
     expect(taskPointsDelta(wasCompleted: true, isCompleted: true), 0);
   });
 
-  test('aviso de entrega: só com prazo e entre 1 min e 30 dias', () {
+  test('avisos de entrega (v0.9): até 3, sem repetidos, só com prazo', () {
     final due = DateTime(2026, 11, 1);
-    expect(
-      TaskReminder.isValid(minutesBefore: TaskReminder.oneDay, dueAt: due),
-      isTrue,
-    );
-    expect(TaskReminder.isValid(minutesBefore: 60, dueAt: null), isFalse);
-    expect(TaskReminder.isValid(minutesBefore: 0, dueAt: due), isFalse);
-    expect(TaskReminder.isValid(minutesBefore: 43201, dueAt: due), isFalse);
-    expect(TaskReminder.isValid(minutesBefore: null, dueAt: null), isTrue);
+    bool valid(List<int> m, {DateTime? at}) =>
+        TaskReminder.isValid(minutesBefore: m, dueAt: at);
+    expect(valid(TaskReminder.suggested, at: due), isTrue);
+    expect(valid([60, 1440, 10080], at: due), isTrue);
+    expect(valid([60, 1440, 10080, 2880], at: due), isFalse);
+    expect(valid([60, 60], at: due), isFalse);
+    expect(valid([60]), isFalse);
+    expect(valid([0], at: due), isFalse);
+    expect(valid([43201], at: due), isFalse);
+    expect(valid([43200], at: due), isTrue);
+    expect(valid(const []), isTrue);
   });
 }
