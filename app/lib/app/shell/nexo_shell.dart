@@ -9,7 +9,6 @@ import '../../features/auth/application/auth_providers.dart';
 import '../../features/notifications/application/notifications_providers.dart';
 import '../../features/notifications/domain/nexo_notification.dart';
 import '../../features/notifications/presentation/notifications_panel.dart';
-import '../prototype/prototype_actions.dart';
 import '../router/routes.dart';
 
 /// "Reduzir transparência": troca o vidro da barra pela versão sólida.
@@ -120,15 +119,8 @@ class _NexoShellState extends ConsumerState<NexoShell> {
   }
 
   void _openCreateMenu() {
-    final actions = ref.read(prototypeActionsProvider);
-    // "Nova tarefa" abre "Em construção" (decisão do usuário, 05/11/2026);
-    // "Novo plano" ainda cria um exemplo nos dados fake (04/11/2026).
-    // Na fila: se criar concluir os "Primeiros passos", o aviso do Início
-    // (mostrado na mesma hora) não é apagado por este.
-    void created(String message) {
-      if (mounted) showNexoSnackbar(context, message: message, queue: true);
-    }
-
+    // Criar fica no "+" da barra (decisão travada): Nova tarefa e Novo
+    // plano abrem em tela cheia.
     showNexoFabMenu(
       context,
       fabRect: _rectOf(_fabKey),
@@ -141,10 +133,7 @@ class _NexoShellState extends ConsumerState<NexoShell> {
         NexoFabMenuOption(
           icon: LucideIcons.target,
           label: 'Novo plano',
-          onSelected: () async {
-            final plan = await actions.createSamplePlan();
-            created('"${plan.name}" criado.');
-          },
+          onSelected: () => context.push(AppRoutes.newPlan),
         ),
       ],
     );
@@ -206,10 +195,16 @@ class _NexoShellState extends ConsumerState<NexoShell> {
                 child: NotificationListener<ScrollUpdateNotification>(
                   onNotification: (n) =>
                       _onScroll(n.metrics, n.depth, n.context),
-                  child: MediaQuery.removePadding(
-                    context: context,
-                    removeTop: widget.showTabHeader,
-                    child: _shell,
+                  // O contexto de dentro do Scaffold: é nele que o padding de
+                  // baixo já inclui a altura da barra (extendBody). Com o de
+                  // fora, as listas ficavam com 0 embaixo e o fim delas ia
+                  // para trás da barra (ex.: cartão "Plano" no detalhe).
+                  child: Builder(
+                    builder: (bodyContext) => MediaQuery.removePadding(
+                      context: bodyContext,
+                      removeTop: widget.showTabHeader,
+                      child: _shell,
+                    ),
                   ),
                 ),
               ),

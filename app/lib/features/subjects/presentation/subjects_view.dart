@@ -60,7 +60,7 @@ class SubjectsView extends ConsumerWidget {
                       progress: subjectProgressOf(subject.id, tasks, now),
                       now: now,
                     ),
-                  _AddSubjectRow(onTap: add),
+                  NexoAddRow(label: 'Adicionar disciplina', onTap: add),
                 ],
         ),
       ],
@@ -82,92 +82,20 @@ class _SubjectRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.nexoColors;
-    final spacing = context.spacing;
     final next = progress.next;
-    final nextText = next == null
-        ? null
-        : nextDeliveryText(next.title, next.dueAt!, now);
+    final total = progress.total;
     final count =
-        '${progress.done} de ${progress.total} '
-        '${progress.total == 1 ? 'entrega' : 'entregas'}';
-    void open() => context.push(AppRoutes.subjectDetailOf(subject.id));
-
-    return Semantics(
-      button: true,
-      label: [subject.name, count, ?nextText].join(', '),
-      onTap: open,
-      excludeSemantics: true,
-      child: NexoTappable(
-        onTap: open,
-        borderRadius: BorderRadius.zero,
-        child: Padding(
-          // Design: LG em volta, MD até o chevron.
-          padding: EdgeInsets.all(spacing.lg),
-          child: Row(
-            children: [
-              Expanded(
-                child: NexoAcademicProgress(
-                  title: subject.name,
-                  done: progress.done,
-                  total: progress.total,
-                  nextDelivery: nextText,
-                  nextOverdue: progress.nextOverdue,
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              Icon(LucideIcons.chevronRight, size: 20, color: c.iconSecondary),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Última linha do cartão: "+ Adicionar disciplina" em Primary 600, 56 de
-/// altura.
-class _AddSubjectRow extends StatelessWidget {
-  const _AddSubjectRow({required this.onTap});
-
-  static const double height = 56;
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.nexoColors;
-    final spacing = context.spacing;
-    return Semantics(
-      button: true,
-      label: 'Adicionar disciplina',
-      onTap: onTap,
-      excludeSemantics: true,
-      child: NexoTappable(
-        onTap: onTap,
-        borderRadius: BorderRadius.zero,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: height),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: spacing.lg),
-            child: Row(
-              children: [
-                // Design: ícone e rótulo em Primary, MD entre eles.
-                Icon(LucideIcons.plus, size: 20, color: c.primary),
-                SizedBox(width: spacing.md),
-                Flexible(
-                  child: Text(
-                    'Adicionar disciplina',
-                    style: context
-                        .textStyle(NexoTextStyles.labelMediumEmphasis)
-                        .copyWith(color: c.primary),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+        '${progress.done} de $total ${total == 1 ? 'entrega' : 'entregas'}';
+    return NexoProgressRow(
+      title: subject.name,
+      value: count,
+      progress: total == 0 ? 0 : progress.done / total,
+      progressSemantics: count,
+      line: next == null
+          ? null
+          : nextDeliveryText(next.title, next.dueAt!, now),
+      lineIsError: progress.nextOverdue,
+      onTap: () => context.push(AppRoutes.subjectDetailOf(subject.id)),
     );
   }
 }

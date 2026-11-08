@@ -21,30 +21,48 @@ enum PlanStatus {
       PlanStatus.values.firstWhere((s) => s.value == value);
 }
 
-/// Lembrete diário do plano (notificação local), ex.: 19:00.
+/// "Avisar antes do horário" + "Antecedência" (`reminderBefore`, v0.9):
+/// notificação local antes do Horário do plano. Na hora · 15 min · 30 min ·
+/// 1 h antes. Padrão: ligado, 15 min.
 @immutable
-class PlanReminder {
-  PlanReminder({required this.enabled, required String time})
-    : time = checkTime(time, 'reminder.time');
+class PlanReminderBefore {
+  PlanReminderBefore({required this.enabled, required this.minutesBefore}) {
+    if (!options.contains(minutesBefore)) {
+      throw ArgumentError.value(
+        minutesBefore,
+        'reminderBefore.minutesBefore',
+        'use 0, 15, 30 ou 60',
+      );
+    }
+  }
+
+  /// Valores aceitos pelas regras.
+  static const options = [0, 15, 30, 60];
+
+  static final standard = PlanReminderBefore(enabled: true, minutesBefore: 15);
 
   final bool enabled;
+  final int minutesBefore;
 
-  /// `HH:mm`.
-  final String time;
+  Map<String, Object?> toMap() => {
+    'enabled': enabled,
+    'minutesBefore': minutesBefore,
+  };
 
-  Map<String, Object?> toMap() => {'enabled': enabled, 'time': time};
-
-  factory PlanReminder.fromMap(Map<String, Object?> map) => PlanReminder(
-    enabled: map['enabled']! as bool,
-    time: map['time']! as String,
-  );
+  factory PlanReminderBefore.fromMap(Map<String, Object?> map) =>
+      PlanReminderBefore(
+        enabled: map['enabled']! as bool,
+        minutesBefore: map['minutesBefore']! as int,
+      );
 
   @override
   bool operator ==(Object other) =>
-      other is PlanReminder && other.enabled == enabled && other.time == time;
+      other is PlanReminderBefore &&
+      other.enabled == enabled &&
+      other.minutesBefore == minutesBefore;
 
   @override
-  int get hashCode => Object.hash(enabled, time);
+  int get hashCode => Object.hash(enabled, minutesBefore);
 }
 
 /// `users/{uid}/plans/{planId}` (contrato de `firestore-rules.md` §4).
@@ -65,8 +83,11 @@ class Plan {
     List<PlanPause> pauses = const [],
     this.endedOn,
     this.goalId,
-    this.reminder,
+    String studyTime = defaultStudyTime,
+    PlanReminderBefore? reminderBefore,
   }) : name = checkText(name, 'name', 1, 80),
+       studyTime = checkTime(studyTime, 'studyTime'),
+       reminderBefore = reminderBefore ?? PlanReminderBefore.standard,
        dailyGoalMinutes = checkIntBetween(
          dailyGoalMinutes,
          'dailyGoalMinutes',
@@ -96,6 +117,9 @@ class Plan {
   /// Limite das regras: fim até 731 dias depois do início.
   static const maxPeriodDays = 731;
 
+  /// Horário do plano sem o campo gravado (v0.9).
+  static const defaultStudyTime = '19:00';
+
   final String id;
   final String name;
   final LocalDate startDate;
@@ -106,31 +130,51 @@ class Plan {
   final List<PlanPause> pauses;
   final LocalDate? endedOn;
   final String? goalId;
-  final PlanReminder? reminder;
 
+  /// Horário do plano, `HH:mm` (padrão 19:00).
+  final String studyTime;
+  final PlanReminderBefore reminderBefore;
+
+  /// Encerrado em [today]: concluído, encerrado antes (com `endedOn`) ou
+  /// com o fim do período já passado. Regra única para a lista, o detalhe,
+  /// o menu e o Início. Arquivado conta só se tiver encerrado antes.
+  bool isFinished(LocalDate today) =>
+      status == PlanStatus.completed ||
+      status == PlanStatus.endedEarly ||
+      endedOn != null ||
+      endDate.isBefore(today);
+
+  /// Último dia do plano: `endedOn` (encerrado antes) ou o fim previsto.
+  LocalDate get lastDay => endedOn ?? endDate;
+
+  /// Cópia com campos trocados. `goalId` e `endedOn` vêm como funções para
+  /// poder limpar (`() => null`).
   Plan copyWith({
     String? name,
+    LocalDate? startDate,
     LocalDate? endDate,
     PlanFrequency? frequency,
     int? dailyGoalMinutes,
     PlanStatus? status,
     List<PlanPause>? pauses,
-    LocalDate? endedOn,
-    String? goalId,
-    PlanReminder? reminder,
+    LocalDate? Function()? endedOn,
+    String? Function()? goalId,
+    String? studyTime,
+    PlanReminderBefore? reminderBefore,
   }) {
     return Plan(
       id: id,
       name: name ?? this.name,
-      startDate: startDate,
+      startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       frequency: frequency ?? this.frequency,
       dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
       status: status ?? this.status,
       pauses: pauses ?? this.pauses,
-      endedOn: endedOn ?? this.endedOn,
-      goalId: goalId ?? this.goalId,
-      reminder: reminder ?? this.reminder,
+      endedOn: endedOn == null ? this.endedOn : endedOn(),
+      goalId: goalId == null ? this.goalId : goalId(),
+      studyTime: studyTime ?? this.studyTime,
+      reminderBefore: reminderBefore ?? this.reminderBefore,
     );
   }
 
@@ -147,7 +191,8 @@ class Plan {
     ],
     'endedOn': endedOn?.toIso(),
     'goalId': goalId,
-    'reminder': reminder?.toMap(),
+    'studyTime': studyTime,
+    'reminderBefore': reminderBefore.toMap(),
   };
 
   factory Plan.fromMap(String id, Map<String, Object?> map) {
@@ -172,10 +217,12 @@ class Plan {
       ],
       endedOn: date(map['endedOn']),
       goalId: map['goalId'] as String?,
-      reminder: map['reminder'] == null
+      // Sem os campos (planos antigos), os padrões da v0.9.
+      studyTime: map['studyTime'] as String? ?? defaultStudyTime,
+      reminderBefore: map['reminderBefore'] == null
           ? null
-          : PlanReminder.fromMap(
-              (map['reminder']! as Map).cast<String, Object?>(),
+          : PlanReminderBefore.fromMap(
+              (map['reminderBefore']! as Map).cast<String, Object?>(),
             ),
     );
   }

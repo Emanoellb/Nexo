@@ -11,6 +11,12 @@ import 'nexo_text_field.dart';
 ///
 /// A tela mostra sempre DD/MM/AAAA; quem grava converte para `AAAA-MM-DD`
 /// ([LocalDate.toIso]).
+///
+/// Quando usar: datas que a pessoa sabe de cor e digita (data de
+/// nascimento no Cadastro). Para datas escolhidas no calendário (prazo da
+/// tarefa, início e fim do plano, prazo do objetivo), o padrão do design é
+/// o campo só de escolha, "Sex, 14/11/2026": [NexoSelectField] com o ícone
+/// de calendário e, se a data for opcional, [pickOptionalDate].
 class NexoDateField extends StatelessWidget {
   const NexoDateField({
     super.key,

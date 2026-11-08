@@ -64,9 +64,13 @@ void deleteSubjectWithUndo(
 );
 
 class SubjectForm extends ConsumerStatefulWidget {
-  const SubjectForm({super.key, this.editing});
+  const SubjectForm({super.key, this.editing, this.onCreated});
 
   final Subject? editing;
+
+  /// Dentro de outro painel (ex.: "Nova disciplina" no tópico do plano):
+  /// recebe a disciplina criada em vez de fechar o painel.
+  final ValueChanged<Subject>? onCreated;
 
   @override
   ConsumerState<SubjectForm> createState() => _SubjectFormState();
@@ -119,7 +123,12 @@ class _SubjectFormState extends ConsumerState<SubjectForm> {
     final editing = widget.editing;
     try {
       if (editing == null) {
-        await actions.create(name: _name.text, icon: _icon);
+        final created = await actions.create(name: _name.text, icon: _icon);
+        final onCreated = widget.onCreated;
+        if (onCreated != null) {
+          if (mounted) onCreated(created);
+          return;
+        }
       } else {
         await actions.update(editing, name: _name.text, icon: _icon);
       }

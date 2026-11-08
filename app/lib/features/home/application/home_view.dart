@@ -4,57 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/local_flags.dart';
 import '../../../core/domain/local_date.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../plans/application/plan_today.dart';
 import '../../plans/application/plans_providers.dart';
 import '../../plans/domain/plan.dart';
-import '../../plans/domain/plan_day_result.dart';
-import '../../plans/domain/plan_schedule.dart';
 import '../../subjects/application/subject_actions.dart';
 import '../../tasks/application/screen_now.dart';
 import '../../tasks/application/task_actions.dart';
 import '../../tasks/domain/task.dart';
 
-/// O plano principal hoje (cartão `Nexo/PlanCard`).
-@immutable
-class HomePlanToday {
-  const HomePlanToday({
-    required this.plan,
-    required this.today,
-    required this.dayNumber,
-    required this.totalDays,
-    required this.streak,
-    this.nextStudyDay,
-    this.otherActivePlans = false,
-  });
-
-  final Plan plan;
-  final PlanDayResult today;
-
-  /// "Dia X de N"; `dayNumber` fora de 1..N quando hoje está fora do
-  /// período.
-  final int dayNumber;
-  final int totalDays;
-  final int streak;
-
-  /// Próximo dia de estudo ("Próximo: seg, 10/11" na folga).
-  final LocalDate? nextStudyDay;
-
-  /// Há outro plano ativo para escolher como principal (plano principal
-  /// arquivado ou encerrado).
-  final bool otherActivePlans;
-
-  /// Pausado agora: a pausa em aberto (sem fim).
-  PlanPause? get openPause =>
-      plan.pauses.where((p) => p.end == null).lastOrNull;
-
-  bool get isPaused => plan.status == PlanStatus.paused || openPause != null;
-
-  /// Arquivado ou encerrado (antes do fim ou no fim): o Início pede para
-  /// escolher outro principal ou criar um. Nada é promovido sozinho.
-  bool get isClosed =>
-      plan.status == PlanStatus.archived ||
-      plan.status == PlanStatus.completed ||
-      plan.status == PlanStatus.endedEarly;
-}
+/// O plano principal hoje (cartão `Nexo/PlanCard`). O mesmo cartão da
+/// Visão geral do plano.
+typedef HomePlanToday = PlanToday;
 
 /// "Primeiros passos" (estados 02–05): criar tarefa, criar plano, focar.
 @immutable
@@ -161,21 +121,6 @@ class FirstStepsDone extends Notifier<bool> {
   );
 }
 
-/// Sequência do plano, à parte do Início: só refaz quando o plano, as
-/// versões, os dias ou o "agora" mudam (não a cada toque numa tarefa).
-/// `null` enquanto carrega.
-final planStreakProvider = Provider.family<int?, String>((ref, planId) {
-  final plan = ref.watch(planProvider(planId)).value;
-  final versions = ref.watch(planVersionsProvider(planId));
-  final days = ref.watch(planDaysProvider(planId));
-  if (plan == null || !versions.hasValue || !days.hasValue) return null;
-  final today = LocalDate.fromDateTime(ref.watch(screenNowProvider));
-  return currentStreak(
-    PlanSnapshot(plan: plan, versions: versions.value!, days: days.value!),
-    today: today,
-  );
-});
-
 final homeViewProvider = Provider<HomeView?>((ref) {
   final profile = ref.watch(userProfileProvider);
   final plans = ref.watch(plansProvider);
@@ -199,26 +144,14 @@ final homeViewProvider = Provider<HomeView?>((ref) {
   HomePlanToday? planToday;
   var hasSession = false;
   if (primary != null) {
-    final versions = ref.watch(planVersionsProvider(primary.id));
-    final days = ref.watch(planDaysProvider(primary.id));
+    final snapshot = ref.watch(planSnapshotProvider(primary.id));
     final streak = ref.watch(planStreakProvider(primary.id));
-    if (!versions.hasValue || !days.hasValue || streak == null) return null;
-    final snapshot = PlanSnapshot(
-      plan: primary,
-      versions: versions.value!,
-      days: days.value!,
-    );
-    hasSession = days.value!.any((d) => d.doneMinutes > 0);
-    final result = planDayResult(snapshot, today, today: today);
-    planToday = HomePlanToday(
-      plan: primary,
-      today: result,
-      dayNumber: primary.startDate.daysUntil(today) + 1,
-      totalDays: primary.startDate.daysUntil(primary.endDate) + 1,
+    if (snapshot == null || streak == null) return null;
+    hasSession = snapshot.days.values.any((d) => d.doneMinutes > 0);
+    planToday = planTodayOf(
+      snapshot,
+      today: today,
       streak: streak,
-      nextStudyDay: result.restDay
-          ? nextStudyDay(snapshot, today: today)
-          : null,
       otherActivePlans: planList.any(
         (p) => p.id != primary.id && p.status == PlanStatus.active,
       ),

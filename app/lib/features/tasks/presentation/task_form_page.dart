@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/domain/local_date.dart';
@@ -152,7 +151,10 @@ class TaskFormPage extends ConsumerStatefulWidget {
 }
 
 class _TaskFormPageState extends ConsumerState<TaskFormPage>
-    with TaskListActions<TaskFormPage>, ScreenNowRefresh<TaskFormPage> {
+    with
+        LeaveOnce<TaskFormPage>,
+        TaskListActions<TaskFormPage>,
+        ScreenNowRefresh<TaskFormPage> {
   final _title = TextEditingController();
   final _titleFocus = FocusNode();
   final _moreKey = GlobalKey();
@@ -165,7 +167,6 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage>
   bool _loaded = false;
   bool _titleError = false;
   bool _saving = false;
-  bool _leaving = false;
 
   bool get _isNew => widget.taskId == null;
   bool get _dirty => _values != _saved;
@@ -196,26 +197,15 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage>
 
   void _set(_FormValues values) => setState(() => _values = values);
 
-  void _leave() {
-    if (_leaving) return;
-    _leaving = true;
-    context.pop();
-  }
-
   Future<void> _confirmLeave() async {
-    final discard = await showNexoDialog(
+    final discard = await showNexoDiscardDialog(
       context,
-      title: 'Descartar alterações?',
       message: 'As mudanças nesta tarefa não serão salvas.',
-      confirmLabel: 'Descartar',
-      cancelLabel: 'Continuar editando',
-      icon: LucideIcons.circleAlert,
-      destructive: true,
     );
-    if (discard && mounted) _leave();
+    if (discard && mounted) leave();
   }
 
-  void _back() => _dirty ? _confirmLeave() : _leave();
+  void _back() => _dirty ? _confirmLeave() : leave();
 
   // ---------- Campos ----------
 
@@ -259,48 +249,34 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage>
   }
 
   Future<void> _pickDay(Rect anchor) async {
-    if (_values.day != null) {
-      final chosen = await showNexoMenu(
-        context,
-        anchor: anchor,
-        label: 'Prazo',
-        alignEnd: false,
-        items: const [
-          NexoMenuItem(label: 'Escolher data', icon: LucideIcons.calendar),
-          NexoMenuItem(label: 'Sem prazo', icon: LucideIcons.calendarX),
-        ],
-      );
-      if (chosen == null || !mounted) return;
-      if (chosen == 1) {
-        // Sem prazo, sem avisos (as regras negam aviso sem prazo).
-        _set(
-          _values.copyWith(
-            day: () => null,
-            time: () => null,
-            reminders: const [],
-          ),
-        );
-        return;
-      }
-    }
     final now = ref.read(screenNowProvider);
-    final current = _values.day?.startOfDay;
-    final first = DateTime(now.year - 1);
-    final last = DateTime(now.year + 5, 12, 31);
-    var initial = current ?? DateTime(now.year, now.month, now.day);
-    if (initial.isBefore(first)) initial = first;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: current != null && current.isBefore(first) ? current : first,
-      lastDate: last,
-      helpText: 'Prazo',
+    final pick = await pickOptionalDate(
+      context,
+      anchor: anchor,
+      label: 'Prazo',
+      clearLabel: 'Sem prazo',
+      current: _values.day,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 5, 12, 31),
+      fallbackInitial: DateTime(now.year, now.month, now.day),
     );
-    if (picked == null || !mounted) return;
+    if (pick == null || !mounted) return;
+    final day = pick.date;
+    if (day == null) {
+      // Sem prazo, sem avisos (as regras negam aviso sem prazo).
+      _set(
+        _values.copyWith(
+          day: () => null,
+          time: () => null,
+          reminders: const [],
+        ),
+      );
+      return;
+    }
     final hadDay = _values.day != null;
     _set(
       _values.copyWith(
-        day: () => LocalDate.fromDateTime(picked),
+        day: () => day,
         // Ao escolher um prazo, o aviso já vem em "1 dia antes".
         reminders: hadDay ? null : TaskReminder.suggested,
       ),
@@ -436,7 +412,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage>
     // Início troca a fila pelo aviso dele (estado 05), sem os dois.
     showNexoSnackbar(context, message: 'Tarefa criada.', queue: true);
     await repository.createTask(task);
-    if (mounted) _leave();
+    if (mounted) leave();
   }
 
   Future<void> _save(NexoTask task) async {
@@ -481,7 +457,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage>
     // Sem confirmação: a tela fecha e a Snackbar com "Desfazer" fica na
     // tela de baixo (igual à Tarefas 10).
     deleteTask(task);
-    _leave();
+    leave();
   }
 
   // ---------- Tela ----------
@@ -504,7 +480,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage>
       } else if (tasks.hasValue) {
         // Excluída (aqui ou em outro lugar): sai.
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _leave();
+          if (mounted) leave();
         });
       }
     }
@@ -743,7 +719,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage>
     }
 
     return PopScope(
-      canPop: !_dirty || _leaving,
+      canPop: !_dirty || leaving,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _confirmLeave();
       },

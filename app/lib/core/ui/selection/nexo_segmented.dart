@@ -119,7 +119,11 @@ class _Segment extends StatelessWidget {
                   padding: EdgeInsets.symmetric(horizontal: context.spacing.sm),
                   child: Text(
                     label,
-                    maxLines: 1,
+                    // Com fonte ampliada, o rótulo quebra em 2 linhas em vez
+                    // de virar "Tod…" (Frequência do plano, por exemplo).
+                    maxLines: MediaQuery.textScalerOf(context).scale(1) > 1.3
+                        ? 2
+                        : 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: style,

@@ -9,84 +9,11 @@ import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/ui.dart';
 import '../../progress/application/progress_actions.dart';
 import '../application/screen_now.dart';
+import '../../auth/presentation/deferred_deletion_snackbar.dart';
 import '../application/task_actions.dart';
 import '../domain/task.dart';
 import '../domain/task_groups.dart';
 import 'task_text.dart';
-
-/// Cabeçalho recolhível de uma seção (ListHeader com o chevron no lugar da
-/// ação; design de Tarefas, 04/11/2026): o cabeçalho inteiro é o alvo;
-/// chevron para cima aberto, para baixo recolhido.
-class TaskSectionHeader extends StatelessWidget {
-  const TaskSectionHeader({
-    super.key,
-    required this.title,
-    required this.count,
-    required this.expanded,
-    required this.onToggle,
-  });
-
-  final String title;
-  final int count;
-  final bool expanded;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.nexoColors;
-    final spacing = context.spacing;
-    final textTheme = Theme.of(context).textTheme;
-    return Semantics(
-      button: true,
-      header: true,
-      expanded: expanded,
-      label: '$title, $count',
-      onTap: onToggle,
-      excludeSemantics: true,
-      child: NexoTappable(
-        onTap: onToggle,
-        borderRadius: BorderRadius.circular(context.shape.md),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: context.sizes.target),
-          child: Padding(
-            // Como o ListHeader: LG no começo; o chevron encosta no fim
-            // (alinhado à borda do cartão, design de Tarefas 03).
-            padding: EdgeInsetsDirectional.only(start: spacing.lg),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Wrap(
-                    spacing: spacing.sm,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        title,
-                        style: textTheme.titleMedium!.copyWith(
-                          color: c.onSurface,
-                        ),
-                      ),
-                      Text(
-                        '$count',
-                        style: textTheme.labelSmall!.copyWith(
-                          color: c.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-                  size: 20,
-                  color: c.iconSecondary,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// Exclusão com "Desfazer" (sem confirmação; design de 04/11/2026): o item
 /// some na hora e só é apagado quando a Snackbar some sem o toque em
@@ -96,17 +23,7 @@ void deleteWithUndo(
   DeferredDeletion deletion,
   String id, {
   required String message,
-}) {
-  final receipt = deletion.begin(id);
-  showNexoSnackbar(
-    context,
-    message: message,
-    actionLabel: 'Desfazer',
-    onAction: () => deletion.undo(receipt),
-  ).closed.then((reason) {
-    if (reason != SnackBarClosedReason.action) deletion.finish(receipt);
-  });
-}
+}) => deletion.withUndo(context, id, message: message);
 
 /// Ações de uma lista de tarefas (aba Tarefas e detalhe da disciplina):
 /// concluir, adiar e excluir, sempre com Snackbar e "Desfazer" (4 s; com
@@ -270,7 +187,7 @@ mixin TaskListActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
           key: ValueKey(group.section),
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TaskSectionHeader(
+            NexoSectionHeader(
               title: group.section.label,
               count: group.tasks.length,
               expanded: !collapsed.contains(group.section),

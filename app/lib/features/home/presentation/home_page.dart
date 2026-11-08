@@ -3,15 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../app/prototype/prototype_actions.dart';
 import '../../../app/router/routes.dart';
 import '../../../core/data/connectivity.dart';
-import '../../../core/domain/local_date.dart';
 import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/ui.dart';
-import '../../plans/domain/plan.dart';
-import '../../plans/domain/plan_day_result.dart';
-import '../../progress/application/progress_actions.dart';
+import '../../plans/presentation/choose_primary_plan.dart';
+import '../../plans/presentation/plan_today_card.dart';
 import '../../tasks/application/screen_now.dart';
 import '../../tasks/presentation/task_list.dart';
 import '../application/home_view.dart';
@@ -46,31 +43,8 @@ class _HomePageState extends ConsumerState<HomePage>
     with
         NexoDelayedSkeleton<HomePage>,
         TaskListActions<HomePage>,
-        ScreenNowRefresh<HomePage> {
-  // Lidos antes dos awaits: depois deles a tela pode já ter saído (logout,
-  // troca de conta) e o `ref` não pode mais ser usado.
-  ProgressActions get _progress => ref.read(progressActionsProvider);
-  PrototypeActions get _prototype => ref.read(prototypeActionsProvider);
-
-  /// O dia que o cartão mostra (o mesmo "agora" da tela).
-  LocalDate get _today => LocalDate.fromDateTime(ref.read(screenNowProvider));
-
-  void _snack(
-    String message, {
-    NexoSnackbarTone tone = NexoSnackbarTone.none,
-    String? actionLabel,
-    VoidCallback? onAction,
-  }) {
-    if (!mounted) return;
-    showNexoSnackbar(
-      context,
-      message: message,
-      tone: tone,
-      actionLabel: actionLabel,
-      onAction: onAction,
-    );
-  }
-
+        ScreenNowRefresh<HomePage>,
+        PlanDayActions<HomePage> {
   // ---------- Ações ----------
 
   /// Nova tarefa em tela cheia (design da Tarefa, 07/11/2026). A tela
@@ -78,19 +52,14 @@ class _HomePageState extends ConsumerState<HomePage>
   /// o aviso do estado 05 toma o lugar.
   void _createTask() => context.push(AppRoutes.newTask);
 
-  Future<void> _createPlan({bool makePrimary = false}) async {
-    final plan = await _prototype.createSamplePlan(makePrimary: makePrimary);
-    _snack('"${plan.name}" criado.');
-  }
+  /// Criar plano em 3 passos (design de Planos 2b, 07/11/2026). O
+  /// primeiro plano vira o principal sozinho.
+  void _createPlan() => context.push(AppRoutes.newPlan);
 
-  Future<void> _resume(HomePlanToday plan) async {
-    await _progress.resumePlan(plan.plan.id);
-    _snack('Plano retomado.');
-  }
-
-  Future<void> _focus(HomePlanToday plan) async {
-    // Se esta sessão conclui os primeiros passos, quem avisa é a Snackbar
-    // "Primeiros passos concluídos." (estado 05), não esta.
+  /// Na Home, a sessão que conclui os primeiros passos não ganha a
+  /// Snackbar dela: quem avisa é "Primeiros passos concluídos." (estado 05).
+  @override
+  bool announceFocus(String planId) {
     final view = ref.read(homeViewProvider);
     final steps = view?.firstSteps;
     final completesFirstSteps =
@@ -99,40 +68,7 @@ class _HomePageState extends ConsumerState<HomePage>
         steps!.task &&
         steps.plan &&
         !steps.session;
-    await _progress.addFocusMinutes(plan.plan.id, HomePage.focusMinutes);
-    if (!completesFirstSteps) {
-      _snack('Sessão de ${HomePage.focusMinutes} min registrada.');
-    }
-  }
-
-  Future<void> _finalize(HomePlanToday plan) async {
-    final result = plan.today;
-    final progress = _progress;
-    final day = _today;
-    // RF15: só pede confirmação abaixo da meta.
-    final short = formatMinutes(-result.differenceMinutes);
-    final confirmed = await showNexoDialog(
-      context,
-      icon: LucideIcons.circleCheck,
-      iconColor: context.nexoColors.iconSuccess,
-      title: 'Finalizar o dia agora?',
-      message:
-          'Você fez ${formatMinutes(result.doneMinutes)} de '
-          '${formatMinutes(result.goalMinutes)}. O dia conta como cumprido, '
-          'com $short a menos no relatório, e a sequência continua. Ainda '
-          'dá para registrar horas até 7 dias depois.',
-      cancelLabel: 'Agora não',
-      confirmLabel: 'Finalizar o dia',
-    );
-    if (!confirmed || !mounted) return;
-    final planId = plan.plan.id;
-    await progress.finalizeDay(planId, day);
-    _snack(
-      'Dia finalizado com $short a menos.',
-      tone: NexoSnackbarTone.success,
-      actionLabel: 'Desfazer',
-      onAction: () => progress.undoFinalizeDay(planId, day),
-    );
+    return !completesFirstSteps;
   }
 
   void _goToBranch(int index) =>
@@ -227,7 +163,12 @@ class _HomePageState extends ConsumerState<HomePage>
     }
 
     return [
-      if (plan != null) _planCard(plan),
+      if (plan != null)
+        planTodayCard(
+          plan,
+          onChoosePrimary: () => showChoosePrimaryPlan(context, ref),
+          onCreatePlan: () => context.push(AppRoutes.newPlanPrimary),
+        ),
       if (plan != null && view.showFirstSteps)
         FirstStepsLine(
           steps: steps,
@@ -236,149 +177,6 @@ class _HomePageState extends ConsumerState<HomePage>
       _tasksBlock(view, todayBlock: true),
       if (!view.upcoming.isEmpty) _tasksBlock(view, todayBlock: false),
     ];
-  }
-
-  /// `Nexo/PlanCard` nos 8 estados do pacote B (aprovado em 05/11/2026,
-  /// pen.dev/notas/inicio-pacote-b-especificacao.md §2).
-  Widget _planCard(HomePlanToday plan) {
-    final result = plan.today;
-    final done = formatMinutes(result.doneMinutes);
-    final goal = formatMinutes(result.goalMinutes);
-    final status = result.status;
-    final streak = streakText(plan.streak);
-    final focus = NexoButton.primary(
-      label: 'Focar',
-      leadingIcon: LucideIcons.play,
-      expand: true,
-      onPressed: () => _focus(plan),
-    );
-
-    // Arquivado ou encerrado: escolher outro principal ou criar um (nada é
-    // promovido sozinho). O fim do período conta como encerrado.
-    final ended = plan.isClosed || plan.dayNumber > plan.totalDays;
-    if (ended) {
-      final archived = plan.plan.status == PlanStatus.archived;
-      return NexoPlanCard(
-        dayLabel: archived ? 'Arquivado' : 'Encerrado',
-        title: plan.plan.name,
-        progressLabel: archived
-            ? 'Seu plano principal foi arquivado'
-            : 'Seu plano principal foi encerrado',
-        progress: null,
-        primaryAction: plan.otherActivePlans
-            ? NexoButton.primary(
-                label: 'Escolher plano principal',
-                leadingIcon: LucideIcons.target,
-                expand: true,
-                // Lista de planos sem design: vai à aba Planos (decisão do
-                // usuário, 05/11/2026).
-                onPressed: () => _goToBranch(2),
-              )
-            : NexoButton.primary(
-                label: 'Criar plano',
-                leadingIcon: LucideIcons.plus,
-                expand: true,
-                onPressed: () => _createPlan(makePrimary: true),
-              ),
-      );
-    }
-
-    if (plan.isPaused) {
-      final since = plan.openPause?.start;
-      return NexoPlanCard(
-        dayLabel: 'Pausado',
-        title: plan.plan.name,
-        progressLabel: since == null
-            ? 'Plano pausado'
-            : 'Pausado desde ${since.day}/${since.month}',
-        progressDetail: 'Dias pausados não contam',
-        progress: null,
-        streakLabel: '$streak · sequência mantida',
-        primaryAction: NexoButton.secondary(
-          label: 'Retomar plano',
-          leadingIcon: LucideIcons.play,
-          expand: true,
-          onPressed: () => _resume(plan),
-        ),
-      );
-    }
-
-    final String dayLabel;
-    if (plan.dayNumber < 1) {
-      dayLabel = 'Começa em ${plan.plan.startDate.toDisplay()}';
-    } else if (result.restDay) {
-      dayLabel = result.doneMinutes > 0 ? 'Folga · sessão extra' : 'Folga';
-    } else {
-      dayLabel = 'Dia ${plan.dayNumber} de ${plan.totalDays}';
-    }
-
-    // Cumprido (meta batida, com ou sem finalizar; ou finalizado abaixo).
-    if (status.isFulfilled) {
-      final diff = result.differenceMinutes;
-      return NexoPlanCard(
-        dayLabel: dayLabel,
-        title: plan.plan.name,
-        progressLabel: 'Dia cumprido · $done',
-        progressDetail: switch (status) {
-          PlanDayStatus.metOver => '+${formatMinutes(diff)} da meta',
-          PlanDayStatus.metShort => '−${formatMinutes(diff)} da meta',
-          _ => 'Na meta',
-        },
-        progress: result.goalMinutes == 0
-            ? 1
-            : result.doneMinutes / result.goalMinutes,
-        completed: true,
-        progressSemantics: '$done de $goal',
-        streakLabel: streak,
-        primaryAction: NexoButton.secondary(
-          label: 'Focar mais',
-          leadingIcon: LucideIcons.play,
-          expand: true,
-          onPressed: () => _focus(plan),
-        ),
-      );
-    }
-
-    // Folga sem estudo: "Estudar mesmo assim" (Tertiary), sem Focar como
-    // ação principal. Também antes do início do plano.
-    if (status == PlanDayStatus.off) {
-      final next = plan.nextStudyDay;
-      return NexoPlanCard(
-        dayLabel: dayLabel,
-        title: plan.plan.name,
-        progressLabel: plan.dayNumber < 1
-            ? 'O plano ainda não começou'
-            : 'Hoje é folga neste plano',
-        progressDetail: next == null ? null : 'Próximo: ${shortDayText(next)}',
-        progress: null,
-        streakLabel: streak,
-        primaryAction: NexoButton.tertiary(
-          label: 'Focar mesmo assim',
-          leadingIcon: LucideIcons.play,
-          expand: true,
-          onPressed: () => _focus(plan),
-        ),
-      );
-    }
-
-    // Normal (ou folga com estudo). "Finalizar o dia" só com estudo e
-    // abaixo da meta: oculto com 0 min.
-    final missing = (result.goalMinutes - result.doneMinutes).clamp(0, 1440);
-    final canFinalize = result.doneMinutes > 0;
-    return NexoPlanCard(
-      dayLabel: dayLabel,
-      title: plan.plan.name,
-      progressLabel: 'Hoje · $done de $goal',
-      progressDetail: 'Faltam ${formatMinutes(missing)}',
-      progress: result.goalMinutes == 0
-          ? 0
-          : result.doneMinutes / result.goalMinutes,
-      progressSemantics: '$done de $goal',
-      streakLabel: streak,
-      primaryAction: focus,
-      tertiaryLabel: canFinalize ? 'Finalizar o dia' : null,
-      onTertiary: canFinalize ? () => _finalize(plan) : null,
-    );
   }
 
   Widget _tasksBlock(HomeView view, {required bool todayBlock}) {

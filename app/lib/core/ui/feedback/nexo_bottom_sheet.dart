@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../theme/nexo_theme.dart';
+import '../buttons/nexo_icon_button.dart';
 
 /// `Feedback/BottomSheet` da lib: painel modal sobre o Scrim, altura pelo
 /// conteúdo (até 90% da tela), cantos `Shape/XL` em cima, Elevation/3, alça
@@ -15,6 +17,18 @@ import '../../theme/nexo_theme.dart';
 Future<T?> showNexoBottomSheet<T>(
   BuildContext context, {
   required String title,
+  required WidgetBuilder builder,
+}) => showNexoBottomSheetWith<T>(
+  context,
+  builder: (sheetContext) =>
+      NexoBottomSheet(title: title, child: builder(sheetContext)),
+);
+
+/// Como [showNexoBottomSheet], mas [builder] monta o próprio
+/// [NexoBottomSheet]: para o painel que troca de conteúdo e de título sem
+/// empilhar outro (ex.: "Novo tópico" → "Nova disciplina", com voltar).
+Future<T?> showNexoBottomSheetWith<T>(
+  BuildContext context, {
   required WidgetBuilder builder,
 }) {
   final c = context.nexoColors;
@@ -41,13 +55,17 @@ Future<T?> showNexoBottomSheet<T>(
       reverseDuration: reduce ? Duration.zero : motion.short,
       curve: motion.enter,
     ),
-    builder: (sheetContext) =>
-        NexoBottomSheet(title: title, child: builder(sheetContext)),
+    builder: builder,
   );
 }
 
 class NexoBottomSheet extends StatelessWidget {
-  const NexoBottomSheet({super.key, required this.title, required this.child});
+  const NexoBottomSheet({
+    super.key,
+    required this.title,
+    required this.child,
+    this.onBack,
+  });
 
   /// Alça (lib: 32 × 4, numa faixa de 24).
   static const Size handle = Size(32, 4);
@@ -55,6 +73,10 @@ class NexoBottomSheet extends StatelessWidget {
 
   final String title;
   final Widget child;
+
+  /// Seta de voltar antes do título: volta ao conteúdo anterior do mesmo
+  /// painel (não fecha).
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -111,13 +133,30 @@ class NexoBottomSheet extends StatelessWidget {
                           spacing.lg,
                           spacing.sm,
                         ),
-                        child: Semantics(
-                          header: true,
-                          child: Text(
-                            title,
-                            style: Theme.of(context).textTheme.titleMedium!
-                                .copyWith(color: c.onSurface),
-                          ),
+                        child: Row(
+                          children: [
+                            if (onBack != null) ...[
+                              NexoIconButton(
+                                icon: LucideIcons.arrowLeft,
+                                tooltip: 'Voltar',
+                                color: c.iconDefault,
+                                onPressed: onBack,
+                              ),
+                              SizedBox(width: spacing.xs),
+                            ],
+                            Expanded(
+                              child: Semantics(
+                                header: true,
+                                child: Text(
+                                  title,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium!
+                                      .copyWith(color: c.onSurface),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

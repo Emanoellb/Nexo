@@ -35,6 +35,8 @@ class NexoTextField extends StatefulWidget {
     this.onChanged,
     this.onSubmitted,
     this.onEditingComplete,
+    this.minLines,
+    this.maxLines = 1,
   });
 
   final String label;
@@ -66,6 +68,11 @@ class NexoTextField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final VoidCallback? onEditingComplete;
+
+  /// Várias linhas (`Input/TextArea` da lib): ex. `minLines: 3`,
+  /// `maxLines: 5`. Padrão: uma linha.
+  final int? minLines;
+  final int? maxLines;
 
   @override
   State<NexoTextField> createState() => _NexoTextFieldState();
@@ -173,6 +180,8 @@ class _NexoTextFieldState extends State<NexoTextField> {
             onChanged: widget.onChanged,
             onSubmitted: widget.onSubmitted,
             onEditingComplete: widget.onEditingComplete,
+            minLines: widget.minLines,
+            maxLines: widget.obscurable ? 1 : widget.maxLines,
             style: valueStyle.copyWith(color: valueColor),
             cursorColor: c.primary,
             decoration: InputDecoration(

@@ -149,3 +149,22 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showNexoSnackbar(
     ),
   );
 }
+
+/// Snackbar com "Desfazer" para uma ação adiada (ex.: excluir): [onUndo] no
+/// toque em "Desfazer"; [onCommit] quando ela some de outro jeito (tempo,
+/// outra Snackbar, fechar).
+void showUndoSnackbar(
+  BuildContext context, {
+  required String message,
+  required VoidCallback onUndo,
+  required VoidCallback onCommit,
+}) {
+  showNexoSnackbar(
+    context,
+    message: message,
+    actionLabel: 'Desfazer',
+    onAction: onUndo,
+  ).closed.then((reason) {
+    if (reason != SnackBarClosedReason.action) onCommit();
+  });
+}

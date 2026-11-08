@@ -17,6 +17,11 @@ import '../../features/tutorial/presentation/tutorial_page.dart';
 import '../../features/splash/application/splash_providers.dart';
 import '../../features/splash/presentation/splash_page.dart';
 import '../../features/subjects/presentation/subject_detail_page.dart';
+import '../../features/goals/presentation/goal_detail_page.dart';
+import '../../features/plans/presentation/create_plan_page.dart';
+import '../../features/plans/presentation/edit_plan_page.dart';
+import '../../features/plans/presentation/plan_detail_page.dart';
+import '../../features/plans/presentation/plans_page.dart';
 import '../../features/tasks/presentation/task_form_page.dart';
 import '../../features/tasks/presentation/tasks_page.dart';
 import '../shell/nexo_shell.dart';
@@ -104,8 +109,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           state,
           NexoShell(
             navigationShell: navigationShell,
-            // O detalhe da disciplina tem a própria barra de topo.
-            showTabHeader: !AppRoutes.isSubjectDetail(state.uri.path),
+            // Os detalhes dentro das abas têm a própria barra de topo.
+            showTabHeader: !AppRoutes.isTabDetail(state.uri.path),
           ),
         ),
         branches: [
@@ -133,8 +138,27 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.plans,
+                builder: (context, state) => const PlansPage(),
+                routes: [
+                  GoRoute(
+                    path: AppRoutes.planDetailSegment,
+                    builder: (context, state) =>
+                        PlanDetailPage(planId: state.pathParameters['id']!),
+                  ),
+                  GoRoute(
+                    path: AppRoutes.goalDetailSegment,
+                    builder: (context, state) =>
+                        GoalDetailPage(goalId: state.pathParameters['id']!),
+                  ),
+                ],
+              ),
+            ],
+          ),
           for (final (path, title, block) in const [
-            (AppRoutes.plans, 'Planos', 'bloco 3 · Planos'),
             // "Calendário" virou "Agenda" só no texto (04/11/2026).
             (AppRoutes.calendar, 'Agenda', 'bloco 9 · Calendário'),
           ])
@@ -164,9 +188,31 @@ final routerProvider = Provider<GoRouter>((ref) {
           TaskFormPage.detail(taskId: state.pathParameters['id']!),
         ),
       ),
-      // Telas por cima das abas ainda sem design.
+      // Criar plano (3 passos) e Editar plano, em tela cheia.
+      GoRoute(
+        path: AppRoutes.newPlan,
+        pageBuilder: (context, state) => _fadePage(
+          context,
+          state,
+          CreatePlanPage(
+            makePrimary: state.uri.queryParameters['primary'] == '1',
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.editPlan,
+        pageBuilder: (context, state) => _fadePage(
+          context,
+          state,
+          EditPlanPage(planId: state.pathParameters['id']!),
+        ),
+      ),
+      // Telas por cima das abas ainda sem design ou de áreas futuras.
       for (final (path, title, block) in const [
         (AppRoutes.profile, 'Perfil', 'bloco 11 · Perfil'),
+        // Destinos provisórios da aba Sessões: entram na feat/foco.
+        (AppRoutes.logHours, 'Registrar horas', 'Foco'),
+        (AppRoutes.editSession, 'Editar sessão', 'Foco'),
       ])
         GoRoute(
           path: path,

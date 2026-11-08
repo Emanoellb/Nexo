@@ -26,9 +26,9 @@ class FocusSession {
     required this.durationSeconds,
     required this.source,
     required this.day,
-    this.topicId,
+    List<String> topicIds = const [],
     this.note,
-  }) {
+  }) : topicIds = List.unmodifiable(topicIds) {
     if (!endAt.isAfter(startAt)) {
       throw ArgumentError('O fim da sessão precisa ser depois do início.');
     }
@@ -41,7 +41,13 @@ class FocusSession {
         'A duração líquida precisa ser maior que zero e caber entre início e fim.',
       );
     }
-    checkTextOrNull(topicId, 'topicId', 1, 128);
+    if (topicIds.length > maxTopics ||
+        topicIds.toSet().length != topicIds.length) {
+      throw ArgumentError('Até $maxTopics tópicos por sessão, sem repetir.');
+    }
+    for (final id in topicIds) {
+      checkText(id, 'topicIds', 1, 128);
+    }
     checkTextOrNull(note, 'note', 1, 500);
   }
 
@@ -55,8 +61,12 @@ class FocusSession {
   final SessionSource source;
   final LocalDate day;
 
-  /// Tópico do próprio plano; `null` = "sem tópico".
-  final String? topicId;
+  /// Limite das regras (v0.9): até 3 tópicos por sessão.
+  static const maxTopics = 3;
+
+  /// Tópicos do próprio plano (até 3, v0.9); vazia = "sem tópico". As
+  /// horas são divididas igualmente entre eles.
+  final List<String> topicIds;
   final String? note;
 
   /// Minutos inteiros que a sessão soma ao dia.
@@ -68,7 +78,7 @@ class FocusSession {
     'durationSeconds': durationSeconds,
     'source': source.value,
     'day': day.toIso(),
-    'topicId': topicId,
+    'topicIds': topicIds,
     'note': note,
   };
 }

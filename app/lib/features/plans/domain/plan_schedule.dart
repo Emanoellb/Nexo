@@ -110,12 +110,14 @@ class ScheduleVersion {
 }
 
 /// Versão vigente em [day]: a de `effectiveFrom` mais recente ≤ [day].
-/// `null` antes da primeira versão.
+/// `null` antes da primeira versão. No empate (duas edições valendo no
+/// mesmo dia, ex.: plano que ainda não começou), vale a criada por último:
+/// [versions] vem na ordem de criação.
 ScheduleVersion? versionFor(Iterable<ScheduleVersion> versions, LocalDate day) {
   ScheduleVersion? best;
   for (final version in versions) {
     if (version.effectiveFrom.isAfter(day)) continue;
-    if (best == null || version.effectiveFrom.isAfter(best.effectiveFrom)) {
+    if (best == null || !version.effectiveFrom.isBefore(best.effectiveFrom)) {
       best = version;
     }
   }

@@ -6,6 +6,7 @@ import '../../auth/application/auth_providers.dart';
 import '../../focus/domain/focus_session.dart';
 import '../../focus/domain/session_split.dart';
 import '../../plans/application/plans_providers.dart';
+import '../../plans/data/plans_repository.dart';
 import '../../plans/domain/plan.dart';
 import '../../plans/domain/plan_day_result.dart';
 import '../../plans/domain/plan_schedule.dart';
@@ -68,12 +69,12 @@ class ProgressActions {
   /// cartão do plano encerrado, sem outro ativo).
   Future<Plan> createPlan(
     Plan draft, {
-    List<String> topicNames = const [],
+    List<NewTopic> topics = const [],
     bool makePrimary = false,
   }) => _serial(() async {
     final plan = await _ref
         .read(plansRepositoryProvider)
-        .createPlan(draft, topicNames: topicNames);
+        .createPlan(draft, topics: topics);
     final uid = _uid;
     if (uid == null) return plan;
     // Lê do repositório (não do provider em cache): dois planos criados em
@@ -108,6 +109,123 @@ class ProgressActions {
       return true;
     });
   }
+
+  /// "Pausar plano" (RF05): vale a partir de hoje. Hoje sai da conta (e,
+  /// na cota semanal, pode mudar outros dias): pontos refeitos.
+  Future<void> pausePlan(String planId) {
+    final today = _today;
+    return _withWeekPoints(planId, {today}, () async {
+      final repository = _ref.read(plansRepositoryProvider);
+      final plan = await repository.watchPlan(planId).first;
+      if (plan == null || plan.status != PlanStatus.active) return false;
+      await repository.updatePlan(
+        plan.copyWith(
+          status: PlanStatus.paused,
+          pauses: [
+            ...plan.pauses,
+            PlanPause(start: today),
+          ],
+        ),
+      );
+      return true;
+    });
+  }
+
+  /// "Desfazer" do pausar: tira a pausa aberta hoje, como se não tivesse
+  /// pausado (retomar faria hoje virar dia pausado).
+  Future<void> undoPausePlan(String planId) {
+    final today = _today;
+    return _withWeekPoints(planId, {today}, () async {
+      final repository = _ref.read(plansRepositoryProvider);
+      final plan = await repository.watchPlan(planId).first;
+      if (plan == null || plan.status != PlanStatus.paused) return false;
+      await repository.updatePlan(
+        plan.copyWith(
+          status: PlanStatus.active,
+          pauses: [
+            for (final p in plan.pauses)
+              if (!(p.start == today && p.end == null)) p,
+          ],
+        ),
+      );
+      return true;
+    });
+  }
+
+  /// "Encerrar antes" (RF06): o plano termina hoje (`endedOn`) e o
+  /// relatório final fica pronto. Sem volta. Os dias até hoje não mudam.
+  Future<void> endPlanEarly(String planId) => _serial(() async {
+    final repository = _ref.read(plansRepositoryProvider);
+    final plan = await repository.watchPlan(planId).first;
+    if (plan == null) return;
+    final today = _today;
+    final endedOn = today.isAfter(plan.endDate)
+        ? plan.endDate
+        : today.isBefore(plan.startDate)
+        ? plan.startDate
+        : today;
+    await repository.updatePlan(
+      plan.copyWith(
+        status: PlanStatus.endedEarly,
+        endedOn: () => endedOn,
+        // Uma pausa em aberto termina junto, cobrindo o próprio dia do
+        // encerramento (o fim da pausa não entra nela).
+        pauses: [
+          for (final p in plan.pauses)
+            p.end == null
+                ? PlanPause(start: p.start, end: endedOn.addDays(1))
+                : p,
+        ],
+      ),
+    );
+  });
+
+  /// "Arquivar": sai das listas principais. O `endedOn` continua.
+  Future<void> archivePlan(String planId) => _serial(() async {
+    final repository = _ref.read(plansRepositoryProvider);
+    final plan = await repository.watchPlan(planId).first;
+    if (plan == null) return;
+    await repository.updatePlan(plan.copyWith(status: PlanStatus.archived));
+  });
+
+  /// "Desfazer" do arquivar: volta à situação de antes.
+  Future<void> unarchivePlan(String planId, PlanStatus previous) =>
+      _serial(() async {
+        final repository = _ref.read(plansRepositoryProvider);
+        final plan = await repository.watchPlan(planId).first;
+        if (plan == null || plan.status != PlanStatus.archived) return;
+        await repository.updatePlan(plan.copyWith(status: previous));
+      });
+
+  /// "Definir como principal" e "Escolher plano principal".
+  Future<void> setPrimaryPlan(String planId) => _serial(() async {
+    final uid = _uid;
+    if (uid == null) return;
+    await _ref.read(userProfileRepositoryProvider).setPrimaryPlan(uid, planId);
+  });
+
+  /// "Excluir plano" (confirmado antes; sem Desfazer): limpa o principal,
+  /// se for este, e apaga tudo. Os pontos já somados ao nível ficam.
+  Future<void> deletePlan(String planId) => _serial(() async {
+    final uid = _uid;
+    if (uid != null) {
+      final profiles = _ref.read(userProfileRepositoryProvider);
+      final profile = await profiles.watchProfile(uid).first;
+      if (profile?.primaryPlanId == planId) {
+        await profiles.setPrimaryPlan(uid, null);
+      }
+    }
+    await _ref.read(plansRepositoryProvider).deletePlan(planId);
+  });
+
+  /// Liga o plano a um objetivo (ou tira, com `null`). Um objetivo por
+  /// plano: ligar a outro muda o plano de objetivo.
+  Future<void> setPlanGoal(String planId, String? goalId) => _serial(() async {
+    final repository = _ref.read(plansRepositoryProvider);
+    final plan = await repository.watchPlan(planId).first;
+    if (plan == null) return;
+    await repository.updatePlan(plan.copyWith(goalId: () => goalId));
+  });
 
   /// Registra uma sessão de foco de [minutes] terminando agora (dividida à
   /// meia-noite, se for o caso).

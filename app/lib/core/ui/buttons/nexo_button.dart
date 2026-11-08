@@ -274,7 +274,10 @@ class NexoButtonShell extends StatelessWidget {
       ],
     );
 
+    // Nó próprio: sem isso, o botão se funde ao texto em volta (ex.: o
+    // cartão "Hoje" virava um nó só, com "Focar" no meio do rótulo).
     final button = Semantics(
+      container: true,
       button: true,
       enabled: interactive,
       label: loading ? '$label, carregando' : label,

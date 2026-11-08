@@ -26,10 +26,37 @@ abstract final class AppRoutes {
   static bool isSubjectDetail(String path) =>
       path.startsWith('$tasks/subject/');
 
+  /// Detalhe aberto dentro de uma aba (disciplina, plano, objetivo): a tela
+  /// tem a própria barra de topo.
+  static bool isTabDetail(String path) =>
+      isSubjectDetail(path) ||
+      path.startsWith('$plans/plan/') ||
+      path.startsWith('$plans/goal/');
+
   /// Nova tarefa e detalhe da tarefa, por cima das abas.
   static const newTask = '/new-task';
   static const taskDetail = '/task/:id';
   static String taskDetailOf(String id) => '/task/$id';
+
+  /// Detalhe do plano e do objetivo, dentro da aba Planos (a barra
+  /// continua).
+  static const planDetailSegment = 'plan/:id';
+  static String planDetailOf(String id) => '$plans/plan/$id';
+  static const goalDetailSegment = 'goal/:id';
+  static String goalDetailOf(String id) => '$plans/goal/$id';
+
+  /// Criar plano (3 passos) e Editar plano, em tela cheia por cima das
+  /// abas. [newPlanPrimary]: o criado vira o principal ("Criar plano" no
+  /// cartão do plano encerrado).
+  static const newPlan = '/new-plan';
+  static const newPlanPrimary = '/new-plan?primary=1';
+  static const editPlan = '/edit-plan/:id';
+  static String editPlanOf(String id) => '/edit-plan/$id';
+
+  /// Telas do Foco, que entram na branch dele: "Em construção" por
+  /// enquanto (destinos provisórios da aba Sessões do plano).
+  static const logHours = '/log-hours';
+  static const editSession = '/edit-session';
 
   /// Fora da barra desde 04/11/2026 (vai para o avatar no topo das abas).
   static const profile = '/profile';

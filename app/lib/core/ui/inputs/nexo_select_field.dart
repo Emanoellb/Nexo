@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../theme/nexo_theme.dart';
 import '../foundation/nexo_tappable.dart';
+import 'nexo_date_field.dart';
 
 /// `Input/Select` e `Input/Time` da lib (`d:l0ERmP`, `d:LfjqJ`): rótulo
 /// (LabelMedium), controle de 48 em SurfaceContainerLowest com borda
@@ -10,6 +11,10 @@ import '../foundation/nexo_tappable.dart';
 /// (BodyMedium) e o ícone do fim (chevron no Select, relógio no Time,
 /// calendário no prazo). Sem valor, mostra [placeholder] em
 /// OnSurfaceVariant.
+///
+/// Também é o `Input/Date` só de escolha (prazo, início e fim), com
+/// `trailingIcon: LucideIcons.calendar` e o valor como "Sex, 14/11/2026"
+/// (ver [NexoDateField] para a data digitada).
 ///
 /// O campo não abre nada sozinho: [onTap] recebe o retângulo do controle
 /// para a tela ancorar o `Menu/Select` ou abrir o seletor de data e hora.

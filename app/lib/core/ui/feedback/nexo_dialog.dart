@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../theme/nexo_theme.dart';
 import '../buttons/nexo_button.dart';
@@ -50,6 +51,22 @@ Future<bool> showNexoDialog(
   );
   return confirmed ?? false;
 }
+
+/// "Descartar alterações?" ao sair de um formulário com mudanças (Tarefa
+/// 12, Criar e Editar plano): "Continuar editando" (Tertiary) e "Descartar"
+/// (Destructive/High). `true` = descartar.
+Future<bool> showNexoDiscardDialog(
+  BuildContext context, {
+  required String message,
+}) => showNexoDialog(
+  context,
+  title: 'Descartar alterações?',
+  message: message,
+  confirmLabel: 'Descartar',
+  cancelLabel: 'Continuar editando',
+  icon: LucideIcons.circleAlert,
+  destructive: true,
+);
 
 class NexoDialog extends StatelessWidget {
   const NexoDialog({

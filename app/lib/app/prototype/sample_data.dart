@@ -72,9 +72,11 @@ final prototypeSampleDataProvider = FutureProvider<void>((ref) async {
       frequency: const DailyFrequency(),
       dailyGoalMinutes: 90,
       goalId: goal.id,
-      reminder: PlanReminder(enabled: true, time: '19:00'),
     ),
-    topicNames: ['Porcentagem', 'Juros simples'],
+    topics: [
+      (name: 'Porcentagem', subjectId: null),
+      (name: 'Juros simples', subjectId: null),
+    ],
   );
   // O primeiro plano é o principal (o do Início).
   await ref
@@ -89,7 +91,10 @@ final prototypeSampleDataProvider = FutureProvider<void>((ref) async {
       frequency: WeekdaysFrequency({1, 3, 5}),
       dailyGoalMinutes: 45,
     ),
-    topicNames: ['Listening', 'Vocabulário'],
+    topics: [
+      (name: 'Listening', subjectId: null),
+      (name: 'Vocabulário', subjectId: null),
+    ],
   );
 
   // Sessões dos últimos dias (dentro da janela de 7 dias) e dias finalizados.

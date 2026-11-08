@@ -75,7 +75,7 @@ class FakePlansRepository implements PlansRepository {
   @override
   Future<Plan> createPlan(
     Plan draft, {
-    List<String> topicNames = const [],
+    List<NewTopic> topics = const [],
   }) async {
     final plan = Plan(
       id: _ids.next(),
@@ -85,7 +85,8 @@ class FakePlansRepository implements PlansRepository {
       frequency: draft.frequency,
       dailyGoalMinutes: draft.dailyGoalMinutes,
       goalId: draft.goalId,
-      reminder: draft.reminder,
+      studyTime: draft.studyTime,
+      reminderBefore: draft.reminderBefore,
     );
     _plans.put(plan);
     _setVersions(plan.id, [
@@ -95,8 +96,8 @@ class FakePlansRepository implements PlansRepository {
         dailyGoalMinutes: plan.dailyGoalMinutes,
       ),
     ]);
-    for (final name in topicNames) {
-      await addTopic(plan.id, name);
+    for (final t in topics) {
+      await addTopic(plan.id, t.name, subjectId: t.subjectId);
     }
     return plan;
   }
@@ -137,12 +138,29 @@ class FakePlansRepository implements PlansRepository {
   }
 
   @override
-  Future<void> renameTopic(String planId, String topicId, String name) async {
-    final current = _topics.get('$planId/$topicId')!.topic;
-    _topics.put((
-      planId: planId,
-      topic: PlanTopic(id: topicId, name: name, subjectId: current.subjectId),
-    ));
+  Future<void> updateTopic(String planId, PlanTopic topic) async {
+    if (_topics.get('$planId/${topic.id}') == null) return;
+    _topics.put((planId: planId, topic: topic));
+  }
+
+  @override
+  Future<void> deletePlan(String planId) async {
+    final plan = _plans.get(planId);
+    if (plan == null) return;
+    // Sem volta: depois disso as regras negam update e filhos novos.
+    _plans.put(plan.copyWith(status: PlanStatus.deleting));
+    for (final s in _sessions.all.where((s) => s.planId == planId).toList()) {
+      _sessions.remove('$planId/${s.id}');
+    }
+    for (final d in _days.all.where((d) => d.planId == planId).toList()) {
+      _days.remove('$planId/${d.day.day.toIso()}');
+    }
+    for (final t in _topics.all.where((t) => t.planId == planId).toList()) {
+      _topics.remove('$planId/${t.topic.id}');
+    }
+    _versions.remove(planId);
+    _versionsChanged.put(planId);
+    _plans.remove(planId);
   }
 
   @override
@@ -156,7 +174,7 @@ class FakePlansRepository implements PlansRepository {
     String planId,
     List<DaySegment> segments, {
     required SessionSource source,
-    String? topicId,
+    List<String> topicIds = const [],
     String? note,
   }) async {
     _requirePlan(planId);
@@ -175,7 +193,7 @@ class FakePlansRepository implements PlansRepository {
           durationSeconds: segment.durationSeconds,
           source: source,
           day: segment.day,
-          topicId: topicId,
+          topicIds: topicIds,
           note: note,
         ),
     ];
@@ -241,7 +259,9 @@ class FakePlansRepository implements PlansRepository {
 
   Plan _requirePlan(String planId) {
     final plan = _plans.get(planId);
-    if (plan == null) throw StateError('Plano $planId não existe.');
+    if (plan == null || plan.status == PlanStatus.deleting) {
+      throw StateError('Plano $planId não existe.');
+    }
     return plan;
   }
 

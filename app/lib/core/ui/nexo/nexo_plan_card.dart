@@ -17,7 +17,7 @@ class NexoPlanCard extends StatelessWidget {
   const NexoPlanCard({
     super.key,
     required this.dayLabel,
-    required this.title,
+    this.title,
     required this.progressLabel,
     this.progressDetail,
     required this.progress,
@@ -31,7 +31,10 @@ class NexoPlanCard extends StatelessWidget {
 
   /// "Dia 23 de 300".
   final String dayLabel;
-  final String title;
+
+  /// Nome do plano, com "PLANO DE AÇÃO" acima. `null` esconde os dois: o
+  /// cartão "Hoje" da Visão geral, onde o nome já está no topo da tela.
+  final String? title;
 
   /// "Hoje · 1h 10min de 1h 30min" ou "Dia cumprido · 1h 35min".
   final String progressLabel;
@@ -77,24 +80,27 @@ class NexoPlanCard extends StatelessWidget {
             spacing: spacing.sm,
             runSpacing: spacing.xs,
             children: [
-              Text(
-                'PLANO DE AÇÃO',
-                style: context
-                    .textStyle(NexoTextStyles.labelSmallEmphasis)
-                    .copyWith(color: c.primary),
-              ),
+              if (title != null)
+                Text(
+                  'PLANO DE AÇÃO',
+                  style: context
+                      .textStyle(NexoTextStyles.labelSmallEmphasis)
+                      .copyWith(color: c.primary),
+                ),
               Text(dayLabel, style: small),
             ],
           ),
           SizedBox(height: spacing.md),
-          Semantics(
-            header: true,
-            child: Text(
-              title,
-              style: textTheme.titleLarge!.copyWith(color: c.onSurface),
+          if (title != null) ...[
+            Semantics(
+              header: true,
+              child: Text(
+                title!,
+                style: textTheme.titleLarge!.copyWith(color: c.onSurface),
+              ),
             ),
-          ),
-          SizedBox(height: spacing.md),
+            SizedBox(height: spacing.md),
+          ],
           Wrap(
             alignment: WrapAlignment.spaceBetween,
             crossAxisAlignment: WrapCrossAlignment.center,

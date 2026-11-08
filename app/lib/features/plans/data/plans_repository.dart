@@ -4,6 +4,9 @@ import '../../focus/domain/session_split.dart';
 import '../domain/plan.dart';
 import '../domain/plan_schedule.dart';
 
+/// Tópico a criar junto com o plano (passo 3 do Criar plano).
+typedef NewTopic = ({String name, String? subjectId});
+
 /// Planos e as subcoleções (`scheduleVersions`, `topics`, `sessions`,
 /// `days`). A versão Firestore implementa esta interface no bloco de
 /// integração, seguindo `firestore-rules.md` §4 e §7.
@@ -17,7 +20,7 @@ abstract interface class PlansRepository {
 
   /// Plano + versão inicial (`effectiveFrom` = início) + tópicos, no mesmo
   /// lote. Devolve o plano com o id criado.
-  Future<Plan> createPlan(Plan draft, {List<String> topicNames = const []});
+  Future<Plan> createPlan(Plan draft, {List<NewTopic> topics = const []});
 
   Future<void> updatePlan(Plan plan);
 
@@ -26,8 +29,15 @@ abstract interface class PlansRepository {
   Future<void> addScheduleVersion(String planId, ScheduleVersion version);
 
   Future<PlanTopic> addTopic(String planId, String name, {String? subjectId});
-  Future<void> renameTopic(String planId, String topicId, String name);
+
+  /// Nome e disciplina do tópico.
+  Future<void> updateTopic(String planId, PlanTopic topic);
   Future<void> deleteTopic(String planId, String topicId);
+
+  /// "Excluir plano" (sem volta): marca `status: "deleting"`, apaga
+  /// sessões, dias, tópicos e versões e, por último, o plano. Quem chama
+  /// limpa o `primaryPlanId` antes, se for o principal.
+  Future<void> deletePlan(String planId);
 
   /// Grava as partes de uma sessão (já divididas à meia-noite) e atualiza o
   /// `doneMinutes` de cada dia, no mesmo lote. Recusa dias fora da janela de
@@ -36,7 +46,7 @@ abstract interface class PlansRepository {
     String planId,
     List<DaySegment> segments, {
     required SessionSource source,
-    String? topicId,
+    List<String> topicIds = const [],
     String? note,
   });
 

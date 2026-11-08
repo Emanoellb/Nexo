@@ -20,6 +20,19 @@ class Goal {
   final String? description;
   final LocalDate? deadline;
 
+  /// Cópia com campos trocados. Os anuláveis vêm como funções para poder
+  /// limpar (`() => null`).
+  Goal copyWith({
+    String? name,
+    String? Function()? description,
+    LocalDate? Function()? deadline,
+  }) => Goal(
+    id: id,
+    name: name ?? this.name,
+    description: description == null ? this.description : description(),
+    deadline: deadline == null ? this.deadline : deadline(),
+  );
+
   Map<String, Object?> toMap() => {
     'name': name,
     'description': description,
