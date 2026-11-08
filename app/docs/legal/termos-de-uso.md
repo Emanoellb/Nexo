@@ -2,7 +2,9 @@
 
 # Termos de Uso do Nexo
 
-**Versão:** 0.2 (rascunho) · **Vigência a partir de:** 01/11/2026
+**Versão:** 0.3 (rascunho, 07/11/2026) · **Vigência a partir de:** `[DATA DE VIGÊNCIA: definir na publicação]`
+
+> Nota interna (remover antes de publicar): a v0.2 previa vigência em 01/11/2026, mas não foi publicada nem revisada por advogado. A versão gravada em `legalDocuments/current` (`terms-2026-11-01`) é só técnica, para o cadastro funcionar nos testes.
 
 ## 1. Quem oferece o Nexo e como você aceita estes Termos
 
@@ -12,14 +14,15 @@ Para criar uma conta, você precisa ler e aceitar estes Termos e a Política de 
 
 ## 2. O que é o Nexo
 
-O Nexo é um aplicativo de organização pessoal e produtividade para Android. Com ele você:
+O Nexo é um aplicativo de organização pessoal e produtividade para Android. Ele serve a qualquer objetivo pessoal, como estudar, treinar, ler ou tocar um projeto. Com ele você:
 
 - cria objetivos e planos de ação;
-- define quanto pretende se dedicar e registra o tempo investido em sessões de foco ou manualmente;
-- organiza tarefas e disciplinas;
+- define quanto tempo pretende dedicar e registra o tempo investido em sessões de foco ou manualmente;
+- organiza tarefas, disciplinas e prazos;
+- recebe avisos no próprio aparelho;
 - acompanha seu progresso no calendário e em relatórios.
 
-O Nexo é uma ferramenta de apoio. Ele **não garante resultados**, como aprovação em provas ou concursos, nem substitui orientação profissional, acadêmica ou de saúde.
+O Nexo é uma ferramenta de apoio. Ele **não garante resultados**, como a aprovação numa prova ou o alcance de uma meta pessoal, nem substitui orientação profissional, acadêmica, esportiva ou de saúde.
 
 ## 3. Quem pode usar
 
@@ -47,7 +50,7 @@ Você pode usar o Nexo para fins pessoais e não comerciais. Não é permitido:
 
 ## 6. Seu conteúdo
 
-- Tudo o que você cria no Nexo (objetivos, planos, sessões, notas, tarefas, disciplinas) **continua sendo seu**.
+- Tudo o que você cria no Nexo (objetivos, planos, tópicos, sessões e suas notas, tarefas, disciplinas) **continua sendo seu**.
 - Você nos autoriza a guardar, processar e mostrar esse conteúdo **somente para operar o app para você**, como descrito na Política de Privacidade.
 - Não usamos seu conteúdo para publicidade, não o vendemos e não o mostramos a outros usuários.
 - Evite escrever dados sensíveis (como informações de saúde) nos campos de texto livre.
@@ -64,7 +67,7 @@ As regras de cálculo estão descritas no app. Podemos ajustá-las para corrigir
 
 ## 8. Notificações
 
-O Nexo mostra os lembretes que você configura, agendados no próprio aparelho. Você pode desativá-los no app ou no aparelho. Não enviamos comunicações de marketing sem o seu consentimento.
+O Nexo mostra os avisos que você mantém ligados, agendados no próprio aparelho, e guarda os avisos importantes dos últimos 30 dias para você revê-los. Você pode desligar os avisos no app ou no aparelho. Algumas funções opcionais pedem permissões do aparelho (por exemplo, o acesso ao "Não perturbe" durante o foco); a Política de Privacidade explica cada uma. Não enviamos comunicações de marketing sem o seu consentimento.
 
 ## 9. Preço
 
@@ -73,7 +76,7 @@ Nesta versão, o Nexo é gratuito. Se houver plano pago no futuro, as condiçõe
 ## 10. Disponibilidade e funcionamento
 
 - Trabalhamos para manter o Nexo funcionando, mas ele pode ter interrupções, falhas ou manutenção.
-- Parte dos seus dados fica no aparelho para uso sem internet e é sincronizada quando a conexão volta. Dados ainda não sincronizados podem se perder se o app for desinstalado antes da sincronização.
+- Parte dos seus dados fica no aparelho para uso sem internet e é sincronizada quando a conexão volta. Dados ainda não sincronizados podem se perder se o app for desinstalado antes da sincronização. As preferências guardadas só no aparelho (como o tema) voltam ao padrão se você reinstalar o app.
 - Podemos alterar, incluir ou remover funcionalidades. Se uma mudança afetar de forma relevante algo que você usa, avisaremos com antecedência razoável sempre que possível.
 
 ## 11. Propriedade intelectual

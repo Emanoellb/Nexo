@@ -1,37 +1,45 @@
 # Nexo · Inventário de dados do MVP (aprovado)
 
-Sessão: nexo-dados-legal. Criado em 2026-10-20, atualizado em 2026-10-22 (v0.2). Status: **aprovado pelo usuário** (decisões D1–D4 em 20/10; atualizações de 22/10 abaixo). Cópia oficial: `D:\Dev\Nexo\docs\legal\inventario-dados-mvp.md`.
-Fontes lidas (somente leitura): `nexo.app.pen` (17 telas do fluxo de entrada) e, via import, `nexo.lib.pen`: `ca7IW` Regras e requisitos, `oXRSc` Fluxo do Plano de ação, Governança `ixE2I`, Capa, documentação 08 Content e 09 Nexo Specific, `context` dos componentes. Desde a v0.2, também `docs/backend/firestore-rules.md` (contrato de campos, seções 4 e 5) e `docs/legal/pendencias.md` (decisões F1–F7).
+Sessão: nexo-dados-legal. Criado em 2026-10-20 · v0.2 em 2026-10-22 · **v0.3 em 2026-11-07**. Status: base aprovada pelo usuário (D1–D4 em 20/10; U1–U11 em 22/10). A v0.3 alinha o inventário às regras do Firestore **v0.9** e às decisões de 24/10 a 07/11 (tabela "Atualizações de 07/11"), a pedido da sessão principal ("pode seguir com o legal", usuário, 07/11/2026).
 
-Legenda da coluna **Fonte**: **C** = confirmado no design ou em decisão registrada · **S** = suposição (precisa de confirmação) · **D** = dado derivado (calculado pelo app/Cloud Function, não digitado).
+Fontes: `app/docs/backend/firestore-rules.md` v0.9 (§3 princípios, §4 contrato de campos, §5 decisões, §7 pendências), `app/docs/backend/firebase-setup.md` §8 e §11, `AGENTS.md` §4–§5, `app/pubspec.yaml`, e as telas e regras do design lidas em 20/10 (`nexo.app.pen`, `ca7IW`, `oXRSc`).
+
+Legenda da coluna **Fonte**: **C** = confirmado no contrato das regras, numa decisão registrada ou no design · **NC** = não confirmado (previsto, ainda não implementado ou não conferido) · **D** = dado derivado, calculado pelo app e não guardado.
 Bases legais (LGPD, art. 7º): **Contrato** = execução de contrato (V) · **Obrigação** = obrigação legal/regulatória (II) · **Direitos** = exercício regular de direitos (VI) · **LI** = legítimo interesse (IX) · **Consent.** = consentimento (I).
 
-Princípio adotado: **todo dado pessoal do usuário fica sob `users/{uid}`**, o que torna exclusão e exportação uma operação única por usuário.
+Princípios:
+- **Todo dado pessoal do usuário fica sob `users/{uid}`.** Exclusão e exportação são uma operação única por usuário.
+- **Sem Cloud Functions no MVP** (24/10/2026): o app grava e calcula tudo; as regras validam.
+- **Lista branca de campos:** o que não está no contrato das regras é negado no banco.
 
 ## Decisões do usuário (20/10/2026)
 
-| # | Decisão | Efeito no inventário |
+| # | Decisão | Efeito |
 |---|---|---|
-| D1 | **Idade mínima: 16 anos** | Usuários de 16 e 17 anos são adolescentes (LGPD art. 14: tratamento no melhor interesse; ECA Digital, Lei 15.211/2025). A idade é conferida pela **data de nascimento** (atualização de 22/10). Os Termos proíbem uso por menores de 16. |
-| D2 | **Telemetria: só Crashlytics** | Analytics **fora do MVP**. Sem eventos de uso nem localização aproximada. |
-| D3 | **Controlador: pessoa física por enquanto** | Documentos sem CNPJ. O Marco Civil art. 15 (guarda de registros por 6 meses) se dirige a pessoa jurídica: o advogado confirma se é dispensado. Agente de pequeno porte (Res. CD/ANPD nº 2/2022) pode não precisar nomear encarregado, mas precisa de canal de contato; o advogado avalia se dados de adolescentes tornam o tratamento de "alto risco". |
-| D4 | **Disciplinas e entregas entram no MVP** | A seção 9 e a coleção `subjects` ficam. |
+| D1 | **Idade mínima: 16 anos** | Conferida pela data de nascimento (U1). Usuários de 16 e 17 anos são adolescentes (LGPD art. 14; ECA Digital, Lei 15.211/2025) |
+| D2 | **Telemetria: só Crashlytics** | Sem Analytics, sem eventos de uso, sem localização aproximada |
+| D3 | **Controlador: pessoa física por enquanto** | Documentos sem CNPJ. Marco Civil art. 15 e obrigatoriedade do encarregado ficam com o advogado |
+| D4 | **Disciplinas e entregas no MVP** | Coleção `subjects` e situação da entrega nas tarefas |
 
-## Atualizações (22/10/2026, aprovadas pelo usuário)
+## Atualizações de 22/10/2026 (aprovadas pelo usuário)
+
+U1 data de nascimento · U2 nada da Apple, só Android · U3 idioma não guardado · U4 aceite com versões + hora do servidor · U5 modelo e SO só no Crashlytics · U6 App Check fora do MVP · U7 Firestore em `southamerica-east1` · U8 Crashlytics 90 dias, backups 7 dias · U9 lembretes como notificação local · U10 aviso de entrega próxima · U11 opções de privacidade no Perfil.
+
+## Atualizações de 07/11/2026 (v0.3)
 
 | # | Atualização | Origem |
 |---|---|---|
-| U1 | Idade conferida por **data de nascimento** (`birthDate`, AAAA-MM-DD), gravada só na criação; o app não altera, e a correção é pelo canal de contato | Regras de segurança, Q6 |
-| U2 | **Nada da Apple e só Android** no MVP. Login: e-mail/senha + Google | F6, F7 |
-| U3 | Idioma não é guardado (MVP só em pt-BR) | Regras de segurança |
-| U4 | Aceite = versão dos Termos + versão da Política + data/hora do servidor, conferidas contra `legalDocuments/current` | Regras de segurança, Q3 |
-| U5 | Modelo do aparelho e versão do SO ficam fora do Firestore (minimização); só aparecem nos relatórios do Crashlytics | Regras de segurança |
-| U6 | App Check fora do MVP | F5 |
-| U7 | Firestore em `southamerica-east1` | F3 |
-| U8 | Retenção: Crashlytics 90 dias; backups até 7 dias | Pendências B3 + usuário |
-| U9 | **Lembretes como notificação local** (agendada no aparelho), sem token FCM no servidor. A etapa 10 das regras ainda está em revisão: se voltar para FCM, revisar as seções 11 e 12 e a Política | Usuário |
-| U10 | Novo aviso: tarefa com entrega próxima | Regras de segurança, etapa 6 |
-| U11 | Exclusão de conta, cópia dos dados e acesso aos Termos e à Política ficam no **Perfil** | Regras de segurança, etapa 11 |
+| V1 | **Notificações locais confirmadas** (24/10): sem FCM, sem `devices` e sem `notificationLog`. O risco R14 da v0.2 está fechado | `firestore-rules.md` §3 item 7, §5 |
+| V2 | **Sem Cloud Functions**: dias, pontos e conquistas são calculados e gravados pelo app | `firestore-rules.md` §3 item 2 |
+| V3 | **Histórico de notificações** em `users/{uid}/notifications`, guardado **30 dias** (TTL pelo `createdAt`) e apagado com a conta. Decidido em 04/11; contrato e regras ainda **não publicados** | `pendencias.md` B13; `firestore-rules.md` §7; `firebase-setup.md` A13–A15 |
+| V4 | **Preferências só no aparelho**, nunca no banco: tema, "Ligar o Não perturbe ao focar", "Reduzir transparência" e preferências de silêncio | `firestore-rules.md` §4 (users) e §7 item 10 |
+| V5 | Campos novos da v0.9: `tasks.remindersMinutesBefore` (até 3 avisos), `plans.studyTime` + `plans.reminderBefore`, `users.morningSummary`, `sessions.topicIds` (até 3 tópicos). Saíram: `plans.reminder`, `sessions.topicId`, `tasks.reminderMinutesBefore` | `firestore-rules.md` §4, v0.9 |
+| V6 | **Tópicos do plano** (`plans/{id}/topics`): nome digitado + matéria opcional. Substituem o "tópico texto livre" da sessão | `firestore-rules.md` §4 (25/10) |
+| V7 | **Saíram do MVP:** notas da tarefa, pausas dentro da sessão (só a duração líquida é guardada) e cor da disciplina (revertida em 04/11) | `firestore-rules.md` §4 e §5 |
+| V8 | **Permissões e recursos do Android** previstos na Etapa 3c (lista abaixo, seção 12). Ainda **não conferidos no código** | Pedido da sessão principal, 07/11 |
+| V9 | **Canal de contato:** e-mail do controlador. Telefone **não** entra nos documentos | Decisão do usuário, via sessão principal |
+| V10 | **Terminologia neutra** (07/11): os planos servem a qualquer objetivo (estudo, treino, leitura…). Só a descrição do produto muda; dados e nomes de campos ficam iguais | Decisão do usuário, via sessão principal |
+| V11 | **Um projeto Firebase só** (confirmado em 04/11): testes e usuários reais no mesmo banco. Nada muda nos documentos | `pendencias.md` B8 |
 
 ---
 
@@ -40,211 +48,234 @@ Princípio adotado: **todo dado pessoal do usuário fica sob `users/{uid}`**, o 
 | Campo | Fonte | Origem | Obrig.? |
 |---|---|---|---|
 | uid | C | gerado (Firebase Auth) | sim |
-| E-mail | C (Login, Cadastro) | usuário ou Google | sim |
+| E-mail | C | usuário ou Google | sim |
 | Senha | C | usuário; o Nexo nunca lê, só o Firebase Auth guarda o hash | só em e-mail/senha |
 | Provedor (e-mail/senha ou Google) | C | gerado | sim |
-| E-mail verificado | C (tela 05, obrigatória; Q1) | gerado | sim |
-| Datas de criação e último login | S (o Auth registra sozinho) | gerado | sim |
+| E-mail verificado | C (exigido para usar os dados) | gerado | sim |
+| Datas de criação e último login | NC (o Auth registra sozinho) | gerado | sim |
 | Tentativas de login / bloqueio temporário | C ("Muitas tentativas") | gerado (proteção do Auth) | sim |
-| Aceite: `consents {termsVersion, privacyVersion, acceptedAt}` | C (Cadastro e 03b; U4) | usuário + servidor | sim |
-| Data de nascimento (`birthDate`) | C (Cadastro e 03b; U1) | usuário | sim |
+| `birthDate` | C (Cadastro e 03b; não editável pelo app) | usuário | sim |
+| `consents {termsVersion, privacyVersion, acceptedAt}` | C (versões iguais a `legalDocuments/current`) | usuário + servidor | sim |
+| `deletionRequestedAt` | C (Excluir conta; sem volta) | app + servidor | não |
 
 - **Google entrega:** nome, e-mail, URL da foto, ID Google. A foto não é guardada.
-- **Finalidade:** criar e proteger a conta; conferir a idade mínima; e-mails transacionais (verificação, redefinição de senha).
-- **Base legal:** Contrato; data de nascimento = Contrato (a base é para o advogado validar); segurança/antifraude = LI; registro do aceite = Direitos.
-- **Retenção:** enquanto a conta existir. Registro de aceite: pode ser guardado após a exclusão pelo prazo de defesa (decisão do advogado).
+- **Login Google com menos de 16 anos:** o app apaga na hora a conta recém-criada no Auth.
+- **Finalidade:** criar e proteger a conta; conferir a idade mínima; e-mails do sistema (verificação, redefinição de senha); executar a exclusão da conta.
+- **Base legal:** Contrato; data de nascimento = Contrato (a validar com o advogado); segurança = LI; registro do aceite = Direitos.
+- **Retenção:** enquanto a conta existir. Registro de aceite após a exclusão: prazo com o advogado.
 - **Firebase:** Authentication + Firestore (`users/{uid}`). **Terceiros:** Google (operador e provedor de identidade).
 
-## 2. Perfil e preferências
+## 2. Perfil e preferências guardadas na conta
 
 | Campo | Fonte | Origem | Obrig.? |
 |---|---|---|---|
-| Nome / como quer ser chamado (`displayName`) | C (Cadastro, 03b) | usuário ou Google | sim |
-| Foto de perfil | **Não guardada** | — | — |
-| Fuso horário (`timeZone`) | C (dias fecham "à meia-noite no fuso do usuário") | dispositivo | sim |
-| ~~Idioma/região~~ | **Não guardado (U3)** | — | — |
-| Tutorial já visto | C | gerado | não |
-| Limite de "sobrecarregado" | C ("deve ser configurável"); etapa 11 em revisão | usuário | não (padrão do app) |
-| Preferências de notificação (ligado, silêncio, aviso noturno) | C; etapa 10 em revisão | usuário | não |
+| `displayName` | C | usuário ou Google | sim |
+| `timeZone` | C (divisão à meia-noite e avisos) | aparelho | sim |
+| `tutorialSeen` | C | gerado | não |
+| `primaryPlanId` (plano principal) | C | usuário | não |
+| `overloadThreshold` (limite de "sobrecarregado", tarefas por dia) | C | usuário | não (padrão 5 no app) |
+| `morningSummary {enabled, time}` (aviso da manhã) | C (v0.9) | usuário | não (padrão ligado, 08:00) |
+| `points` | C (o app soma e subtrai) | gerado pelo app | não |
+| Foto de perfil, idioma | **Não guardados** | — | — |
 
-- **Finalidade:** personalizar o app e calcular os dias corretamente. **Base:** Contrato.
-- **Retenção:** enquanto a conta existir. **Firebase:** Firestore (`users/{uid}`). **Terceiros:** Google (operador).
+- **Finalidade:** personalizar o app, calcular os dias e agendar avisos. **Base:** Contrato.
+- **Retenção:** enquanto a conta existir. **Firebase:** Firestore (`users/{uid}`).
 
-## 3. Objetivo (entidade opcional)
+## 3. Objetivo (opcional)
 
 | Campo | Fonte | Obrig.? |
 |---|---|---|
-| Nome | C (decisão do usuário: objetivo agrupa planos) | sim |
-| Planos vinculados | C | — |
-| Descrição, prazo | C (contrato v0.2 das regras, em revisão) | não |
+| Nome | C | sim |
+| Descrição | C (0–500) | não |
+| Prazo | C | não |
 
-- Texto livre escrito pelo usuário. **Base:** Contrato. **Firebase:** Firestore. **Retenção:** até o usuário excluir o objetivo ou a conta.
+- No máximo um objetivo por plano (07/11). **Base:** Contrato. **Retenção:** até o usuário excluir o objetivo ou a conta.
 
 ## 4. Plano de ação
 
 | Campo | Fonte | Obrig.? |
 |---|---|---|
-| Nome (texto livre, ex.: "Concurso Banco do Brasil", "TCC") | C (RF01) | sim |
-| Início e fim | C (RF01) | sim |
-| Frequência: todos os dias, dias da semana ou X por semana | C (RF02) | sim |
-| Meta diária (guardada em minutos) | C (RF01) | sim |
-| Categoria e tópicos | C (RF03), **fora do MVP** pela lista "MVP × depois" | não |
-| Status: ativo, pausado, concluído, encerrado antes, arquivado | C (RF05–06) | sim |
-| Períodos de pausa | C (RF05) | — |
-| Plano principal | C (RF07) | — |
-| Lembrete diário: horário e liga/desliga | C (Novo plano) | não |
-| Histórico de alterações com vigência (`scheduleVersions`) | C (RF04); contrato v0.2 | — |
-| Objetivo vinculado | C | não |
-| Totais: horas planejadas, horas realizadas, saldo | **D** | — |
+| Nome (texto livre) | C | sim |
+| Início e fim (até 2 anos) | C | sim |
+| Frequência: todos os dias, dias da semana ou × por semana | C | sim |
+| Meta diária (minutos) | C | sim |
+| Status: ativo, pausado, concluído, encerrado antes, arquivado, excluindo | C | sim |
+| Pausas `{start, end}` | C | não |
+| Data de encerramento antecipado (`endedOn`) | C | não |
+| Objetivo (`goalId`) | C | não |
+| Horário do plano (`studyTime`) | C (v0.9) | não (padrão 19:00) |
+| Avisar antes do horário (`reminderBefore`) | C (v0.9) | não (padrão ligado, 15 min) |
+| Histórico de configurações (`scheduleVersions`) | C | — |
+| Totais, saldo, relatórios | **D** | — |
 
-- **Finalidade:** núcleo do serviço. **Base:** Contrato. **Firebase:** Firestore.
-- **Retenção:** enquanto o plano existir. Arquivado continua guardado até o usuário excluir.
+- Categoria do plano (RF03) fica fora do MVP. **Base:** Contrato. **Firebase:** Firestore.
+- **Retenção:** enquanto o plano existir. Excluir o plano apaga sessões, dias, tópicos e versões.
 
-## 5. Sessão de foco e registro manual de horas
+## 5. Tópicos do plano
 
 | Campo | Fonte | Obrig.? |
 |---|---|---|
-| Início, fim, duração | C (RF09) | sim |
+| Nome (texto livre) | C | sim |
+| Disciplina ligada (`subjectId`) | C | não |
+
+- **Base:** Contrato. **Retenção:** até o usuário apagar o tópico, o plano ou a conta.
+
+## 6. Sessão de foco e registro manual de tempo
+
+| Campo | Fonte | Obrig.? |
+|---|---|---|
+| Início e fim | C | sim |
+| Duração líquida (sem pausas) | C | sim |
 | Origem: foco ou manual | C | sim |
-| Pausas dentro da sessão | C (RF08) | — |
-| Tópico (texto livre) | C (RF10) | não |
-| Nota (texto livre, ex.: "Interpretação de texto — lista 4") | C (RF10) | não |
-| Dia a que pertence (sessão que cruza a meia-noite é dividida pelo app) | C (RF13) | sim |
+| Dia a que pertence (dividida à meia-noite) | C | sim |
+| Tópicos (`topicIds`, até 3) | C (v0.9) | não |
+| Nota (texto livre, até 500) | C | não |
 
-- O cronômetro funciona com o app fechado porque grava o horário de início, não porque roda em segundo plano. **Não há localização.**
-- **Base:** Contrato. **Firebase:** Firestore. **Retenção:** até editar/excluir (RF12), excluir o plano ou excluir a conta.
+- **O cronômetro em andamento fica no aparelho:** só o horário de início é guardado localmente; a sessão vai ao banco ao encerrar. As pausas não são guardadas.
+- Tempo por tópico = duração ÷ número de tópicos (**D**).
+- **Base:** Contrato. **Retenção:** até editar/excluir (janela de 7 dias), excluir o plano ou a conta.
 
-## 6. Dia do plano (derivado)
-
-| Campo | Fonte |
-|---|---|
-| Data (AAAA-MM-DD), meta do dia | C |
-| Realizado | **D** (soma das sessões) |
-| Finalizado (sim/não, quando) | C (RF14; Q2: o app finaliza) |
-| Status: cumprido, com menos, com mais, não cumprido, folga | **D** |
-| Pontos do dia | **D** |
-
-- **Base:** Contrato. **Firebase:** Firestore (cálculo pelo app ou por Function, em revisão nas regras).
-
-## 7. Progresso e gamificação (derivado)
+## 7. Dia do plano
 
 | Campo | Fonte |
 |---|---|
-| Pontos totais e nível | **D** (1 por tarefa; 5/3/7/0 por dia de plano) |
-| Sequência atual e maior sequência | **D** |
-| Conquistas (qual e quando) | **D** (≤ 8 medalhas) |
-| Relatório parcial e final | **D**; guardar ou recalcular = S |
+| Data (id do documento) | C |
+| Minutos realizados (`doneMinutes`) | C (gravado pelo app, soma das sessões) |
+| Finalização (`finalizedAt`) | C |
+| Meta, status e pontos do dia | **D** (não guardados) |
 
-- Não há ranking, comparação entre usuários nem decisão automática que afete direitos (o art. 20 da LGPD tem baixo risco aqui). A Política explica como pontos e níveis são calculados.
-- **Base:** Contrato. **Firebase:** Firestore.
+- **Base:** Contrato. **Retenção:** até excluir o plano ou a conta.
 
-## 8. Tarefas
+## 8. Progresso e conquistas
+
+| Campo | Fonte |
+|---|---|
+| Pontos (`users.points`) | C (gravado pelo app) |
+| Nível, sequências, relatórios | **D** |
+| Conquistas (`achievements/{id}.earnedAt`) | C (9 medalhas) |
+
+- Sem ranking nem comparação entre usuários. As regras validam formato e limites, não a conta dos pontos (risco baixo: só afeta o próprio usuário).
+- **Base:** Contrato.
+
+## 9. Tarefas
 
 | Campo | Fonte | Obrig.? |
 |---|---|---|
-| Título (texto livre) | C (TaskItem) | sim |
-| Disciplina | C (meta do TaskItem) | não |
-| Prazo: data e hora | C (Nexo/Deadline) | não ("Sem prazo") |
-| Prioridade: alta, média, baixa, nenhuma | C (Nexo/Priority) | sim (padrão "nenhuma") |
-| Concluída + data de conclusão | C | — |
-| Status de entrega | C (Tag/Status "no detalhe"); valores = S | não |
-| Notas | C (contrato v0.2 das regras); tela de detalhe não desenhada | não |
+| Título (texto livre) | C | sim |
+| Prioridade | C | sim |
+| Concluída + data de conclusão | C | sim |
+| Disciplina | C | não |
+| Prazo | C | não |
+| Avisos de entrega (`remindersMinutesBefore`, até 3) | C (v0.9) | não |
+| Situação da entrega (Não iniciada, Em andamento, Entregue, Aguardando correção) | C | não |
+| ~~Notas~~ | **Fora do MVP (V7)** | — |
 
-- **Base:** Contrato. **Firebase:** Firestore (`users/{uid}/tasks`).
+- "Atrasada" é **D**. **Base:** Contrato. **Firebase:** Firestore (`users/{uid}/tasks`).
 
-## 9. Disciplinas e entregas (no MVP, D4)
+## 10. Disciplinas
 
 | Campo | Fonte |
 |---|---|
-| Nome da disciplina, ícone | C (Subject Item, AcademicProgress) |
-| Entregas concluídas / total, próxima entrega | **D** (contagem das tarefas da disciplina) |
-| Provas ("primeira prova organizada") | C como conceito; campo = S |
+| Nome e ícone | C |
+| ~~Cor~~ | **Fora do MVP (V7)** |
+| Entregas concluídas / total, próxima entrega | **D** |
 
-- **Sinal de público estudantil**, possivelmente adolescente (ver R1).
-- Cor por disciplina é Future: não entra.
-
-## 10. Calendário
-
-- No MVP **não há entidade própria**: mostra prazos de tarefas e dias de plano (D). Carga/sobrecarregado = **D**.
-- Integração com agendas externas é **Future**: **nenhum dado de agenda externa é lido no MVP**.
-
-## 11. Notificações (locais, U9)
+## 11. Histórico de notificações (V3)
 
 | Campo | Fonte | Obrig.? |
 |---|---|---|
-| Horário do lembrete diário (por plano) | C | não |
-| Preferências de aviso (silêncio, aviso noturno) | C | não |
-| Permissão de notificação do sistema | C (pedida pelo Android) | — |
-| ~~Token FCM por dispositivo~~ | **Fora, enquanto os avisos forem locais (U9)** | — |
-| ~~Último aviso enviado por plano/dia~~ | **Controle no aparelho, enquanto os avisos forem locais (U9)** | — |
+| Tipo: entrega próxima, tarefa atrasada, meta do dia, conquista | NC (proposta de contrato) | sim |
+| Item ligado (tarefa, plano + dia ou conquista) | NC | sim |
+| `createdAt` (servidor) | C (decisão; base do TTL) | sim |
+| `readAt` (lido) | NC | não |
 
-- Avisos: lembrete diário do plano, aviso noturno se a meta não estiver completa, aviso 7 dias antes do fim do plano, aviso de tarefa com entrega próxima (U10). Limite de 1 por plano por dia.
-- Lembretes que o usuário configura = funcionalidade, **Base:** Contrato (com a permissão do SO). **Marketing por push ou e-mail** = **Consent.**, separado e opcional (não há marketing no MVP).
-- **Firebase:** nenhum serviço de envio (agendamento local). Os horários ficam no Firestore como preferência.
+- **Finalidade:** mostrar no painel do sino os avisos dos últimos 30 dias. **Base:** Contrato.
+- **Retenção:** **30 dias**, apagados pelo TTL do Firestore (a remoção costuma acontecer em até 24 h depois do vencimento [C, doc do TTL]); o app esconde os vencidos. Apagados também com a conta.
+- **Pendências:** contrato e regras não publicados; política de TTL só será criada depois do primeiro aviso gravado (`firebase-setup.md` A13). Enquanto o TTL não existir, a promessa de 30 dias da Política não é cumprida automaticamente.
 
-## 12. Dispositivo, segurança e telemetria
+## 12. Notificações locais, preferências do aparelho e permissões do Android
+
+**Avisos agendados no aparelho** (sem servidor, sem token):
+
+- aviso antes do horário do plano (`studyTime` − `reminderBefore`);
+- aviso da manhã (`morningSummary`);
+- aviso às 21h se a meta do dia não estiver completa;
+- aviso 7 dias antes do fim do plano;
+- avisos de entrega da tarefa (até 3 por tarefa);
+- limite de 1 aviso por plano por dia.
+
+**Preferências só no aparelho (V4):** tema (Sistema · Claro · Escuro), "Ligar o Não perturbe ao focar", "Reduzir transparência", preferências de silêncio. Reinstalando o app, voltam ao padrão.
+
+**Permissões e recursos do Android (V8, todos NC até a Etapa 3c):**
+
+| Recurso | Para quê | Coleta dado? |
+|---|---|---|
+| Notificações | Mostrar os avisos acima | Não |
+| Acesso ao "Não perturbe" (`ACCESS_NOTIFICATION_POLICY`), opcional, pedido uma vez | Ligar e desligar o modo durante o foco, se o usuário ativar a opção | Não lê notificações nem contatos |
+| Notificação fixa do cronômetro (provável serviço em primeiro plano no Android 14) | Mostrar o foco em andamento com o app fechado | Não |
+| Checagem de conexão (`connectivity_plus`) | Avisar quando está sem internet | Não |
+| Vibração | Retorno leve ao concluir | Não |
+| Agendamento de alarmes exatos | **A confirmar** se o pacote de notificações locais vai pedir | Não |
+
+- **Base:** Contrato. A lista final sai do `AndroidManifest.xml` depois da 3c e alimenta a seção "Segurança dos dados" do Google Play.
+
+## 13. Dados técnicos e cache local
 
 | Campo | Fonte | Serviço | Base |
 |---|---|---|---|
-| ~~Modelo, SO, versão do app, ID de instalação no Firestore~~ | **Fora (U5)** | — | — |
-| Relatórios de falha (stack trace, modelo, versão do SO e do app, estado do aparelho, ID de instalação) | D2 | Crashlytics (retenção 90 dias) | LI |
-| ~~Eventos de uso, ID da instância, localização aproximada~~ | **Fora do MVP (D2)** | ~~Analytics~~ | — |
-| ~~Atestado do dispositivo contra abuso~~ | **Fora do MVP (U6)** | ~~App Check~~ | — |
-| Registros de acesso: IP + data/hora | S (ver R9) | Auth/Functions | Obrigação (Marco Civil art. 15, se aplicável) |
-| Cache local offline (dados digitados ficam no aparelho) | C ("Seus dados digitados ficam aqui") | Firestore offline / SDK | Contrato |
+| Relatórios de falha (erro, modelo, versões do SO e do app, estado do aparelho, ID de instalação) | C (D2) | Crashlytics, 90 dias, coleta desligada em debug | LI |
+| Registros de acesso: IP + data/hora | NC (R9) | Auth | Obrigação, se aplicável |
+| Cache offline do Firestore | C | SDK no aparelho | Contrato |
+| ~~Analytics, App Check, token FCM, `devices`~~ | **Fora do MVP** | — | — |
 
-- **Sem identificador de publicidade (AAID)** e sem SDK de anúncios.
+- Relatórios do Crashlytics não podem conter e-mail, nome nem texto livre (`AGENTS.md` §9). Sem identificador de publicidade e sem SDK de anúncios.
 
-## 13. E-mails do sistema
+## 14. E-mails do sistema e atendimento
 
-- Verificação de e-mail e redefinição de senha: C (telas 04 e 05), enviados pelo Firebase Auth. **Base:** Contrato.
-- Remetente no MVP: domínio padrão do projeto Firebase (domínio próprio em aberto, pendências B5).
-
-## 14. Atendimento ao titular
-
-- Canal: e-mail de contato do controlador (preenchido nos documentos v0.2) e as opções do **Perfil** (U11).
+- Verificação de e-mail e redefinição de senha, pelo Firebase Auth (página padrão; remetente do domínio do projeto). **Base:** Contrato.
+- Atendimento: **e-mail** do controlador e opções do Perfil (Termos, Política, pedir cópia dos dados, contato, excluir conta). Telefone fora dos documentos (V9).
 
 ---
 
-## Mapa conceitual de coleções do Firestore (só modelo, sem regras nem índices)
+## Mapa de coleções do Firestore
 
-Para os nomes de campos e validações vigentes, a referência é `docs/backend/firestore-rules.md` (seção 4).
+Nomes e validações vigentes: `app/docs/backend/firestore-rules.md` §4 (v0.9).
 
 ```
-users/{uid}                                displayName, birthDate, consents {termsVersion, privacyVersion, acceptedAt}, timeZone, tutorialSeen, preferências, agregados (pontos, nível)
-  goals/{goalId}                           objetivo (opcional)
-  plans/{planId}                           configuração, status, isPrimary, goalId?, lembrete, totais (D), pausas
-    scheduleVersions/{id}                  alterações com vigência (RF04)
-    sessions/{sessionId}                   início, fim, duração, origem, tópico?, nota?, pausas
-    days/{AAAA-MM-DD}                      meta, realizado (D), finalizado, status (D), pontos (D)
-  tasks/{taskId}                           título, subjectId?, prazo?, prioridade, concluída, concluídaEm, notas?
-  subjects/{subjectId}                     disciplina
-  achievements/{achievementId}             conquistada em
-  devices/{installationId}                 [só se a etapa 10 voltar para FCM]
-  notificationLog/{id}                     [só se a etapa 10 voltar para FCM]
-achievementsCatalog/{id}                   catálogo das medalhas (conteúdo do app, sem dado pessoal)
-legalDocuments/current                     versões vigentes dos Termos e da Política
+users/{uid}                    displayName, birthDate, consents, timeZone, tutorialSeen, primaryPlanId,
+                               overloadThreshold, morningSummary, points, deletionRequestedAt, createdAt, updatedAt
+  plans/{planId}               name, startDate, endDate, frequency, dailyGoalMinutes, status, pauses, endedOn,
+                               goalId, studyTime, reminderBefore, createdAt, updatedAt
+    scheduleVersions/{id}      effectiveFrom, frequency, dailyGoalMinutes, createdAt
+    topics/{topicId}           name, subjectId, createdAt, updatedAt
+    sessions/{sessionId}       startAt, endAt, durationSeconds, source, day, topicIds, note, createdAt, updatedAt
+    days/{AAAA-MM-DD}          doneMinutes, finalizedAt, createdAt, updatedAt
+  tasks/{taskId}               title, priority, completed, completedAt, subjectId, dueAt, remindersMinutesBefore,
+                               deliveryStatus, createdAt, updatedAt
+  subjects/{subjectId}         name, icon, createdAt, updatedAt
+  goals/{goalId}               name, description, deadline, createdAt, updatedAt
+  achievements/{achievementId} earnedAt
+  notifications/{id}           [V3, contrato a publicar] type, item ligado, createdAt, readAt
+achievementsCatalog/{id}       conteúdo do app (9 medalhas), sem dado pessoal
+legalDocuments/current         termsVersion, privacyVersion
 ```
-
-**Divergência registrada:** `ca7IW` (item 11) escreve `plans/{planId}/sessions` sem o prefixo `users/{uid}`. A decisão vigente é `users/{uid}/plans/{planId}/sessions` (pendências B6); o design continua com o caminho antigo.
 
 ---
 
-## Riscos e decisões do usuário
+## Riscos e decisões
 
-| # | Tema | Por quê | Status |
-|---|---|---|---|
-| R1 | **Idade mínima** | Disciplinas, provas e entregas sugerem estudantes. LGPD art. 14 + Lei 15.211/2025 (ECA Digital) impõem regras extras para adolescentes. | **Decidido: 16+ por data de nascimento (D1, U1).** O advogado confirma se basta e define as salvaguardas para 16–17 anos. |
-| R2 | **Transferência internacional** | Auth e Crashlytics processam fora do Brasil (Google); o Firestore fica em `southamerica-east1`. | Declarado na Política 7; o advogado valida o mecanismo (Res. CD/ANPD nº 19/2024). |
-| R3 | **Analytics e Crashlytics** | Analytics coleta eventos e localização aproximada. | **Decidido: só Crashlytics (D2).** |
-| R4 | **Exclusão de conta dentro do app** | Exigência do Google Play (inclusive link web para pedir exclusão). | Aprovada no Perfil (U11); falta a tela e o link web. |
-| R5 | **Exportação de dados** (portabilidade, art. 18) | Direito do titular. | Pedido pelo Perfil ou por e-mail, resposta em até 15 dias. |
-| R6 | **Login com Google × aceite dos Termos** | Quem entrava com Google criava conta sem o aceite. | **Resolvido:** tela 03b com aceite e data de nascimento. |
-| R7 | **Verificação de e-mail com Google** | E-mails do Google já vêm verificados. | Confirmar no protótipo que a tela 05 só aparece para e-mail/senha. |
-| R8 | **Texto livre** (nomes, descrições, tópicos, notas, tarefas) | O usuário pode escrever dados sensíveis (saúde, religião…). | A Política orienta a não incluir dados sensíveis; o Nexo não usa esse conteúdo para outro fim (sem IA, sem anúncios). |
-| R9 | **Registros de acesso (Marco Civil, art. 15)** | Pessoa jurídica com fins econômicos deve guardar IP + data/hora por 6 meses. | Controlador pessoa física (D3): o advogado confirma se há dispensa. |
-| R10 | **Controlador** | Pessoa física ou empresa muda a identificação, o foro e o R9. | **Decidido: pessoa física por enquanto (D3).** Revisar os documentos se abrir empresa. |
-| R11 | **Prazo de exclusão e backups** | Backups guardam cópias por um tempo após a exclusão. | **Decidido: até 7 dias (U8).** |
-| R12 | **Marketing** | Não há marketing no MVP. | Se houver, opt-in separado. |
-| R13 | **Branding do botão Google** | O botão usa Manrope; o Google recomenda Roboto. | Fora do escopo legal; validar antes de publicar. |
-| R14 | **Notificações locais × etapa 10** | A Política já descreve avisos locais, mas a etapa 10 das regras ainda está em revisão. | Se a decisão técnica for FCM, revisar a Política (3.5, 5, 6, 7, 11) e este inventário (11, 12). |
+| # | Tema | Status |
+|---|---|---|
+| R1 | Idade mínima 16+ por data de nascimento | Decidido (D1, U1). O advogado confirma se basta e as salvaguardas para 16–17 anos |
+| R2 | Transferência internacional (Auth e Crashlytics fora do Brasil) | Declarado na Política 7; mecanismo com o advogado |
+| R3 | Analytics | Decidido: fora (D2) |
+| R4 | Excluir conta no app + link web (Google Play) | Fluxo decidido (pelo app); falta a tela e o link web |
+| R5 | Portabilidade | Pelo Perfil ou e-mail, resposta em até 15 dias |
+| R8 | Texto livre (nomes, descrições, tópicos, notas da sessão, títulos) | A Política orienta a não incluir dados sensíveis |
+| R9 | Registros de acesso (Marco Civil art. 15) | Com o advogado (D3) |
+| R11 | Backups | Decidido: 7 dias |
+| R12 | Marketing | Não há no MVP |
+| R14 | ~~Notificações locais × etapa 10~~ | **Fechado (V1):** locais, decidido em 24/10 |
+| R15 | Histórico de notificações sem TTL ativo | A política de TTL só nasce depois do primeiro aviso gravado (A13). Até lá, avisos não somem sozinhos aos 30 dias |
+| R16 | Permissões do Android ainda não conferidas | Conferir o `AndroidManifest.xml` depois da 3c e ajustar a Política 11 e o formulário do Google Play |
+| R17 | Vigência vencida | A v0.2 previa 01/11/2026 e não foi publicada. Os textos continuam rascunho até o advogado |
