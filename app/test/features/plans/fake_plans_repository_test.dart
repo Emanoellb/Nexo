@@ -21,7 +21,10 @@ Future<(FakePlansRepository, Plan)> _withPlan() async {
       frequency: const DailyFrequency(),
       dailyGoalMinutes: 90,
     ),
-    topicNames: ['Porcentagem', 'Juros simples'],
+    topics: [
+      (name: 'Porcentagem', subjectId: null),
+      (name: 'Juros simples', subjectId: null),
+    ],
   );
   return (repo, plan);
 }

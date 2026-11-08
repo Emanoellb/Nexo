@@ -16,6 +16,8 @@ import 'package:nexo/features/focus/domain/focus_session.dart';
 import 'package:nexo/features/focus/domain/session_split.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
+import 'package:nexo/features/plans/presentation/create_plan_page.dart';
+import 'package:nexo/features/progress/application/progress_actions.dart';
 import 'package:nexo/features/plans/domain/plan.dart';
 import 'package:nexo/features/plans/domain/plan_schedule.dart';
 import 'package:nexo/features/tasks/application/tasks_providers.dart';
@@ -81,6 +83,35 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 }
 
 Finder _button(String label) => find.widgetWithText(NexoButton, label);
+
+/// Toca no botão de criar plano do Início: abre o Criar plano (3 passos,
+/// testado em `create_plan_page_test.dart`). Fecha a tela e cria o mesmo
+/// plano pelas ações do app: 300 dias, todos os dias, 1h 30min.
+Future<void> _createPlanFrom(
+  WidgetTester tester,
+  Finder button, {
+  bool makePrimary = false,
+}) async {
+  await _tap(tester, button);
+  final page = tester.widget<CreatePlanPage>(find.byType(CreatePlanPage));
+  expect(page.makePrimary, makePrimary);
+  await _tap(tester, find.byTooltip('Fechar'));
+  final c = ProviderScope.containerOf(tester.element(find.byType(NexoApp)));
+  await c
+      .read(progressActionsProvider)
+      .createPlan(
+        Plan(
+          id: '',
+          name: 'Concurso Banco Horizonte',
+          startDate: _today,
+          endDate: _today.addDays(299),
+          frequency: const DailyFrequency(),
+          dailyGoalMinutes: 90,
+        ),
+        makePrimary: makePrimary,
+      );
+  await tester.pumpAndSettle();
+}
 
 /// Plano principal de 90 min por dia, iniciado 22 dias atrás, com [doneToday]
 /// minutos hoje, e tarefas variadas.
@@ -167,7 +198,7 @@ void main() {
     expect(find.text('1 de 3'), findsOneWidget);
 
     // 04 Primeiro plano: o cartão do plano e a linha 2 de 3.
-    await _tap(tester, _button('Criar meu primeiro plano'));
+    await _createPlanFrom(tester, _button('Criar meu primeiro plano'));
     expect(find.text('PLANO DE AÇÃO'), findsOneWidget);
     expect(find.text('Dia 1 de 300'), findsOneWidget);
     expect(find.text('Primeiros passos · 2 de 3'), findsOneWidget);
@@ -186,7 +217,7 @@ void main() {
   ) async {
     await _pumpHome(tester);
     // A etapa 2 também é tocável (plano antes da tarefa).
-    await _tap(tester, find.text('Crie seu primeiro plano'));
+    await _createPlanFrom(tester, find.text('Crie seu primeiro plano'));
     expect(find.text('Primeiros passos · 1 de 3'), findsOneWidget);
     expect(
       find.text('Falta sua primeira tarefa: crie pelo + da barra.'),
@@ -350,8 +381,12 @@ void main() {
       expect(find.text('Seu plano principal foi arquivado'), findsOneWidget);
       expect(find.textContaining('dias seguidos'), findsNothing);
 
+      // Painel com os planos ativos; tocar define o principal.
       await _tap(tester, _button('Escolher plano principal'));
-      expect(find.text('Em construção · bloco 3 · Planos'), findsOneWidget);
+      expect(find.text('Inglês para intercâmbio'), findsOneWidget);
+      await _tap(tester, find.text('Inglês para intercâmbio'));
+      expect(find.text('Plano principal definido.'), findsOneWidget);
+      expect(find.text('Seu plano principal foi arquivado'), findsNothing);
     });
 
     testWidgets('encerrado sem outro ativo: "Criar plano" vira o principal', (
@@ -366,8 +401,7 @@ void main() {
       expect(find.text('Encerrado'), findsOneWidget);
       expect(find.text('Seu plano principal foi encerrado'), findsOneWidget);
 
-      await _tap(tester, _button('Criar plano'));
-      expect(find.text('Plano de exemplo 1'), findsOneWidget);
+      await _createPlanFrom(tester, _button('Criar plano'), makePrimary: true);
       expect(find.text('Dia 1 de 300'), findsOneWidget);
     });
   });
@@ -473,7 +507,7 @@ void main() {
   ) async {
     await _pumpHome(tester);
     // Plano e sessão primeiro; falta a tarefa.
-    await _tap(tester, find.text('Crie seu primeiro plano'));
+    await _createPlanFrom(tester, find.text('Crie seu primeiro plano'));
     await _tap(tester, _button('Focar'));
     expect(find.text('Primeiros passos · 2 de 3'), findsOneWidget);
 
@@ -490,15 +524,15 @@ void main() {
       'conclusão', (tester) async {
     await _pumpHome(tester);
     // Plano e sessão primeiro; falta a tarefa.
-    await _tap(tester, find.text('Crie seu primeiro plano'));
+    await _createPlanFrom(tester, find.text('Crie seu primeiro plano'));
     await _tap(tester, _button('Focar'));
     expect(find.text('Primeiros passos · 2 de 3'), findsOneWidget);
 
-    await _tap(tester, _button('Criar tarefa'));
-    await tester.enterText(find.byType(TextField), 'Resumo do capítulo 2');
-    // A Snackbar da sessão (4 s) acompanha a tela e cobre o rodapé.
+    // A Snackbar da sessão (4 s) fica sobre o fim da lista e o rodapé.
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
+    await _tap(tester, _button('Criar tarefa'));
+    await tester.enterText(find.byType(TextField), 'Resumo do capítulo 2');
     // O botão da Nova tarefa (o do Início fica por baixo da tela).
     await _tap(
       tester,
@@ -528,7 +562,7 @@ void main() {
   ) async {
     await _pumpHome(tester);
     // Plano sem tarefa: a sessão não conclui os 3 passos.
-    await _tap(tester, find.text('Crie seu primeiro plano'));
+    await _createPlanFrom(tester, find.text('Crie seu primeiro plano'));
     await _tap(tester, _button('Focar'));
     expect(find.text('Sessão de 25 min registrada.'), findsOneWidget);
   });

@@ -11,6 +11,7 @@ import 'package:nexo/features/notifications/application/notifications_providers.
 import 'package:nexo/features/notifications/data/notifications_repository.dart';
 import 'package:nexo/features/notifications/domain/nexo_notification.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
+import 'package:nexo/features/plans/presentation/plans_page.dart';
 import 'package:nexo/features/tasks/presentation/tasks_page.dart';
 import 'package:nexo/core/ui/ui.dart';
 
@@ -66,9 +67,8 @@ void main() {
 
     await tester.tap(find.byIcon(LucideIcons.target));
     await tester.pumpAndSettle();
-    expect(find.text('Em construção · bloco 3 · Planos'), findsOneWidget);
-    // O nome aparece na barra, no topo da aba e no título provisório.
-    expect(find.text('Planos'), findsNWidgets(3));
+    expect(find.byType(PlansPage), findsOneWidget);
+    expect(find.text('Seus planos aparecem aqui'), findsOneWidget);
     expect(find.textContaining('Olá'), findsNothing);
 
     // "Calendário" virou "Agenda" no texto; a rota é a mesma.

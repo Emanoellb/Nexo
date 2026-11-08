@@ -74,8 +74,8 @@ void main() {
 
   testWidgets('vidro: só a aba visível conta', (tester) async {
     await _pumpReady(tester);
-    // Abre Planos uma vez (monta a aba) e volta ao Início.
-    await tester.tap(find.byIcon(LucideIcons.target));
+    // Abre a Agenda uma vez (monta a aba) e volta ao Início.
+    await tester.tap(find.byIcon(LucideIcons.calendarDays));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(LucideIcons.house));
     await tester.pumpAndSettle();
@@ -85,8 +85,8 @@ void main() {
     await tester.pump();
     expect(_overContent(tester), isFalse);
 
-    // Planos, fora da tela, avisa uma lista longa (ex.: teclado, rotação).
-    _reportList(_pageOf(tester, 'Planos'));
+    // A Agenda, fora da tela, avisa uma lista longa (ex.: teclado, rotação).
+    _reportList(_pageOf(tester, 'Agenda'));
     await tester.pump();
     expect(_overContent(tester), isFalse);
 

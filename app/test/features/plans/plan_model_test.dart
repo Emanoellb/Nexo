@@ -22,7 +22,7 @@ Plan _plan({
   status: status,
   endedOn: endedOn,
   pauses: pauses,
-  reminder: PlanReminder(enabled: true, time: '19:00'),
+  studyTime: '19:30',
 );
 
 void main() {
@@ -70,15 +70,38 @@ void main() {
       expect(() => _plan(pauses: List.filled(101, pause)), throwsArgumentError);
     });
 
-    test('lembrete em HH:mm', () {
+    test('horário do plano em HH:mm; antecedência 0, 15, 30 ou 60', () {
+      expect(() => _plan().copyWith(studyTime: '7:00'), throwsArgumentError);
+      expect(() => _plan().copyWith(studyTime: '24:00'), throwsArgumentError);
       expect(
-        () => PlanReminder(enabled: true, time: '7:00'),
+        () => PlanReminderBefore(enabled: true, minutesBefore: 45),
         throwsArgumentError,
       );
-      expect(
-        () => PlanReminder(enabled: true, time: '24:00'),
-        throwsArgumentError,
+      for (final m in PlanReminderBefore.options) {
+        expect(
+          PlanReminderBefore(enabled: true, minutesBefore: m).minutesBefore,
+          m,
+        );
+      }
+    });
+
+    test('padrões da v0.9: 19:00 e aviso ligado 15 min antes', () {
+      final plan = Plan(
+        id: 'p',
+        name: 'Treino',
+        startDate: const LocalDate(2026, 11, 1),
+        endDate: const LocalDate(2026, 12, 1),
+        frequency: const DailyFrequency(),
+        dailyGoalMinutes: 60,
       );
+      expect(plan.studyTime, '19:00');
+      expect(plan.reminderBefore, PlanReminderBefore.standard);
+      final map = plan.toMap();
+      expect(map['studyTime'], '19:00');
+      expect(map['reminderBefore'], {'enabled': true, 'minutesBefore': 15});
+      expect(map.containsKey('reminder'), isFalse);
+      final back = Plan.fromMap('p', {...map}..remove('studyTime'));
+      expect(back.studyTime, '19:00');
     });
   });
 
