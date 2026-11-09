@@ -14,6 +14,7 @@ import 'package:nexo/features/auth/application/auth_providers.dart';
 import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/focus/domain/focus_session.dart';
 import 'package:nexo/features/focus/domain/session_split.dart';
+import 'package:nexo/features/focus/presentation/focus_page.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/plans/presentation/create_plan_page.dart';
@@ -26,6 +27,9 @@ import 'package:nexo/features/tasks/presentation/task_form_page.dart';
 
 // Quarta, 04/11/2026, 10:00.
 final _now = DateTime(2026, 11, 4, 10);
+
+/// O relógio dos testes que passam pelo Foco (anda com [_focusFor]).
+var _clockNow = _now;
 const _today = LocalDate(2026, 11, 4);
 
 class _FakeConnectivity implements ConnectivitySource {
@@ -56,7 +60,7 @@ Future<ProviderContainer> _pumpHome(
     ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
-        clockProvider.overrideWithValue(clock ?? () => _now),
+        clockProvider.overrideWithValue(clock ?? () => _clockNow),
         localFlagsProvider.overrideWithValue(
           InMemoryLocalFlags(
             firstOpenDone: true,
@@ -83,6 +87,25 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 }
 
 Finder _button(String label) => find.widgetWithText(NexoButton, label);
+
+/// Foco de verdade: [button] abre o Foco, passam [minutes] e a sessão é
+/// salva pelo "Encerrar sessão".
+Future<void> _focusFor(
+  WidgetTester tester,
+  Finder button, {
+  int minutes = 25,
+}) async {
+  await _tap(tester, button);
+  expect(find.byType(FocusPage), findsOneWidget);
+  _clockNow = _clockNow.add(Duration(minutes: minutes));
+  // Avisos de antes (ex.: "Plano criado.") não cobrem o rodapé do Foco.
+  ScaffoldMessenger.of(
+    tester.element(find.byType(FocusPage)),
+  ).removeCurrentSnackBar();
+  await tester.pump(const Duration(seconds: 1));
+  await _tap(tester, _button('Encerrar'));
+  await _tap(tester, _button('Salvar sessão'));
+}
 
 /// Toca no botão de criar plano do Início: abre o Criar plano (3 passos,
 /// testado em `create_plan_page_test.dart`). Fecha a tela e cria o mesmo
@@ -172,6 +195,8 @@ Future<Plan> _otherPlan(ProviderContainer c) => c
     );
 
 void main() {
+  setUp(() => _clockNow = _now);
+
   testWidgets('02 → 05: primeiros passos até a primeira sessão', (
     tester,
   ) async {
@@ -205,7 +230,7 @@ void main() {
     expect(find.text('Comece sua sequência hoje'), findsOneWidget);
 
     // 05 Primeira sessão: a linha some e a Snackbar avisa.
-    await _tap(tester, _button('Focar'));
+    await _focusFor(tester, _button('Focar'));
     expect(find.text('Primeiros passos concluídos.'), findsOneWidget);
     expect(find.textContaining('Primeiros passos ·'), findsNothing);
     expect(find.text('Hoje · 25 min de 1h 30min'), findsOneWidget);
@@ -338,7 +363,7 @@ void main() {
       expect(_button('Focar'), findsNothing);
 
       // Estudou na folga: vale como dia normal.
-      await _tap(tester, _button('Focar mesmo assim'));
+      await _focusFor(tester, _button('Focar mesmo assim'));
       expect(find.text('Folga · sessão extra'), findsOneWidget);
       expect(find.text('Hoje · 25 min de 1h 30min'), findsOneWidget);
       expect(_button('Finalizar o dia'), findsOneWidget);
@@ -508,7 +533,7 @@ void main() {
     await _pumpHome(tester);
     // Plano e sessão primeiro; falta a tarefa.
     await _createPlanFrom(tester, find.text('Crie seu primeiro plano'));
-    await _tap(tester, _button('Focar'));
+    await _focusFor(tester, _button('Focar'));
     expect(find.text('Primeiros passos · 2 de 3'), findsOneWidget);
 
     // O "+" abre a Nova tarefa; fechar sem criar não conclui os passos.
@@ -525,7 +550,7 @@ void main() {
     await _pumpHome(tester);
     // Plano e sessão primeiro; falta a tarefa.
     await _createPlanFrom(tester, find.text('Crie seu primeiro plano'));
-    await _tap(tester, _button('Focar'));
+    await _focusFor(tester, _button('Focar'));
     expect(find.text('Primeiros passos · 2 de 3'), findsOneWidget);
 
     // A Snackbar da sessão (4 s) fica sobre o fim da lista e o rodapé.
@@ -563,7 +588,7 @@ void main() {
     await _pumpHome(tester);
     // Plano sem tarefa: a sessão não conclui os 3 passos.
     await _createPlanFrom(tester, find.text('Crie seu primeiro plano'));
-    await _tap(tester, _button('Focar'));
-    expect(find.text('Sessão de 25 min registrada.'), findsOneWidget);
+    await _focusFor(tester, _button('Focar'));
+    expect(find.text('Sessão salva · +25 min.'), findsOneWidget);
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nexo/features/focus/presentation/session_form_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
@@ -368,8 +369,15 @@ void main() {
       await _tap(tester, find.text('Sessões'));
       expect(find.text('Seg, 2 de novembro'), findsOneWidget);
       expect(find.text('1h · Juros simples'), findsOneWidget);
+      // Registrar horas já vem com este plano; tocar na sessão abre o
+      // Editar sessão.
       await _tap(tester, _button('Registrar horas'));
-      expect(find.text('Em construção · Foco'), findsOneWidget);
+      expect(find.byType(SessionFormPage), findsOneWidget);
+      expect(find.text('Concurso Banco Horizonte'), findsWidgets);
+      await _tap(tester, find.byTooltip('Fechar'));
+      await _tap(tester, find.text('1h · Juros simples'));
+      expect(find.text('Editar sessão'), findsOneWidget);
+      expect(_button('Excluir sessão'), findsOneWidget);
     });
 
     testWidgets('Editar plano: meta nova vale a partir de amanhã', (
