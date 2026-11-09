@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../theme/nexo_theme.dart';
+import '../foundation/nexo_modal_route.dart';
 import '../buttons/nexo_button.dart';
 
 /// `Feedback/Dialog` da lib: 312 de largura, padding XL, gap LG,
@@ -24,19 +25,32 @@ Future<bool> showNexoDialog(
 }) async {
   final c = context.nexoColors;
   final motion = context.motion;
-  final duration = MediaQuery.disableAnimationsOf(context)
-      ? Duration.zero
-      : motion.medium;
-  final confirmed = await showGeneralDialog<bool>(
-    context: context,
-    barrierDismissible: true,
+  final reduce = MediaQuery.disableAnimationsOf(context);
+  // Entra esmaecendo e crescendo de Scale/Enter a 1 (Medium · Enter); sai
+  // esmaecendo (Short · Exit). O scrim esmaece junto.
+  final confirmed = await showNexoModal<bool>(
+    context,
     barrierLabel: cancelLabel,
     barrierColor: c.scrim,
-    transitionDuration: duration,
-    transitionBuilder: (context, animation, _, child) => FadeTransition(
-      opacity: CurvedAnimation(parent: animation, curve: motion.enter),
-      child: child,
-    ),
+    duration: reduce ? Duration.zero : motion.medium,
+    reverseDuration: reduce ? Duration.zero : motion.short,
+    transitionBuilder: (context, animation, _, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: motion.enter,
+        reverseCurve: motion.exit.flipped,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween(
+            begin: motion.scaleEnter,
+            end: 1.0,
+          ).animate(CurvedAnimation(parent: animation, curve: motion.enter)),
+          child: child,
+        ),
+      );
+    },
     pageBuilder: (dialogContext, _, _) => NexoDialog(
       title: title,
       message: message,

@@ -36,6 +36,9 @@ Se esses tokens mudarem, atualize também esses arquivos.
 | `Shape/*` | `context.shape.xs … full` |
 | `Elevation/0..5` | `context.elevation.level(n)` (lista de `BoxShadow`) |
 | `Motion/*` | `context.motion.short`, `.standard` (`Cubic`), `.distanceSmall`… |
+| `Motion/Easing/*` (valores M3 desde 08/11/2026, nomes iguais) | `standard` = `Cubic(0.2, 0, 0, 1)` (M3 standard); `enter` = `Cubic(0.05, 0.7, 0.1, 1)` (emphasized decelerate); `exit` = `Cubic(0.3, 0, 0.8, 0.15)` (emphasized accelerate); `emphasized` = `Curves.easeInOutCubicEmphasized` (curva de 3 pontos, não cabe numa cúbica). Ao fechar, a curva vem com `.flipped` (acelera na saída). Antes eram as curvas do M2 (transições §8.2) |
+| `Motion/Distance/Page` (novo, 08/11/2026) | `context.motion.distancePage` (30, o valor do M3): eixo compartilhado X (detalhes, Perfil, legais, Auth e passos do Criar plano). O `distanceLarge` (16) continua no subir com esmaecimento |
+| `Motion/Scale/Enter` (novo, 08/11/2026) | `context.motion.scaleEnter` (0,92): escala inicial de quem entra no fade through (troca de aba) e no diálogo (padrão de transições, `pen.dev/notas/transicoes-especificacao.md`) |
 | `Motion/Duration/Pulse` e `Motion/Opacity/PulseMin` (novos, 05/11/2026) | `context.motion.pulse` (1050 ms, meio ciclo do pulso) e `context.motion.pulseMinOpacity` (0,55): pulso do `NexoSkeleton`, que fica parado com "reduzir movimento" |
 | `Glass/Blur` | `context.glass.blur` (24). As cores `Colors/Semantic/Glass/*` ficam em `context.nexoColors.glass*`; as de repouso (`Glass/Rest/*`) em `glassRestFill`, `glassRestSheen`, `glassRestEdge` |
 | `Colors/Semantic/Unread` (novo, 04/11/2026) | `context.nexoColors.unread`: fundo da linha de aviso não lido. Claro `#F7F8F9` (igual ao antigo SurfaceContainerLow), escuro `#30353D` (mais claro que o cartão `#262A31`) |
@@ -132,5 +135,28 @@ Decisões da lib (pen.dev), registradas em 05/11/2026 na auditoria de componente
 - **Disciplina sem cor**: o modelo é `{name, icon}`; a cor por disciplina saiu do MVP (regras v0.8 negam `color`). O ícone é um dos 12 do cadastro.
 - **Saudação do Início** (adendo do pacote B, 05/11/2026): `NexoTabHeader(greeting: greetingOf(nome))`, só na aba Início. Duas linhas nos mesmos 64: "Olá, {primeiro nome}" (TitleLarge, OnSurface) e "Início" (BodyMedium, OnSurfaceVariant), uma linha cada, com reticências; lidas como um cabeçalho ("Olá, Ana. Início"). Sem nome: "Olá". As outras abas mantêm o título (HeadingMedium).
 - **Lista em cartão**: `NexoCardList` (= `Content/List` num `NexoCard` com divisores OutlineVariant e recuo LG), usada no Início e em Tarefas. Segue as telas aprovadas do `nexo.app.pen` (`Shape/LG`, sem padding vertical), não o `Content/List` da lib (`Shape/MD` + padding XS): conferido em 05/11/2026.
-- **Linha da disciplina**: só o `Nexo/AcademicProgress` e o chevron, sem ícone (telas aprovadas de Tarefas 11). O ícone escolhido no cadastro ainda não aparece em nenhuma tela.
+- **Linha da disciplina**: `NexoProgressRow` (nome, "x de y entregas", barra, próxima entrega em Error se atrasada) e o chevron, sem ícone (telas aprovadas de Tarefas 11). A mesma linha é usada nos planos e nos objetivos. O ícone escolhido no cadastro ainda não aparece em nenhuma tela.
 - **Cartão**: `NexoCard` (= `Content/Card`: Card/Default, borda Card/Border, `Shape/MD`, padding LG). Não repita a decoração à mão.
+
+## Transições entre telas
+
+Fonte: `pen.dev/notas/transicoes-especificacao.md`, aprovada pelo usuário em 08/11/2026. Código: `app/lib/app/router/nexo_transitions.dart` (`NexoTransitionPage` / `NexoPageMotion`) e `app/lib/app/shell/fade_through_branches.dart`.
+
+| Navegação | Transição | Código |
+|---|---|---|
+| Troca de aba | Fade through: sai esmaecendo nos primeiros 35%; entra esmaecendo e crescendo de `scaleEnter` (0,92) a 1 nos 65% finais · Medium · Standard. O estado de cada aba é mantido | `FadeThroughBranches` no `navigatorContainerBuilder` |
+| Detalhe dentro da aba, detalhe da tarefa, Perfil, Termos, Privacidade e Auth | Eixo compartilhado X: entra da direita (`distancePage`, 30) esmaecendo; a tela de baixo vai para a esquerda (−30) | `NexoPageMotion.sharedAxisX` |
+| Criar ou editar por cima das abas | Sobe esmaecendo; a tela de baixo não se move | `NexoPageMotion.slideUp` |
+| Splash → Login (Hero) e Tutorial | Esmaecimento longo | `NexoPageMotion.fadeLong` |
+| Splash/Login → Início | Esmaecimento | `NexoPageMotion.fade` |
+| Passos do Criar plano | Eixo X só no conteúdo (`distancePage`); o topo e o rodapé ficam | `StepSwitcher` |
+
+- **Durações:** abrir em Medium e fechar ou voltar em Short (a transição inversa), com `Easing/Exit` na volta. O Hero da logo usa Long.
+- **Feedbacks:** Dialog entra esmaecendo e crescendo de `scaleEnter` (Medium · Enter) e sai em Short · Exit; menus entram em Short · Enter e saem em Instant; BottomSheet sobe em Medium · Emphasized e desce em Short · Exit (`showNexoModal` para a saída mais curta).
+- **Menu do toque longo** (§8.4): nasce no ponto tocado (`anchorAt(ponto)`, empurrado para dentro da tela perto das bordas) e cresce dali (`showNexoMenu(growFrom:)`), de `scaleEnter` a 1 com esmaecimento, em Short · Enter; sai em Instant · Exit. Pelo leitor de tela (sem toque), nasce no centro da linha. **Não vibra:** o `NexoTappable` com toque longo desliga o `enableFeedback` do `InkWell` (que vibraria no toque longo) e chama `Feedback.forTap` no toque simples. A vibração continua só ao concluir.
+- **Saída e volta de item de lista** (§8.1, no `NexoCardList`): um filho com chave que some fecha a altura e esmaece nos primeiros 60% (Short · Exit), com os de baixo subindo; o que aparece (Desfazer, mudança de grupo ao pausar ou encerrar) abre na mesma posição e esmaece nos últimos 60% (Medium · Enter). Vários de uma vez saem juntos. Vale para tarefas (Tarefas, Hoje do Início, disciplina), disciplinas, planos e objetivos. Os avisos ainda não têm excluir nem limpar. Com "reduzir movimento", some e reaparece na hora.
+  - Não feito: mandar o foco do leitor de tela para o item seguinte depois de excluir. O Flutter não tem uma forma direta de mover o foco do TalkBack; a Snackbar com "Desfazer" continua sendo o anúncio.
+- **Reduzir movimento** (`MediaQuery.disableAnimations`): duração zero em tudo, inclusive na troca de aba.
+- **Voltar preditivo do Android** (MVP, decisão do usuário de 08/11/2026, opção A): `android:enableOnBackInvokedCallback="true"` no manifesto. O gesto funciona, mas **sem prévia ao vivo**: durante o arrasto a tela não se mexe e, ao soltar, roda a transição inversa da tela. No Flutter 3.47 com go_router 18, a prévia ao vivo só existe nas páginas Material padrão (`PredictiveBackPageTransitionsBuilder`), e as transições do Nexo são personalizadas. **A prévia ao vivo nas transições personalizadas fica para depois do MVP.**
+  - Casos com `PopScope` (sem prévia): criar ou editar com alterações abre "Descartar alterações?"; Criar plano nos passos 2 e 3 recua um passo; outra aba vai ao Início com fade through; no Início, o diálogo "Deseja sair do app?" continua (decisão do usuário).
+- **Fora do MVP:** container transform (o cartão "crescendo" até o detalhe). O Foco (subir ao entrar, minimizar com a Barra do foco) entra com a tela do Foco.

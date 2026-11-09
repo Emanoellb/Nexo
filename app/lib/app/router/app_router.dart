@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/nexo_theme.dart';
 import '../../core/ui/ui.dart';
 import '../../features/auth/application/auth_providers.dart';
 import '../../features/auth/domain/entry_status.dart';
@@ -24,9 +23,12 @@ import '../../features/plans/presentation/plan_detail_page.dart';
 import '../../features/plans/presentation/plans_page.dart';
 import '../../features/tasks/presentation/task_form_page.dart';
 import '../../features/tasks/presentation/tasks_page.dart';
+import '../shell/fade_through_branches.dart';
 import '../shell/nexo_shell.dart';
+import '../shell/tab_root.dart';
 import '../shell/under_construction_page.dart';
 import 'entry_redirect.dart';
+import 'nexo_transitions.dart';
 import 'routes.dart';
 
 /// Roteador do app. Reavalia o redirecionamento sempre que o status de
@@ -62,11 +64,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.login,
         // Saída da splash sem sessão: o símbolo "voa" até a logo do Login
         // (Hero `nexoLogoHeroTag`).
-        pageBuilder: (context, state) => _fadePage(
+        pageBuilder: (context, state) => _page(
           context,
           state,
           LoginPage(initialEmail: state.extra as String?),
-          long: true,
+          NexoPageMotion.fadeLong,
         ),
       ),
       for (final (path, page) in [
@@ -92,19 +94,25 @@ final routerProvider = Provider<GoRouter>((ref) {
               const LegalDocumentPage(document: LegalDocument.privacy),
         ),
       ])
+        // Auth (Cadastro, Esqueci a senha, 03b, Verificar) e documentos
+        // legais: eixo X, "para dentro" a partir do Login.
         GoRoute(
           path: path,
           pageBuilder: (context, state) =>
-              _fadePage(context, state, page(state)),
+              _page(context, state, page(state), NexoPageMotion.sharedAxisX),
         ),
       GoRoute(
         path: AppRoutes.welcome,
-        pageBuilder: (context, state) =>
-            _fadePage(context, state, const TutorialPage(), long: true),
+        pageBuilder: (context, state) => _page(
+          context,
+          state,
+          const TutorialPage(),
+          NexoPageMotion.fadeLong,
+        ),
       ),
-      StatefulShellRoute.indexedStack(
+      StatefulShellRoute(
         // Saída da splash com sessão: esmaece até o Início.
-        pageBuilder: (context, state, navigationShell) => _fadePage(
+        pageBuilder: (context, state, navigationShell) => _page(
           context,
           state,
           NexoShell(
@@ -112,13 +120,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             // Os detalhes dentro das abas têm a própria barra de topo.
             showTabHeader: !AppRoutes.isTabDetail(state.uri.path),
           ),
+          NexoPageMotion.fade,
         ),
+        // Troca de aba em fade through, mantendo o estado de cada aba.
+        navigatorContainerBuilder: (context, navigationShell, children) =>
+            FadeThroughBranches(
+              currentIndex: navigationShell.currentIndex,
+              children: children,
+            ),
         branches: [
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: AppRoutes.home,
-                builder: (context, state) => const HomePage(),
+                pageBuilder: (context, state) => _page(
+                  context,
+                  state,
+                  const NexoTabRoot(child: HomePage()),
+                  NexoPageMotion.none,
+                ),
               ),
             ],
           ),
@@ -126,12 +146,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.tasks,
-                builder: (context, state) => const TasksPage(),
+                pageBuilder: (context, state) => _page(
+                  context,
+                  state,
+                  const NexoTabRoot(child: TasksPage()),
+                  NexoPageMotion.none,
+                ),
                 routes: [
                   GoRoute(
                     path: AppRoutes.subjectDetailSegment,
-                    builder: (context, state) => SubjectDetailPage(
-                      subjectId: state.pathParameters['id']!,
+                    pageBuilder: (context, state) => _page(
+                      context,
+                      state,
+                      SubjectDetailPage(subjectId: state.pathParameters['id']!),
+                      NexoPageMotion.sharedAxisX,
                     ),
                   ),
                 ],
@@ -142,17 +170,30 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.plans,
-                builder: (context, state) => const PlansPage(),
+                pageBuilder: (context, state) => _page(
+                  context,
+                  state,
+                  const NexoTabRoot(child: PlansPage()),
+                  NexoPageMotion.none,
+                ),
                 routes: [
                   GoRoute(
                     path: AppRoutes.planDetailSegment,
-                    builder: (context, state) =>
-                        PlanDetailPage(planId: state.pathParameters['id']!),
+                    pageBuilder: (context, state) => _page(
+                      context,
+                      state,
+                      PlanDetailPage(planId: state.pathParameters['id']!),
+                      NexoPageMotion.sharedAxisX,
+                    ),
                   ),
                   GoRoute(
                     path: AppRoutes.goalDetailSegment,
-                    builder: (context, state) =>
-                        GoalDetailPage(goalId: state.pathParameters['id']!),
+                    pageBuilder: (context, state) => _page(
+                      context,
+                      state,
+                      GoalDetailPage(goalId: state.pathParameters['id']!),
+                      NexoPageMotion.sharedAxisX,
+                    ),
                   ),
                 ],
               ),
@@ -166,8 +207,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               routes: [
                 GoRoute(
                   path: path,
-                  builder: (context, state) =>
-                      UnderConstructionPage(title: title, block: block),
+                  pageBuilder: (context, state) => _page(
+                    context,
+                    state,
+                    NexoTabRoot(
+                      child: UnderConstructionPage(title: title, block: block),
+                    ),
+                    NexoPageMotion.none,
+                  ),
                 ),
               ],
             ),
@@ -177,53 +224,73 @@ final routerProvider = Provider<GoRouter>((ref) {
       // toque na tarefa), em tela cheia por cima das abas.
       GoRoute(
         path: AppRoutes.newTask,
-        pageBuilder: (context, state) =>
-            _fadePage(context, state, const TaskFormPage.create()),
+        pageBuilder: (context, state) => _page(
+          context,
+          state,
+          const TaskFormPage.create(),
+          NexoPageMotion.slideUp,
+        ),
       ),
       GoRoute(
         path: AppRoutes.taskDetail,
-        pageBuilder: (context, state) => _fadePage(
+        pageBuilder: (context, state) => _page(
           context,
           state,
           TaskFormPage.detail(taskId: state.pathParameters['id']!),
+          NexoPageMotion.sharedAxisX,
         ),
       ),
       // Criar plano (3 passos) e Editar plano, em tela cheia.
       GoRoute(
         path: AppRoutes.newPlan,
-        pageBuilder: (context, state) => _fadePage(
+        pageBuilder: (context, state) => _page(
           context,
           state,
           CreatePlanPage(
             makePrimary: state.uri.queryParameters['primary'] == '1',
           ),
+          NexoPageMotion.slideUp,
         ),
       ),
       GoRoute(
         path: AppRoutes.editPlan,
-        pageBuilder: (context, state) => _fadePage(
+        pageBuilder: (context, state) => _page(
           context,
           state,
           EditPlanPage(planId: state.pathParameters['id']!),
+          NexoPageMotion.slideUp,
         ),
       ),
       // Telas por cima das abas ainda sem design ou de áreas futuras.
-      for (final (path, title, block) in const [
-        (AppRoutes.profile, 'Perfil', 'bloco 11 · Perfil'),
+      // Perfil: abrir algo existente (eixo X). Registrar horas e Editar
+      // sessão: editar (subir).
+      for (final (path, title, block, motion) in const [
+        (
+          AppRoutes.profile,
+          'Perfil',
+          'bloco 11 · Perfil',
+          NexoPageMotion.sharedAxisX,
+        ),
         // Destinos provisórios da aba Sessões: entram na feat/foco.
-        (AppRoutes.logHours, 'Registrar horas', 'Foco'),
-        (AppRoutes.editSession, 'Editar sessão', 'Foco'),
+        (AppRoutes.logHours, 'Registrar horas', 'Foco', NexoPageMotion.slideUp),
+        (
+          AppRoutes.editSession,
+          'Editar sessão',
+          'Foco',
+          NexoPageMotion.slideUp,
+        ),
       ])
         GoRoute(
           path: path,
           // Por cima das abas, com voltar (Perfil pelo avatar do topo).
-          pageBuilder: (context, state) => _fadePage(
+          pageBuilder: (context, state) => _page(
             context,
             state,
             Scaffold(
               appBar: NexoTopAppBar(title: title, onBack: () => context.pop()),
               body: UnderConstructionPage(title: title, block: block),
             ),
+            motion,
           ),
         ),
     ],
@@ -236,28 +303,10 @@ final routerProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
-/// Transição em esmaecimento com os tokens de movimento: `Medium` (250 ms)
-/// ou, com [long], `Long` (350 ms, tempo do Hero da logo). Sem movimento com
-/// "reduzir movimento".
-Page<void> _fadePage(
+/// Página com o padrão de transições (ver [NexoPageMotion]).
+Page<void> _page(
   BuildContext context,
   GoRouterState state,
-  Widget child, {
-  bool long = false,
-}) {
-  final motion = context.motion;
-  final duration = MediaQuery.disableAnimationsOf(context)
-      ? Duration.zero
-      : (long ? motion.long : motion.medium);
-  return CustomTransitionPage<void>(
-    key: state.pageKey,
-    child: child,
-    transitionDuration: duration,
-    reverseTransitionDuration: duration,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-        FadeTransition(
-          opacity: CurvedAnimation(parent: animation, curve: motion.standard),
-          child: child,
-        ),
-  );
-}
+  Widget child,
+  NexoPageMotion motion,
+) => NexoTransitionPage<void>.of(context, state, child, motion);

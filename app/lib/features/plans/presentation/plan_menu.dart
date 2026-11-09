@@ -160,6 +160,8 @@ Future<void> showPlanMenu(
   final chosen = await showNexoMenu(
     context,
     anchor: anchor,
+    // Toque longo: âncora no ponto tocado, e o menu cresce dali.
+    growFrom: anchor.size == Size.zero ? anchor.topLeft : null,
     label: 'Ações do plano',
     items: [for (final (item, _) in options) item],
   );

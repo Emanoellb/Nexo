@@ -94,7 +94,16 @@ class _NexoTappableState extends State<NexoTappable> {
         shape: shape,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: widget.onTap,
+          // O toque longo não vibra (a vibração é só ao concluir,
+          // transições §8.4): sem o retorno padrão do InkWell quando há toque
+          // longo, e o toque simples mantém o retorno do sistema.
+          enableFeedback: widget.onLongPress == null,
+          onTap: widget.onTap == null || widget.onLongPress == null
+              ? widget.onTap
+              : () {
+                  Feedback.forTap(context);
+                  widget.onTap!();
+                },
           onLongPress: widget.onLongPress,
           focusNode: widget.focusNode,
           autofocus: widget.autofocus,

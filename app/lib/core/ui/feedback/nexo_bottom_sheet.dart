@@ -53,7 +53,9 @@ Future<T?> showNexoBottomSheetWith<T>(
     sheetAnimationStyle: AnimationStyle(
       duration: reduce ? Duration.zero : motion.medium,
       reverseDuration: reduce ? Duration.zero : motion.short,
-      curve: motion.enter,
+      // Sobe em Medium · Emphasized; desce em Short · Exit.
+      curve: motion.emphasized,
+      reverseCurve: motion.exit.flipped,
     ),
     builder: builder,
   );

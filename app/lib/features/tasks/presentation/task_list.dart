@@ -100,6 +100,8 @@ mixin TaskListActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     final chosen = await showNexoMenu(
       context,
       anchor: anchor,
+      // Âncora no ponto tocado: o menu cresce dali.
+      growFrom: anchor.size == Size.zero ? anchor.topLeft : null,
       label: 'Ações da tarefa',
       items: [for (final (item, _) in options) item],
     );
@@ -118,55 +120,63 @@ mixin TaskListActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     return Builder(
       key: ValueKey(task.id),
       builder: (rowContext) {
+        // O menu do toque longo nasce no ponto tocado (transições §8.4);
+        // sem toque (leitor de tela), no centro da linha.
+        Offset? lastDown;
         Rect anchor() {
           final box = rowContext.findRenderObject()! as RenderBox;
-          return box.localToGlobal(Offset.zero) & box.size;
+          return anchorAt(
+            lastDown ?? box.localToGlobal(box.size.center(Offset.zero)),
+          );
         }
 
-        return NexoSwipeActions(
-          startAction: task.completed
-              ? null
-              : NexoSwipeAction(
-                  icon: LucideIcons.check,
-                  label: 'Concluir',
-                  background: c.success,
-                  foreground: c.onSuccess,
-                  onTrigger: () => completeTask(task),
-                ),
-          endActions: [
-            if (task.canPostpone(now: now))
-              NexoSwipeAction(
-                icon: LucideIcons.calendarClock,
-                label: 'Adiar',
-                background: c.primaryContainer,
-                foreground: c.onPrimaryContainer,
-                onTrigger: () => postponeTask(task),
-              ),
-            NexoSwipeAction(
-              icon: LucideIcons.trash2,
-              label: 'Excluir',
-              background: c.error,
-              foreground: c.onError,
-              onTrigger: () => deleteTask(task),
-            ),
-          ],
-          child: NexoTaskItem(
-            title: task.title,
-            completed: task.completed,
-            onCompletedChanged: (value) => setTaskCompleted(task, value),
-            subject: subject,
-            deadline: completedSection && task.completed
-                ? completedFor(task.completedAt ?? now, now)
-                : task.dueAt == null
+        return Listener(
+          onPointerDown: (e) => lastDown = e.position,
+          child: NexoSwipeActions(
+            startAction: task.completed
                 ? null
-                : deadlineFor(
-                    task.dueAt!,
-                    now,
-                    completed: task.completed,
-                    markToday: true,
+                : NexoSwipeAction(
+                    icon: LucideIcons.check,
+                    label: 'Concluir',
+                    background: c.success,
+                    foreground: c.onSuccess,
+                    onTrigger: () => completeTask(task),
                   ),
-            onTap: () => openTask(task),
-            onLongPress: () => showTaskMenu(task, anchor()),
+            endActions: [
+              if (task.canPostpone(now: now))
+                NexoSwipeAction(
+                  icon: LucideIcons.calendarClock,
+                  label: 'Adiar',
+                  background: c.primaryContainer,
+                  foreground: c.onPrimaryContainer,
+                  onTrigger: () => postponeTask(task),
+                ),
+              NexoSwipeAction(
+                icon: LucideIcons.trash2,
+                label: 'Excluir',
+                background: c.error,
+                foreground: c.onError,
+                onTrigger: () => deleteTask(task),
+              ),
+            ],
+            child: NexoTaskItem(
+              title: task.title,
+              completed: task.completed,
+              onCompletedChanged: (value) => setTaskCompleted(task, value),
+              subject: subject,
+              deadline: completedSection && task.completed
+                  ? completedFor(task.completedAt ?? now, now)
+                  : task.dueAt == null
+                  ? null
+                  : deadlineFor(
+                      task.dueAt!,
+                      now,
+                      completed: task.completed,
+                      markToday: true,
+                    ),
+              onTap: () => openTask(task),
+              onLongPress: () => showTaskMenu(task, anchor()),
+            ),
           ),
         );
       },

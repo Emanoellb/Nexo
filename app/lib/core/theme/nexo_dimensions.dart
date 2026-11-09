@@ -270,8 +270,10 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
     required this.distanceSmall,
     required this.distanceMedium,
     required this.distanceLarge,
+    this.distancePage = 30,
     required this.pulse,
     required this.pulseMinOpacity,
+    this.scaleEnter = 0.92,
   });
 
   static const standardMotion = NexoMotion(
@@ -279,15 +281,19 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
     short: Duration(milliseconds: 150),
     medium: Duration(milliseconds: 250),
     long: Duration(milliseconds: 350),
-    standard: Cubic(0.4, 0, 0.2, 1),
-    enter: Cubic(0, 0, 0.2, 1),
-    exit: Cubic(0.4, 0, 1, 1),
-    emphasized: Cubic(0.2, 0, 0, 1),
+    // Curvas do M3 (transições §8.2, aprovadas em 08/11/2026): os nomes
+    // ficam, os valores mudam.
+    standard: Cubic(0.2, 0, 0, 1),
+    enter: Cubic(0.05, 0.7, 0.1, 1),
+    exit: Cubic(0.3, 0, 0.8, 0.15),
+    emphasized: Curves.easeInOutCubicEmphasized,
     distanceSmall: 4,
     distanceMedium: 8,
     distanceLarge: 16,
+    distancePage: 30,
     pulse: Duration(milliseconds: 1050),
     pulseMinOpacity: 0.55,
+    scaleEnter: 0.92,
   );
 
   /// `Motion/Duration/Instant`
@@ -302,16 +308,17 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
   /// `Motion/Duration/Long`
   final Duration long;
 
-  /// `Motion/Easing/Standard`
+  /// `Motion/Easing/Standard` (M3 standard, 0.2, 0, 0, 1).
   final Curve standard;
 
-  /// `Motion/Easing/Enter`
+  /// `Motion/Easing/Enter` (M3 emphasized decelerate, 0.05, 0.7, 0.1, 1).
   final Curve enter;
 
-  /// `Motion/Easing/Exit`
+  /// `Motion/Easing/Exit` (M3 emphasized accelerate, 0.3, 0, 0.8, 0.15).
   final Curve exit;
 
-  /// `Motion/Easing/Emphasized`
+  /// `Motion/Easing/Emphasized` (M3 emphasized, curva de 3 pontos:
+  /// `Curves.easeInOutCubicEmphasized`).
   final Curve emphasized;
 
   /// `Motion/Distance/Small`
@@ -320,8 +327,12 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
   /// `Motion/Distance/Medium`
   final double distanceMedium;
 
-  /// `Motion/Distance/Large`
+  /// `Motion/Distance/Large` (16): subir com esmaecimento.
   final double distanceLarge;
+
+  /// `Motion/Distance/Page` (30, o valor do M3): eixo compartilhado X
+  /// (detalhes, Perfil, legais, Auth e passos do Criar plano).
+  final double distancePage;
 
   /// `Motion/Duration/Pulse` (1050 ms): meia-volta do pulso do skeleton
   /// (com reverse, em laço). Lib, 05/11/2026.
@@ -329,6 +340,11 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
 
   /// `Motion/Opacity/PulseMin` (0,55): opacidade mínima do pulso (vai até 1).
   final double pulseMinOpacity;
+
+  /// `Motion/Scale/Enter` (0,92): escala inicial de quem entra no fade
+  /// through (troca de aba) e no diálogo. Padrão do M3 (transições,
+  /// aprovado em 08/11/2026).
+  final double scaleEnter;
 
   @override
   NexoMotion copyWith({
@@ -343,8 +359,10 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
     double? distanceSmall,
     double? distanceMedium,
     double? distanceLarge,
+    double? distancePage,
     Duration? pulse,
     double? pulseMinOpacity,
+    double? scaleEnter,
   }) {
     return NexoMotion(
       instant: instant ?? this.instant,
@@ -358,8 +376,10 @@ class NexoMotion extends ThemeExtension<NexoMotion> {
       distanceSmall: distanceSmall ?? this.distanceSmall,
       distanceMedium: distanceMedium ?? this.distanceMedium,
       distanceLarge: distanceLarge ?? this.distanceLarge,
+      distancePage: distancePage ?? this.distancePage,
       pulse: pulse ?? this.pulse,
       pulseMinOpacity: pulseMinOpacity ?? this.pulseMinOpacity,
+      scaleEnter: scaleEnter ?? this.scaleEnter,
     );
   }
 

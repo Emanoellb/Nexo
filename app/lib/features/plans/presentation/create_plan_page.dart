@@ -47,6 +47,9 @@ class _CreatePlanPageState extends ConsumerState<CreatePlanPage>
   late final PlanDraft _initial;
   final _topics = <NewTopic>[];
   int _step = 0;
+
+  /// Direção da última troca de passo (avançar ou voltar).
+  bool _forward = true;
   bool _showErrors = false;
   bool _saving = false;
 
@@ -79,7 +82,10 @@ class _CreatePlanPageState extends ConsumerState<CreatePlanPage>
 
   void _back() {
     if (_step > 0) {
-      setState(() => _step--);
+      setState(() {
+        _forward = false;
+        _step--;
+      });
     } else {
       _close();
     }
@@ -101,6 +107,7 @@ class _CreatePlanPageState extends ConsumerState<CreatePlanPage>
     }
     setState(() {
       _showErrors = false;
+      _forward = true;
       _step++;
     });
   }
@@ -238,15 +245,21 @@ class _CreatePlanPageState extends ConsumerState<CreatePlanPage>
               ),
             ),
             Expanded(
-              child: SingleChildScrollView(
-                key: ValueKey(_step),
-                padding: EdgeInsets.fromLTRB(
-                  spacing.lg,
-                  spacing.md,
-                  spacing.lg,
-                  spacing.lg,
+              // Só o conteúdo do passo desliza (eixo X); o topo e o rodapé
+              // ficam.
+              child: StepSwitcher(
+                step: _step,
+                forward: _forward,
+                child: SingleChildScrollView(
+                  key: ValueKey(_step),
+                  padding: EdgeInsets.fromLTRB(
+                    spacing.lg,
+                    spacing.md,
+                    spacing.lg,
+                    spacing.lg,
+                  ),
+                  child: content,
                 ),
-                child: content,
               ),
             ),
             SafeArea(
@@ -362,6 +375,70 @@ class _TopicsStep extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Troca de passo em eixo compartilhado X (transições, 08/11/2026): o passo
+/// novo entra pela direita ao avançar (pela esquerda ao voltar) e esmaece;
+/// o anterior sai para o outro lado. Avançar em Medium, voltar em Short;
+/// com "reduzir movimento", corte seco.
+class StepSwitcher extends StatelessWidget {
+  const StepSwitcher({
+    super.key,
+    required this.step,
+    required this.forward,
+    required this.child,
+  });
+
+  final int step;
+  final bool forward;
+
+  /// Com a chave do passo (ex.: `ValueKey(step)`).
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final motion = context.motion;
+    final reduce = MediaQuery.disableAnimationsOf(context);
+    final duration = reduce
+        ? Duration.zero
+        : (forward ? motion.medium : motion.short);
+    final distance = motion.distancePage;
+    return AnimatedSwitcher(
+      duration: duration,
+      reverseDuration: duration,
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.topCenter,
+        children: [...previous, ?current],
+      ),
+      transitionBuilder: (child, animation) {
+        final entering = child.key == ValueKey(step);
+        // Quem entra vem do lado do avanço; quem sai vai para o outro.
+        final side = (forward ? 1 : -1) * (entering ? 1 : -1);
+        final moving = CurvedAnimation(
+          parent: animation,
+          curve: motion.emphasized,
+        );
+        final fade = CurvedAnimation(
+          parent: animation,
+          curve: entering
+              ? Interval(0.3, 1, curve: motion.standard)
+              : Interval(0.7, 1, curve: motion.standard),
+        );
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) => Opacity(
+            opacity: fade.value,
+            child: Transform.translate(
+              offset: Offset(side * distance * (1 - moving.value), 0),
+              child: child,
+            ),
+          ),
+          child: child,
+        );
+      },
+      child: child,
     );
   }
 }

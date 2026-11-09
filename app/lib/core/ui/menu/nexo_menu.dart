@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../theme/nexo_theme.dart';
+import '../foundation/nexo_modal_route.dart';
 import '../foundation/nexo_tappable.dart';
 
 /// Um item de [showNexoMenu].
@@ -32,6 +33,10 @@ class NexoMenuItem {
 /// (cresce com a fonte ampliada); se não couber nem acima nem abaixo, fica
 /// dentro da tela e rola. Fecha ao escolher, tocar fora ou voltar.
 ///
+/// Com [growFrom] (toque longo, transições §8.4), o menu cresce desse ponto
+/// (global) de `Scale/Enter` a 1, esmaecendo, em Short · Enter; a âncora do
+/// toque longo é o próprio ponto ([anchorAt]).
+///
 /// Devolve o índice escolhido, ou `null`.
 Future<int?> showNexoMenu(
   BuildContext context, {
@@ -39,21 +44,45 @@ Future<int?> showNexoMenu(
   required List<NexoMenuItem> items,
   String label = 'Menu',
   bool alignEnd = true,
+  Offset? growFrom,
 }) {
   final c = context.nexoColors;
   final spacing = context.spacing;
-  final duration = MediaQuery.disableAnimationsOf(context)
-      ? Duration.zero
-      : context.motion.short;
+  final motion = context.motion;
+  final reduce = MediaQuery.disableAnimationsOf(context);
 
-  return showGeneralDialog<int>(
-    context: context,
-    barrierDismissible: true,
+  // Entra esmaecendo em Short · Enter; sai em Instant · Exit.
+  return showNexoModal<int>(
+    context,
     barrierLabel: 'Fechar $label',
     barrierColor: c.scrim.withValues(alpha: 0),
-    transitionDuration: duration,
-    transitionBuilder: (context, animation, _, child) =>
-        FadeTransition(opacity: animation, child: child),
+    duration: reduce ? Duration.zero : motion.short,
+    reverseDuration: reduce ? Duration.zero : motion.instant,
+    transitionBuilder: (context, animation, _, child) {
+      final faded = FadeTransition(
+        opacity: CurvedAnimation(
+          parent: animation,
+          curve: motion.enter,
+          reverseCurve: motion.exit.flipped,
+        ),
+        child: child,
+      );
+      final origin = growFrom;
+      if (origin == null) return faded;
+      // Cresce do ponto tocado (a página do menu ocupa a tela inteira, então
+      // a origem global serve direto).
+      final grow = CurvedAnimation(parent: animation, curve: motion.enter);
+      return AnimatedBuilder(
+        animation: grow,
+        builder: (context, child) => Transform.scale(
+          scale: motion.scaleEnter + (1 - motion.scaleEnter) * grow.value,
+          alignment: Alignment.topLeft,
+          origin: origin,
+          child: child,
+        ),
+        child: faded,
+      );
+    },
     pageBuilder: (menuContext, _, _) => CustomSingleChildLayout(
       delegate: _MenuLayout(
         anchor: anchor,
@@ -252,3 +281,8 @@ class _MenuRow extends StatelessWidget {
     );
   }
 }
+
+/// Âncora de menu no ponto tocado (toque longo): um retângulo vazio ali. O
+/// menu nasce preso a ele e é empurrado para dentro da tela perto das
+/// bordas.
+Rect anchorAt(Offset point) => Rect.fromLTWH(point.dx, point.dy, 0, 0);

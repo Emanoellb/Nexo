@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../theme/nexo_theme.dart';
 import '../feedback/nexo_linear_progress.dart';
 import '../foundation/nexo_tappable.dart';
+import '../menu/nexo_menu.dart';
 
 /// Linha de lista com progresso (Planos 02 e 09, Disciplinas): nome
 /// (LabelMedium 600) e valor à direita ("Dia 23 de 300", "Até jul/2027",
@@ -49,11 +50,17 @@ class NexoProgressRow extends StatelessWidget {
 
     return Builder(
       builder: (rowContext) {
+        // Onde o dedo tocou (para o menu nascer ali).
+        Offset? lastDown;
         final longPress = onLongPress == null
             ? null
             : () {
+                // O menu nasce no ponto tocado; sem toque (leitor de tela),
+                // no centro da linha.
                 final box = rowContext.findRenderObject()! as RenderBox;
-                onLongPress!(box.localToGlobal(Offset.zero) & box.size);
+                final point =
+                    lastDown ?? box.localToGlobal(box.size.center(Offset.zero));
+                onLongPress!(anchorAt(point));
               };
         return Semantics(
           button: true,
@@ -62,59 +69,64 @@ class NexoProgressRow extends StatelessWidget {
           onLongPress: longPress,
           onLongPressHint: longPress == null ? null : longPressHint,
           excludeSemantics: true,
-          child: NexoTappable(
-            onTap: onTap,
-            onLongPress: longPress,
-            borderRadius: BorderRadius.zero,
-            child: Padding(
-              padding: EdgeInsets.all(spacing.lg),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: spacing.sm,
-                          children: [
-                            Text(
-                              title,
-                              style: context
-                                  .textStyle(NexoTextStyles.labelMediumEmphasis)
-                                  .copyWith(color: c.onSurface),
+          child: Listener(
+            onPointerDown: (e) => lastDown = e.position,
+            child: NexoTappable(
+              onTap: onTap,
+              onLongPress: longPress,
+              borderRadius: BorderRadius.zero,
+              child: Padding(
+                padding: EdgeInsets.all(spacing.lg),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: spacing.sm,
+                            children: [
+                              Text(
+                                title,
+                                style: context
+                                    .textStyle(
+                                      NexoTextStyles.labelMediumEmphasis,
+                                    )
+                                    .copyWith(color: c.onSurface),
+                              ),
+                              Text(value, style: small),
+                            ],
+                          ),
+                          if (progress != null) ...[
+                            SizedBox(height: spacing.sm),
+                            NexoLinearProgress(
+                              value: progress!,
+                              semanticsLabel: title,
+                              semanticsValue: progressSemantics,
                             ),
-                            Text(value, style: small),
                           ],
-                        ),
-                        if (progress != null) ...[
-                          SizedBox(height: spacing.sm),
-                          NexoLinearProgress(
-                            value: progress!,
-                            semanticsLabel: title,
-                            semanticsValue: progressSemantics,
-                          ),
+                          if (line != null) ...[
+                            SizedBox(height: spacing.sm),
+                            Text(
+                              line!,
+                              style: lineIsError
+                                  ? small.copyWith(color: c.error)
+                                  : small,
+                            ),
+                          ],
                         ],
-                        if (line != null) ...[
-                          SizedBox(height: spacing.sm),
-                          Text(
-                            line!,
-                            style: lineIsError
-                                ? small.copyWith(color: c.error)
-                                : small,
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
-                  SizedBox(width: spacing.md),
-                  Icon(
-                    LucideIcons.chevronRight,
-                    size: 20,
-                    color: c.iconSecondary,
-                  ),
-                ],
+                    SizedBox(width: spacing.md),
+                    Icon(
+                      LucideIcons.chevronRight,
+                      size: 20,
+                      color: c.iconSecondary,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -10,6 +10,7 @@ import '../../features/notifications/application/notifications_providers.dart';
 import '../../features/notifications/domain/nexo_notification.dart';
 import '../../features/notifications/presentation/notifications_panel.dart';
 import '../router/routes.dart';
+import 'tab_root.dart';
 
 /// "Reduzir transparência": troca o vidro da barra pela versão sólida.
 /// O Android não expõe essa preferência ao Flutter [NC], então ela será um
@@ -57,6 +58,9 @@ class NexoShell extends ConsumerStatefulWidget {
 
 class _NexoShellState extends ConsumerState<NexoShell> {
   final _bellKey = GlobalKey();
+
+  /// Altura medida do topo das abas (cresce com a fonte ampliada).
+  double? _headerHeight;
   final _fabKey = GlobalKey();
 
   /// Por aba: há conteúdo passando por baixo da barra (vidro adaptativo)?
@@ -175,36 +179,66 @@ class _NexoShellState extends ConsumerState<NexoShell> {
         // O conteúdo rola por trás do vidro. O Scaffold soma a altura da barra
         // ao padding de baixo, e a Snackbar flutuante aparece acima dela.
         extendBody: true,
-        body: Column(
+        // O topo das abas fica parado, atrás das abas: as telas raiz começam
+        // abaixo dele (NexoTabRoot) e os detalhes, opacos, entram por cima e
+        // o cobrem. Antes ele sumia e voltava no meio da transição do
+        // detalhe, e a tela saltava 64 px (bug relatado em 08/11/2026).
+        body: Stack(
           children: [
-            if (widget.showTabHeader)
-              NexoTabHeader(
-                title: nexoDestinations[_shell.currentIndex].label,
-                unreadCount: ref.watch(unreadNotificationsProvider),
-                onNotifications: _openNotifications,
-                bellKey: _bellKey,
-                initials: initialsOf(name),
-                onProfile: () => context.push(AppRoutes.profile),
-                // Saudação só no Início (adendo do pacote B, 05/11/2026).
-                greeting: _shell.currentIndex == 0 ? greetingOf(name) : null,
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SizeReporter(
+                onHeight: (h) {
+                  if (mounted && h != _headerHeight) {
+                    setState(() => _headerHeight = h);
+                  }
+                },
+                // Coberto por um detalhe: fora do leitor de tela e do toque.
+                child: ExcludeSemantics(
+                  excluding: !widget.showTabHeader,
+                  child: IgnorePointer(
+                    ignoring: !widget.showTabHeader,
+                    child: NexoTabHeader(
+                      title: nexoDestinations[_shell.currentIndex].label,
+                      unreadCount: ref.watch(unreadNotificationsProvider),
+                      onNotifications: _openNotifications,
+                      bellKey: _bellKey,
+                      initials: initialsOf(name),
+                      onProfile: () => context.push(AppRoutes.profile),
+                      // Saudação só no Início (adendo do pacote B,
+                      // 05/11/2026).
+                      greeting: _shell.currentIndex == 0
+                          ? greetingOf(name)
+                          : null,
+                    ),
+                  ),
+                ),
               ),
-            // O topo já respeita a barra de status.
-            Expanded(
+            ),
+            Positioned.fill(
               child: NotificationListener<ScrollMetricsNotification>(
                 onNotification: (n) => _onScroll(n.metrics, n.depth, n.context),
                 child: NotificationListener<ScrollUpdateNotification>(
                   onNotification: (n) =>
                       _onScroll(n.metrics, n.depth, n.context),
-                  // O contexto de dentro do Scaffold: é nele que o padding de
-                  // baixo já inclui a altura da barra (extendBody). Com o de
-                  // fora, as listas ficavam com 0 embaixo e o fim delas ia
-                  // para trás da barra (ex.: cartão "Plano" no detalhe).
+                  // As telas leem o padding de dentro do Scaffold, em que o
+                  // de baixo já inclui a altura da barra (extendBody).
                   child: Builder(
-                    builder: (bodyContext) => MediaQuery.removePadding(
-                      context: bodyContext,
-                      removeTop: widget.showTabHeader,
-                      child: _shell,
-                    ),
+                    builder: (context) {
+                      final inset =
+                          _headerHeight ??
+                          NexoTabHeader.height +
+                              MediaQuery.paddingOf(context).top;
+                      // Com o topo à mostra, o toque nele (sino, avatar)
+                      // atravessa as abas.
+                      return TopPassThrough(
+                        height: inset,
+                        enabled: widget.showTabHeader,
+                        child: NexoTabHeaderInset(height: inset, child: _shell),
+                      );
+                    },
                   ),
                 ),
               ),
