@@ -69,17 +69,13 @@ Future<int?> showNexoMenu(
       );
       final origin = growFrom;
       if (origin == null) return faded;
-      // Cresce do ponto tocado (a página do menu ocupa a tela inteira, então
-      // a origem global serve direto).
-      final grow = CurvedAnimation(parent: animation, curve: motion.enter);
-      return AnimatedBuilder(
-        animation: grow,
-        builder: (context, child) => Transform.scale(
-          scale: motion.scaleEnter + (1 - motion.scaleEnter) * grow.value,
-          alignment: Alignment.topLeft,
-          origin: origin,
-          child: child,
-        ),
+      // Cresce do ponto tocado só ao entrar (a página do menu ocupa a tela
+      // inteira, então a origem global serve direto); sai só esmaecendo.
+      return NexoEnterScale(
+        animation: animation,
+        from: motion.scaleEnter,
+        curve: motion.enter,
+        origin: origin,
         child: faded,
       );
     },

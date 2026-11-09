@@ -40,3 +40,43 @@ class _NexoModalRoute<T> extends RawDialogRoute<T> {
   @override
   Duration get reverseTransitionDuration => reverseDuration;
 }
+
+/// Cresce de [from] a 1 **só na entrada** (Enter); ao fechar fica em 1 e
+/// quem chama só esmaece (transições §4 e §8.4: Dialog e menus saem só
+/// esmaecendo). Com [origin] (global, numa página de tela inteira), cresce
+/// a partir desse ponto; sem ele, do centro.
+class NexoEnterScale extends StatelessWidget {
+  const NexoEnterScale({
+    super.key,
+    required this.animation,
+    required this.from,
+    required this.curve,
+    required this.child,
+    this.origin,
+  });
+
+  final Animation<double> animation;
+  final double from;
+  final Curve curve;
+  final Offset? origin;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: animation,
+    builder: (context, child) {
+      final closing = animation.status == AnimationStatus.reverse;
+      final t = closing ? 1.0 : curve.transform(animation.value);
+      final scale = from + (1 - from) * t;
+      return origin == null
+          ? Transform.scale(scale: scale, child: child)
+          : Transform.scale(
+              scale: scale,
+              alignment: Alignment.topLeft,
+              origin: origin,
+              child: child,
+            );
+    },
+    child: child,
+  );
+}

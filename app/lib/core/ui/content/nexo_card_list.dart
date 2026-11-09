@@ -35,6 +35,10 @@ class _Entry {
   /// `null`: parado e presente.
   AnimationController? controller;
   bool exiting = false;
+
+  /// Muda a cada animação começada ou parada: o retorno de uma animação
+  /// antiga (cancelada por outra) não age mais.
+  int generation = 0;
 }
 
 class _NexoCardListState extends State<NexoCardList>
@@ -67,24 +71,26 @@ class _NexoCardListState extends State<NexoCardList>
       for (final (i, child) in widget.children.indexed) _entryFor(child, i),
     ];
     final nextKeys = {for (final e in next) e.key};
-    final current = {
-      for (final e in _entries)
-        if (!e.exiting) e.key: e,
-    };
+    // Inclui os que estão saindo: se a chave voltar ("Desfazer" durante a
+    // saída), a mesma entrada é reaproveitada, sem chave repetida.
+    final known = {for (final e in _entries) e.key: e};
 
-    // Os que ficam (com o filho novo) ou entram, na ordem nova.
+    // Os que ficam (com o filho novo), voltam ou entram, na ordem nova.
     final merged = <_Entry>[];
     for (final fresh in next) {
-      final staying = current[fresh.key];
-      if (staying != null) {
-        staying.child = fresh.child;
-        merged.add(staying);
+      final entry = known[fresh.key];
+      if (entry != null) {
+        entry.child = fresh.child;
+        if (entry.exiting) {
+          entry.exiting = false;
+          reduce ? _stop(entry) : _enter(entry);
+        }
+        merged.add(entry);
         continue;
       }
       if (fresh.keyed && !reduce) {
-        final controller = _controller(value: 0);
-        fresh.controller = controller;
-        controller.forward().whenCompleteOrCancel(() => _settle(fresh));
+        fresh.controller = _controller(value: 0);
+        _enter(fresh);
       }
       merged.add(fresh);
     }
@@ -92,24 +98,49 @@ class _NexoCardListState extends State<NexoCardList>
     // Os que saíram ficam no lugar deles até fechar, logo depois do vizinho
     // de cima que continua na lista.
     for (final (i, gone) in _entries.indexed) {
-      final leaving = gone.exiting || !nextKeys.contains(gone.key);
-      if (!leaving) continue;
+      if (nextKeys.contains(gone.key)) continue;
       if (!gone.exiting) {
         if (!gone.keyed || reduce) {
-          gone.controller?.dispose();
+          _stop(gone);
           continue;
         }
         gone.exiting = true;
-        final controller = gone.controller ??= _controller(value: 1);
-        controller.reverse().whenCompleteOrCancel(() {
-          if (!mounted) return;
-          setState(() => _entries.remove(gone));
-          controller.dispose();
-        });
+        gone.controller ??= _controller(value: 1);
+        _exit(gone);
       }
       _insertAfterPrevious(merged, gone, i);
     }
     _entries = merged;
+  }
+
+  /// Abre (do ponto em que estiver) e, no fim, fica parado.
+  void _enter(_Entry entry) {
+    final generation = ++entry.generation;
+    entry.controller!.forward().whenCompleteOrCancel(() {
+      if (!mounted || generation != entry.generation) return;
+      setState(() => _stop(entry));
+    });
+  }
+
+  /// Fecha e, no fim, sai da lista.
+  void _exit(_Entry entry) {
+    final generation = ++entry.generation;
+    entry.controller!.reverse().whenCompleteOrCancel(() {
+      if (!mounted || generation != entry.generation) return;
+      setState(() {
+        _entries.remove(entry);
+        _stop(entry);
+      });
+    });
+  }
+
+  /// Para a animação e libera o controller uma vez só (o retorno do
+  /// cancelamento não age mais: a geração mudou).
+  void _stop(_Entry entry) {
+    entry.generation++;
+    final controller = entry.controller;
+    entry.controller = null;
+    controller?.dispose();
   }
 
   void _insertAfterPrevious(List<_Entry> merged, _Entry gone, int oldIndex) {
@@ -123,18 +154,10 @@ class _NexoCardListState extends State<NexoCardList>
     merged.insert(0, gone);
   }
 
-  void _settle(_Entry entry) {
-    if (!mounted || entry.exiting) return;
-    setState(() {
-      entry.controller?.dispose();
-      entry.controller = null;
-    });
-  }
-
   @override
   void dispose() {
     for (final e in _entries) {
-      e.controller?.dispose();
+      _stop(e);
     }
     super.dispose();
   }

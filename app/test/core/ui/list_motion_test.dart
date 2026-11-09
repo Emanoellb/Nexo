@@ -85,6 +85,32 @@ void main() {
     expect(find.text('B'), findsNothing);
   });
 
+  testWidgets('"Desfazer" durante a saída reaproveita o item (sem chave '
+      'repetida)', (tester) async {
+    await tester.pumpWidget(_app(_list(['A', 'B', 'C'])));
+    await tester.pumpWidget(_app(_list(['A', 'C'])));
+    await tester.pump(_motion.short * 0.5);
+    await tester.pumpWidget(_app(_list(['A', 'B', 'C'])));
+    await tester.pump(_motion.short * 0.5);
+    expect(tester.takeException(), isNull);
+    expect(find.text('B'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('B'), findsOneWidget);
+    expect(_height(tester, 'B'), greaterThanOrEqualTo(60));
+  });
+
+  testWidgets('ligar "reduzir movimento" durante a entrada não quebra', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(_list(['A'])));
+    await tester.pumpWidget(_app(_list(['A', 'B'])));
+    await tester.pump(_motion.medium * 0.3);
+    await tester.pumpWidget(_app(_list(['A']), reduce: true));
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('toque longo não vibra; o menu cresce do ponto tocado', (
     tester,
   ) async {
@@ -146,5 +172,21 @@ void main() {
     expect(grow.transform.storage[0], closeTo(_motion.scaleEnter, 0.02));
     await tester.pumpAndSettle();
     expect(find.text('Pausar plano'), findsOneWidget);
+
+    // Ao fechar, só esmaece (Instant · Exit): a escala fica em 1.
+    await tester.tapAt(const Offset(10, 790));
+    await tester.pump();
+    final closing = tester
+        .widgetList<Transform>(
+          find.ancestor(
+            of: find.byType(NexoMenu),
+            matching: find.byType(Transform),
+          ),
+        )
+        .where((t) => t.origin == point);
+    for (final t in closing) {
+      expect(t.transform.storage[0], 1);
+    }
+    await tester.pumpAndSettle();
   });
 }

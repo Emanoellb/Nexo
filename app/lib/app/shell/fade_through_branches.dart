@@ -29,21 +29,29 @@ class _FadeThroughBranchesState extends State<FadeThroughBranches>
   late final _controller = AnimationController(vsync: this, value: 1);
   int? _previous;
 
+  /// Número da troca em andamento: o fim de uma troca já substituída (troca
+  /// rápida A → B → C) não limpa a troca nova.
+  int _transition = 0;
+
   @override
   void didUpdateWidget(FadeThroughBranches old) {
     super.didUpdateWidget(old);
     if (old.currentIndex == widget.currentIndex) return;
     final reduce = MediaQuery.disableAnimationsOf(context);
     if (reduce) {
+      _transition++;
       _previous = null;
       _controller.value = 1;
       return;
     }
     _previous = old.currentIndex;
+    final transition = ++_transition;
     _controller
       ..duration = context.motion.medium
       ..forward(from: 0).whenCompleteOrCancel(() {
-        if (mounted) setState(() => _previous = null);
+        if (mounted && transition == _transition) {
+          setState(() => _previous = null);
+        }
       });
   }
 

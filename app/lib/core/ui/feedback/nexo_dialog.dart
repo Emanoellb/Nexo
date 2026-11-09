@@ -42,11 +42,11 @@ Future<bool> showNexoDialog(
       );
       return FadeTransition(
         opacity: curved,
-        child: ScaleTransition(
-          scale: Tween(
-            begin: motion.scaleEnter,
-            end: 1.0,
-          ).animate(CurvedAnimation(parent: animation, curve: motion.enter)),
+        // Cresce só ao entrar; ao fechar, só esmaece (Short · Exit).
+        child: NexoEnterScale(
+          animation: animation,
+          from: motion.scaleEnter,
+          curve: motion.enter,
           child: child,
         ),
       );

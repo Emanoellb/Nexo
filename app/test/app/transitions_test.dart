@@ -147,23 +147,68 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1));
-    final scale = tester.widget<ScaleTransition>(
-      find
-          .ancestor(
-            of: find.byType(NexoDialog),
-            matching: find.byType(ScaleTransition),
-          )
-          .first,
-    );
-    expect(scale.scale.value, closeTo(motion.scaleEnter, 0.02));
+    double dialogScale() => tester
+        .widget<Transform>(
+          find
+              .ancestor(
+                of: find.byType(NexoDialog),
+                matching: find.byType(Transform),
+              )
+              .first,
+        )
+        .transform
+        .storage[0];
+    expect(dialogScale(), closeTo(motion.scaleEnter, 0.02));
     await tester.pumpAndSettle();
     final route =
         ModalRoute.of(tester.element(find.byType(NexoDialog)))!
             as TransitionRoute<dynamic>;
     expect(route.transitionDuration, motion.medium);
     expect(route.reverseTransitionDuration, motion.short);
+    // Ao fechar, só esmaece: a escala fica em 1 (não encolhe).
     await tester.tap(find.text('Cancelar'));
+    await tester.pump();
+    await tester.pump(motion.short * 0.5);
+    expect(dialogScale(), 1);
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('eixo X: Surface atrás da tela que sai (sem buraco aos 30%)', (
+    tester,
+  ) async {
+    await _pump(tester);
+    _router(tester).push(AppRoutes.profile);
+    await tester.pump();
+    await tester.pump(motion.medium * 0.35);
+    final surface = NexoColors.light.surface;
+    final fills = tester
+        .widgetList<ColoredBox>(find.byType(ColoredBox))
+        .where(
+          (b) =>
+              b.color.r == surface.r &&
+              b.color.g == surface.g &&
+              b.color.b == surface.b &&
+              b.color.a > 0.9,
+        );
+    expect(fills, isNotEmpty);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('troca rápida de abas continua animada (A → B → C)', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.byIcon(LucideIcons.listTodo));
+    await tester.pump();
+    await tester.pump(motion.medium * 0.2);
+    await tester.tap(find.byIcon(LucideIcons.target).first);
+    await tester.pump();
+    await tester.pump(motion.medium * 0.2);
+    // A aba de onde saiu (Tarefas) ainda esmaece: a troca nova não virou
+    // corte seco.
+    expect(find.byType(TasksPage), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.byType(TasksPage), findsNothing);
   });
 
   testWidgets('passos do Criar plano: só o conteúdo desliza; voltar recua '
