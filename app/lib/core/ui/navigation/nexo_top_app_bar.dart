@@ -16,6 +16,7 @@ class NexoTopAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onBack,
     this.backEnabled = true,
     this.closeIcon = false,
+    this.minimizeIcon = false,
     this.actions = const [],
   });
 
@@ -32,6 +33,9 @@ class NexoTopAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// X ("Fechar") no lugar da seta: telas de criar em tela cheia (ex.:
   /// Nova tarefa).
   final bool closeIcon;
+
+  /// Seta para baixo ("Minimizar"): o Foco, que desce e continua.
+  final bool minimizeIcon;
   final List<Widget> actions;
 
   @override
@@ -59,8 +63,16 @@ class NexoTopAppBar extends StatelessWidget implements PreferredSizeWidget {
                 children: [
                   if (onBack != null)
                     NexoIconButton(
-                      icon: closeIcon ? LucideIcons.x : LucideIcons.arrowLeft,
-                      tooltip: closeIcon ? 'Fechar' : 'Voltar',
+                      icon: minimizeIcon
+                          ? LucideIcons.chevronDown
+                          : closeIcon
+                          ? LucideIcons.x
+                          : LucideIcons.arrowLeft,
+                      tooltip: minimizeIcon
+                          ? 'Minimizar'
+                          : closeIcon
+                          ? 'Fechar'
+                          : 'Voltar',
                       color: c.iconDefault,
                       onPressed: backEnabled ? onBack : null,
                     ),

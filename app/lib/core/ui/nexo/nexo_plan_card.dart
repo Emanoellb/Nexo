@@ -27,6 +27,7 @@ class NexoPlanCard extends StatelessWidget {
     this.onTertiary,
     this.completed = false,
     this.progressSemantics,
+    this.onOpen,
   });
 
   /// "Dia 23 de 300".
@@ -63,6 +64,10 @@ class NexoPlanCard extends StatelessWidget {
   final String? tertiaryLabel;
   final VoidCallback? onTertiary;
 
+  /// Tocar no cartão (fora dos botões) abre o detalhe do plano. `null` no
+  /// próprio detalhe.
+  final VoidCallback? onOpen;
+
   @override
   Widget build(BuildContext context) {
     final c = context.nexoColors;
@@ -71,6 +76,7 @@ class NexoPlanCard extends StatelessWidget {
     final small = textTheme.labelSmall!.copyWith(color: c.onSurfaceVariant);
 
     return NexoCard(
+      onTap: onOpen,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

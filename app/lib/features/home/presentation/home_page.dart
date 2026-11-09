@@ -56,21 +56,6 @@ class _HomePageState extends ConsumerState<HomePage>
   /// primeiro plano vira o principal sozinho.
   void _createPlan() => context.push(AppRoutes.newPlan);
 
-  /// Na Home, a sessão que conclui os primeiros passos não ganha a
-  /// Snackbar dela: quem avisa é "Primeiros passos concluídos." (estado 05).
-  @override
-  bool announceFocus(String planId) {
-    final view = ref.read(homeViewProvider);
-    final steps = view?.firstSteps;
-    final completesFirstSteps =
-        view != null &&
-        view.showFirstSteps &&
-        steps!.task &&
-        steps.plan &&
-        !steps.session;
-    return !completesFirstSteps;
-  }
-
   void _goToBranch(int index) =>
       StatefulNavigationShell.of(context).goBranch(index);
 
@@ -168,6 +153,8 @@ class _HomePageState extends ConsumerState<HomePage>
           plan,
           onChoosePrimary: () => showChoosePrimaryPlan(context, ref),
           onCreatePlan: () => context.push(AppRoutes.newPlanPrimary),
+          // Tocar no cartão abre o detalhe do plano (aba Planos).
+          onOpen: () => context.push(AppRoutes.planDetailOf(plan.plan.id)),
         ),
       if (plan != null && view.showFirstSteps)
         FirstStepsLine(

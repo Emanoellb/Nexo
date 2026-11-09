@@ -10,6 +10,9 @@ import '../../features/auth/presentation/google_first_access_page.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/sign_up_page.dart';
 import '../../features/auth/presentation/verify_email_page.dart';
+import '../../features/focus/presentation/focus_page.dart';
+import '../../features/focus/presentation/session_form_page.dart';
+import '../../features/focus/presentation/shell_focus_bar.dart';
 import '../../features/home/presentation/home_page.dart';
 import '../../features/legal/presentation/legal_document_page.dart';
 import '../../features/tutorial/presentation/tutorial_page.dart';
@@ -261,38 +264,55 @@ final routerProvider = Provider<GoRouter>((ref) {
           NexoPageMotion.slideUp,
         ),
       ),
-      // Telas por cima das abas ainda sem design ou de áreas futuras.
-      // Perfil: abrir algo existente (eixo X). Registrar horas e Editar
-      // sessão: editar (subir).
-      for (final (path, title, block, motion) in const [
-        (
-          AppRoutes.profile,
-          'Perfil',
-          'bloco 11 · Perfil',
-          NexoPageMotion.sharedAxisX,
+      // Foco (sobe ao entrar; minimizar e o voltar descem e mostram a Barra
+      // do foco). Registrar horas e Editar sessão: editar (subir).
+      GoRoute(
+        path: AppRoutes.focus,
+        pageBuilder: (context, state) => NexoTransitionPage<void>.of(
+          context,
+          state,
+          const FocusPage(),
+          NexoPageMotion.focus,
+          morphTarget: focusBarKey,
         ),
-        // Destinos provisórios da aba Sessões: entram na feat/foco.
-        (AppRoutes.logHours, 'Registrar horas', 'Foco', NexoPageMotion.slideUp),
-        (
-          AppRoutes.editSession,
-          'Editar sessão',
-          'Foco',
+      ),
+      GoRoute(
+        path: AppRoutes.logHours,
+        pageBuilder: (context, state) => _page(
+          context,
+          state,
+          SessionFormPage.create(planId: state.uri.queryParameters['plan']),
           NexoPageMotion.slideUp,
         ),
-      ])
-        GoRoute(
-          path: path,
-          // Por cima das abas, com voltar (Perfil pelo avatar do topo).
-          pageBuilder: (context, state) => _page(
-            context,
-            state,
-            Scaffold(
-              appBar: NexoTopAppBar(title: title, onBack: () => context.pop()),
-              body: UnderConstructionPage(title: title, block: block),
-            ),
-            motion,
+      ),
+      GoRoute(
+        path: AppRoutes.editSession,
+        pageBuilder: (context, state) => _page(
+          context,
+          state,
+          SessionFormPage.edit(
+            planId: state.pathParameters['planId']!,
+            sessionId: state.pathParameters['sessionId']!,
           ),
+          NexoPageMotion.slideUp,
         ),
+      ),
+      // Perfil: ainda sem design (bloco 11), abre por cima das abas (eixo X).
+      GoRoute(
+        path: AppRoutes.profile,
+        pageBuilder: (context, state) => _page(
+          context,
+          state,
+          Scaffold(
+            appBar: NexoTopAppBar(title: 'Perfil', onBack: () => context.pop()),
+            body: const UnderConstructionPage(
+              title: 'Perfil',
+              block: 'bloco 11 · Perfil',
+            ),
+          ),
+          NexoPageMotion.sharedAxisX,
+        ),
+      ),
     ],
   );
 

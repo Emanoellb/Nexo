@@ -205,6 +205,21 @@ class FakePlansRepository implements PlansRepository {
   }
 
   @override
+  Future<void> updateSession(String planId, FocusSession session) async {
+    final before = _sessions.get('$planId/${session.id}');
+    if (before == null) throw StateError('Sessão ${session.id} não existe.');
+    for (final day in {before.day, session.day}) {
+      if (!isWithinEditWindow(day, today: _today)) {
+        throw StateError('Sessões só podem ser editadas até 7 dias atrás.');
+      }
+    }
+    _sessions.put(session);
+    for (final day in {before.day, session.day}) {
+      _recomputeDay(planId, day);
+    }
+  }
+
+  @override
   Future<void> deleteSession(String planId, String sessionId) async {
     final session = _sessions.get('$planId/$sessionId');
     if (session == null) return;

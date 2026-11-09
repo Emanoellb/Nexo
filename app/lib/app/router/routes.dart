@@ -53,10 +53,15 @@ abstract final class AppRoutes {
   static const editPlan = '/edit-plan/:id';
   static String editPlanOf(String id) => '/edit-plan/$id';
 
-  /// Telas do Foco, que entram na branch dele: "Em construção" por
-  /// enquanto (destinos provisórios da aba Sessões do plano).
+  /// Foco (sobe por cima de tudo; o voltar minimiza).
+  static const focus = '/focus';
+
+  /// Registrar horas (`?plan=` escolhe o plano) e Editar sessão.
   static const logHours = '/log-hours';
-  static const editSession = '/edit-session';
+  static String logHoursFor(String planId) => '$logHours?plan=$planId';
+  static const editSession = '/edit-session/:planId/:sessionId';
+  static String editSessionOf(String planId, String sessionId) =>
+      '/edit-session/$planId/$sessionId';
 
   /// Fora da barra desde 04/11/2026 (vai para o avatar no topo das abas).
   static const profile = '/profile';

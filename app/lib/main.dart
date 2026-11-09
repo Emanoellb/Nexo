@@ -10,6 +10,8 @@ import 'app/nexo_app.dart';
 import 'app/prototype/sample_data.dart';
 import 'app/startup/app_startup.dart';
 import 'core/data/local_flags.dart';
+import 'features/focus/application/focus_system.dart';
+import 'features/focus/data/android_focus_system.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -19,18 +21,27 @@ Future<void> main() async {
   // a splash precisa delas para decidir se mostra as boas-vindas.
   final localFlags = await SharedPreferencesLocalFlags.create();
 
+  // Notificação fixa e "Não perturbe" do Foco (só no Android).
+  final focusSystem = !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+      ? AndroidFocusSystem()
+      : null;
+
   // O resto da carga roda enquanto a splash anima (appStartupProvider), para
   // o primeiro quadro sair o quanto antes.
   final container = ProviderContainer(
     overrides: [
       localFlagsProvider.overrideWithValue(localFlags),
+      if (focusSystem != null)
+        focusSystemProvider.overrideWithValue(focusSystem),
       // Na prototipação, os repositórios são fake (sem banco) e a conta de
       // protótipo começa com dados de exemplo fictícios; contas novas
       // começam vazias. A troca pelo Firebase é feita nos providers de cada
       // feature; aí estes dados saem.
       prototypeSeedingProvider.overrideWithValue(true),
       appStartupProvider.overrideWith((ref) async {
-        await _initFirebase();
+        // O Foco desliga um "Não perturbe" que tenha ficado ligado de antes
+        // (app fechado à força) antes de qualquer tela usar o foco.
+        await Future.wait([_initFirebase(), ?focusSystem?.init()]);
       }),
     ],
   );

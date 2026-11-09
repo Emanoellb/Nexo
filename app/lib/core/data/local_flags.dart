@@ -26,6 +26,19 @@ abstract interface class LocalFlags {
   String? get taskView;
 
   Future<void> setTaskView(String value);
+
+  /// O foco em andamento da conta [uid] (JSON do `ActiveFocus`), para
+  /// retomar se o app fechar. `null` = nenhum. Fica só no aparelho até
+  /// encerrar.
+  String? activeFocus(String uid);
+
+  Future<void> setActiveFocus(String uid, String? json);
+
+  /// A conta [uid] escolheu "Permitir durante o uso do app" no painel do
+  /// "Não perturbe" (tela 03): ligar o interruptor não pergunta de novo.
+  bool dndAllowed(String uid);
+
+  Future<void> setDndAllowed(String uid);
 }
 
 /// Implementação com `shared_preferences`. Sem dado pessoal: só o uid
@@ -37,17 +50,14 @@ class SharedPreferencesLocalFlags implements LocalFlags {
   static const _themePreferenceKey = 'theme_preference';
   static const _firstStepsDoneKey = 'first_steps_done';
   static const _taskViewKey = 'task_view';
+  static const _activeFocusPrefix = 'active_focus_';
+  static const _dndAllowedPrefix = 'dnd_allowed_';
 
   static Future<SharedPreferencesLocalFlags> create() async {
     final prefs = await SharedPreferencesWithCache.create(
-      cacheOptions: const SharedPreferencesWithCacheOptions(
-        allowList: {
-          _firstOpenDoneKey,
-          _themePreferenceKey,
-          _firstStepsDoneKey,
-          _taskViewKey,
-        },
-      ),
+      // Sem lista fechada de chaves: o foco em andamento usa uma chave por
+      // conta (`active_focus_{uid}`).
+      cacheOptions: const SharedPreferencesWithCacheOptions(),
     );
     return SharedPreferencesLocalFlags._(prefs);
   }
@@ -70,6 +80,23 @@ class SharedPreferencesLocalFlags implements LocalFlags {
   }
 
   final SharedPreferencesWithCache _prefs;
+
+  @override
+  String? activeFocus(String uid) =>
+      _prefs.getString('$_activeFocusPrefix$uid');
+
+  @override
+  Future<void> setActiveFocus(String uid, String? json) => json == null
+      ? _prefs.remove('$_activeFocusPrefix$uid')
+      : _prefs.setString('$_activeFocusPrefix$uid', json);
+
+  @override
+  bool dndAllowed(String uid) =>
+      _prefs.getBool('$_dndAllowedPrefix$uid') ?? false;
+
+  @override
+  Future<void> setDndAllowed(String uid) =>
+      _prefs.setBool('$_dndAllowedPrefix$uid', true);
 
   @override
   bool get firstOpenDone => _prefs.getBool(_firstOpenDoneKey) ?? false;
@@ -118,6 +145,30 @@ class InMemoryLocalFlags implements LocalFlags {
 
   @override
   Future<void> markFirstOpenDone() async => firstOpenDone = true;
+
+  /// Foco em andamento por conta (JSON).
+  final Map<String, String> activeFocusByUid = {};
+
+  /// Contas com "Permitir durante o uso do app" no "Não perturbe".
+  final Set<String> dndAllowedFor = {};
+
+  @override
+  bool dndAllowed(String uid) => dndAllowedFor.contains(uid);
+
+  @override
+  Future<void> setDndAllowed(String uid) async => dndAllowedFor.add(uid);
+
+  @override
+  String? activeFocus(String uid) => activeFocusByUid[uid];
+
+  @override
+  Future<void> setActiveFocus(String uid, String? json) async {
+    if (json == null) {
+      activeFocusByUid.remove(uid);
+    } else {
+      activeFocusByUid[uid] = json;
+    }
+  }
 
   @override
   Future<void> setThemePreference(String value) async =>

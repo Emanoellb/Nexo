@@ -231,15 +231,62 @@ class ProgressActions {
   /// meia-noite, se for o caso).
   Future<void> addFocusMinutes(String planId, int minutes) async {
     final end = _now;
-    final segments = splitSessionByDay([
-      ActiveInterval(end.subtract(Duration(minutes: minutes)), end),
-    ]);
-    await _withWeekPoints(planId, {for (final s in segments) s.day}, () {
-      return _ref
-          .read(plansRepositoryProvider)
-          .addSessions(planId, segments, source: SessionSource.focus);
-    });
+    await addSessions(
+      planId,
+      splitSessionByDay([
+        ActiveInterval(end.subtract(Duration(minutes: minutes)), end),
+      ]),
+      source: SessionSource.focus,
+    );
   }
+
+  /// Grava as partes de uma sessão (já divididas à meia-noite) e ajusta os
+  /// pontos das semanas tocadas. Devolve as sessões criadas (para o
+  /// "Desfazer").
+  Future<List<FocusSession>> addSessions(
+    String planId,
+    List<DaySegment> segments, {
+    required SessionSource source,
+    List<String> topicIds = const [],
+    String? note,
+  }) async {
+    var created = const <FocusSession>[];
+    await _withWeekPoints(planId, {for (final s in segments) s.day}, () async {
+      created = await _ref
+          .read(plansRepositoryProvider)
+          .addSessions(
+            planId,
+            segments,
+            source: source,
+            topicIds: topicIds,
+            note: note,
+          );
+      return created;
+    });
+    return created;
+  }
+
+  /// Apaga as sessões (ex.: "Desfazer" do salvar, "Excluir sessão") e
+  /// ajusta os pontos.
+  Future<void> deleteSessions(String planId, List<FocusSession> sessions) =>
+      _withWeekPoints(planId, {for (final s in sessions) s.day}, () async {
+        final repository = _ref.read(plansRepositoryProvider);
+        for (final s in sessions) {
+          await repository.deleteSession(planId, s.id);
+        }
+        return null;
+      });
+
+  /// "Editar sessão": troca dia, horário, tópicos ou nota e ajusta os
+  /// pontos das semanas do antes e do depois.
+  Future<void> updateSession(
+    String planId,
+    FocusSession before,
+    FocusSession after,
+  ) => _withWeekPoints(planId, {before.day, after.day}, () async {
+    await _ref.read(plansRepositoryProvider).updateSession(planId, after);
+    return null;
+  });
 
   Future<void> finalizeDay(String planId, LocalDate day) =>
       _withWeekPoints(planId, {day}, () {

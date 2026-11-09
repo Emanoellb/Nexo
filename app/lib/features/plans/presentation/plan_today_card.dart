@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/data/clock.dart';
 import '../../../core/domain/local_date.dart';
 import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/ui.dart';
 import '../../../core/format/duration_text.dart';
+import '../../../app/router/routes.dart';
+import '../../focus/application/focus_controller.dart';
 import '../../progress/application/progress_actions.dart';
 import '../../tasks/application/screen_now.dart';
 import '../application/plan_today.dart';
 import '../domain/plan.dart';
 import '../domain/plan_day_result.dart';
 import 'plan_text.dart';
-
-/// Minutos da sessão de exemplo do "Focar" enquanto a tela de Foco não
-/// existe (só para teste; sai antes da produção, decisão do usuário de
-/// 07/11/2026).
-const simulatedFocusMinutes = 25;
 
 /// O cartão "Hoje" de um plano (`Nexo/PlanCard`) e as ações dele (Focar,
 /// Finalizar o dia, Retomar), no Início e na Visão geral do plano.
@@ -42,19 +41,15 @@ mixin PlanDayActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     _snack('Plano retomado.');
   }
 
-  /// Se a Snackbar da sessão aparece (a Home cala quando a sessão conclui
-  /// os primeiros passos).
-  bool announceFocus(String planId) => true;
-
-  /// "Focar": por enquanto registra uma sessão de exemplo (só para teste;
-  /// a tela de Foco entra na branch dela e isto sai antes da produção).
+  /// "Focar" começa na hora e abre o Foco (sobe). Com um foco já em
+  /// andamento, abre ele.
   Future<void> focusPlan(String planId) async {
-    final announce = announceFocus(planId);
-    await ref
-        .read(progressActionsProvider)
-        .addFocusMinutes(planId, simulatedFocusMinutes);
-    if (announce) _snack('Sessão de $simulatedFocusMinutes min registrada.');
+    await ref.read(activeFocusProvider.notifier).start(planId);
+    if (mounted) await context.push(AppRoutes.focus);
   }
+
+  /// "Voltar ao foco" (cartão em foco e Barra do foco).
+  void openFocus() => context.push(AppRoutes.focus);
 
   Future<void> finalizePlanDay(PlanToday plan) async {
     final result = plan.today;
@@ -93,6 +88,7 @@ mixin PlanDayActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     bool showTitle = true,
     VoidCallback? onChoosePrimary,
     VoidCallback? onCreatePlan,
+    VoidCallback? onOpen,
   }) {
     final result = plan.today;
     final done = formatMinutes(result.doneMinutes);
@@ -112,6 +108,7 @@ mixin PlanDayActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     if (ended) {
       final archived = plan.plan.status == PlanStatus.archived;
       return NexoPlanCard(
+        onOpen: onOpen,
         dayLabel: archived ? 'Arquivado' : 'Encerrado',
         title: showTitle ? plan.plan.name : null,
         progressLabel: archived
@@ -137,6 +134,7 @@ mixin PlanDayActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     if (plan.isPaused) {
       final since = plan.openPause?.start;
       return NexoPlanCard(
+        onOpen: onOpen,
         dayLabel: 'Pausado',
         title: showTitle ? plan.plan.name : null,
         progressLabel: since == null
@@ -154,6 +152,38 @@ mixin PlanDayActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       );
     }
 
+    // Em foco agora neste plano (tela 13): o tempo do foco, o total do dia
+    // e "Voltar ao foco".
+    final active = ref.watch(activeFocusProvider);
+    if (active != null && active.planId == plan.plan.id) {
+      final now =
+          ref.watch(focusNowProvider).value ?? ref.read(clockProvider)();
+      return NexoPlanCard(
+        onOpen: onOpen,
+        dayLabel: plan.dayNumber < 1
+            ? 'Começa em ${plan.plan.startDate.toDisplay()}'
+            : 'Dia ${plan.dayNumber} de ${plan.totalDays}',
+        title: showTitle ? plan.plan.name : null,
+        progressLabel: active.isPaused
+            ? 'Foco pausado · ${formatClock(active.elapsed(now))}'
+            : 'Em foco agora · ${formatClock(active.elapsed(now))}',
+        progressDetail: 'Hoje: $done',
+        progress: result.goalMinutes == 0
+            ? 0
+            : result.doneMinutes / result.goalMinutes,
+        progressSemantics: '$done de $goal',
+        streakLabel: streak,
+        primaryAction: NexoButton.primary(
+          label: 'Voltar ao foco',
+          leadingIcon: LucideIcons.maximize2,
+          expand: true,
+          onPressed: openFocus,
+        ),
+        tertiaryLabel: result.doneMinutes > 0 ? 'Finalizar o dia' : null,
+        onTertiary: result.doneMinutes > 0 ? () => finalizePlanDay(plan) : null,
+      );
+    }
+
     final String dayLabel;
     if (plan.dayNumber < 1) {
       dayLabel = 'Começa em ${plan.plan.startDate.toDisplay()}';
@@ -167,6 +197,7 @@ mixin PlanDayActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     if (status.isFulfilled) {
       final diff = result.differenceMinutes;
       return NexoPlanCard(
+        onOpen: onOpen,
         dayLabel: dayLabel,
         title: showTitle ? plan.plan.name : null,
         progressLabel: 'Dia cumprido · $done',
@@ -195,6 +226,7 @@ mixin PlanDayActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     if (status == PlanDayStatus.off) {
       final next = plan.nextStudyDay;
       return NexoPlanCard(
+        onOpen: onOpen,
         dayLabel: dayLabel,
         title: showTitle ? plan.plan.name : null,
         progressLabel: plan.dayNumber < 1
@@ -217,6 +249,7 @@ mixin PlanDayActions<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     final missing = (result.goalMinutes - result.doneMinutes).clamp(0, 1440);
     final canFinalize = result.doneMinutes > 0;
     return NexoPlanCard(
+      onOpen: onOpen,
       dayLabel: dayLabel,
       title: showTitle ? plan.plan.name : null,
       progressLabel: 'Hoje · $done de $goal',

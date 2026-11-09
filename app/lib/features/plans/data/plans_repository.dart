@@ -50,6 +50,11 @@ abstract interface class PlansRepository {
     String? note,
   });
 
+  /// Troca uma sessão (dia, horário, tópicos, nota) e refaz o
+  /// `doneMinutes` dos dias de antes e de depois, no mesmo lote. Os dois
+  /// dias precisam estar na janela de 7 dias.
+  Future<void> updateSession(String planId, FocusSession session);
+
   /// Apaga a sessão e desconta do dia (dentro da janela de 7 dias).
   Future<void> deleteSession(String planId, String sessionId);
 

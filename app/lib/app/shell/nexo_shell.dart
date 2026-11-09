@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/ui/ui.dart';
 import '../../features/auth/application/auth_providers.dart';
+import '../../features/focus/application/focus_controller.dart';
+import '../../features/focus/application/focus_system.dart';
+import '../../features/focus/presentation/shell_focus_bar.dart';
 import '../../features/notifications/application/notifications_providers.dart';
 import '../../features/notifications/domain/nexo_notification.dart';
 import '../../features/notifications/presentation/notifications_panel.dart';
@@ -68,6 +73,36 @@ class _NexoShellState extends ConsumerState<NexoShell> {
   final _overContent = <int, bool>{};
 
   StatefulNavigationShell get _shell => widget.navigationShell;
+
+  /// Toques na notificação fixa do Foco (com o app aberto).
+  StreamSubscription<void>? _focusTaps;
+
+  @override
+  void initState() {
+    super.initState();
+    final system = ref.read(focusSystemProvider);
+    _focusTaps = system.openFocusRequests.listen((_) => _openFocus());
+    // O app abriu pelo toque na notificação: depois do Login (se preciso),
+    // as abas abrem o foco.
+    if (system.takeLaunchFromNotification()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openFocus());
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusTaps?.cancel();
+    super.dispose();
+  }
+
+  /// Abre o foco em andamento (tela 01, ou 04 se pausado), se ainda houver
+  /// um e ele não estiver aberto.
+  void _openFocus() {
+    if (!mounted || ref.read(activeFocusProvider) == null) return;
+    final router = GoRouter.of(context);
+    if (router.state.uri.path == AppRoutes.focus) return;
+    router.push(AppRoutes.focus);
+  }
 
   /// Lista principal da aba (vertical, não aninhada) com conteúdo além da
   /// borda de baixo: esse conteúdo está sob a cápsula.
@@ -245,18 +280,27 @@ class _NexoShellState extends ConsumerState<NexoShell> {
             ),
           ],
         ),
-        bottomNavigationBar: NexoBottomBar(
-          destinations: nexoDestinations,
-          selectedIndex: _shell.currentIndex,
-          solid: solid,
-          overContent: _overContent[_shell.currentIndex] ?? false,
-          fabKey: _fabKey,
-          onCreate: _openCreateMenu,
-          onSelected: (index) => _shell.goBranch(
-            index,
-            // Tocar de novo na aba atual volta ao início dela.
-            initialLocation: index == _shell.currentIndex,
-          ),
+        // Com um foco em andamento, a Barra do foco fica acima da barra de
+        // abas; o Scaffold soma as duas ao padding de baixo, e a Snackbar
+        // aparece acima delas.
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ShellFocusBar(),
+            NexoBottomBar(
+              destinations: nexoDestinations,
+              selectedIndex: _shell.currentIndex,
+              solid: solid,
+              overContent: _overContent[_shell.currentIndex] ?? false,
+              fabKey: _fabKey,
+              onCreate: _openCreateMenu,
+              onSelected: (index) => _shell.goBranch(
+                index,
+                // Tocar de novo na aba atual volta ao início dela.
+                initialLocation: index == _shell.currentIndex,
+              ),
+            ),
+          ],
         ),
       ),
     );

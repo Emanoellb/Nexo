@@ -1,6 +1,11 @@
 package dev.emanoelbarbosa.nexo
 
+import android.app.NotificationManager
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
 import android.graphics.drawable.ColorDrawable
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -26,5 +31,69 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        // "Não perturbe" do Foco (aprovado em 09/11/2026). Chamado por
+        // AndroidFocusSystem (lib/features/focus/data/android_focus_system.dart).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "nexo/focus")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "dndAccessGranted" -> result.success(notifications().isNotificationPolicyAccessGranted)
+                    "openDndSettings" -> {
+                        try {
+                            startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                            result.success(true)
+                        } catch (e: ActivityNotFoundException) {
+                            result.success(false)
+                        }
+                    }
+                    "setDnd" -> {
+                        val on = call.arguments as? Boolean
+                        if (on == null) {
+                            result.error("bad_args", "Booleano esperado", null)
+                        } else {
+                            result.success(if (on) dndOn() else dndRestore())
+                        }
+                    }
+                    "restoreDnd" -> result.success(dndRestore())
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    private fun notifications() =
+        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    private fun focusPrefs() = getSharedPreferences("nexo_focus", Context.MODE_PRIVATE)
+
+    // Liga o silêncio (prioridade) e guarda o estado de antes, uma vez só:
+    // se o app fechar no meio, a próxima abertura volta a esse estado.
+    private fun dndOn(): Boolean {
+        val nm = notifications()
+        if (!nm.isNotificationPolicyAccessGranted) return false
+        val prefs = focusPrefs()
+        if (!prefs.contains(KEY_PREVIOUS)) {
+            prefs.edit().putInt(KEY_PREVIOUS, nm.currentInterruptionFilter).apply()
+        }
+        nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+        return true
+    }
+
+    // Volta ao estado de antes do foco, se o Nexo ligou o silêncio. Se a
+    // pessoa mudou o modo no meio do foco, o modo dela fica.
+    private fun dndRestore(): Boolean {
+        val prefs = focusPrefs()
+        if (!prefs.contains(KEY_PREVIOUS)) return false
+        val previous = prefs.getInt(KEY_PREVIOUS, NotificationManager.INTERRUPTION_FILTER_ALL)
+        prefs.edit().remove(KEY_PREVIOUS).apply()
+        val nm = notifications()
+        if (nm.isNotificationPolicyAccessGranted &&
+            nm.currentInterruptionFilter == NotificationManager.INTERRUPTION_FILTER_PRIORITY
+        ) {
+            nm.setInterruptionFilter(previous)
+        }
+        return true
+    }
+
+    private companion object {
+        const val KEY_PREVIOUS = "dnd_previous_filter"
     }
 }

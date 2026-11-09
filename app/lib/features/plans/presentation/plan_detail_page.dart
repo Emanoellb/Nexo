@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../app/router/routes.dart';
+import '../../../core/domain/edit_window.dart';
 import '../../../core/domain/local_date.dart';
 import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/ui.dart';
@@ -595,8 +596,15 @@ class _PlanCalendarState extends ConsumerState<_PlanCalendar> {
           r.day: r,
     };
 
+    // Dias com horas registradas à mão (até 7 dias atrás): marcados.
+    final manualDays = {
+      for (final s in sessions)
+        if (s.source == SessionSource.manual) s.day,
+    };
+
     Widget cell(LocalDate day) {
       if (day.month != first.month) return const SizedBox.shrink();
+      final manual = manualDays.contains(day);
       final r = results[day]!;
       final outside =
           day.isBefore(plan.startDate) ||
@@ -626,6 +634,7 @@ class _PlanCalendarState extends ConsumerState<_PlanCalendar> {
         dayTitle(day),
         if (below.isNotEmpty) below,
         if (tone != null && !outside && !future) tone.label,
+        if (manual) 'com registro manual',
         if (isToday) 'hoje',
       ].join(', ');
       // Ícone da situação junto das horas: a cor não é o único sinal.
@@ -640,6 +649,7 @@ class _PlanCalendarState extends ConsumerState<_PlanCalendar> {
         today: isToday,
         selected: selected,
         outside: outside,
+        manual: manual,
         semanticsLabel: label,
         onTap: () => setState(() => _selected = day),
       );
@@ -650,6 +660,9 @@ class _PlanCalendarState extends ConsumerState<_PlanCalendar> {
       for (final s in sessions)
         if (s.day == _selected) s,
     ];
+    final manualCount = daySessions
+        .where((s) => s.source == SessionSource.manual)
+        .length;
     final topicNames = {
       for (final s in daySessions)
         for (final id in s.topicIds)
@@ -740,6 +753,20 @@ class _PlanCalendarState extends ConsumerState<_PlanCalendar> {
                 (NexoDayTone.missed, 'Não cumprido'),
               ])
                 NexoPlanDayStatus(tone: t.$1, text: t.$2),
+              // Legenda do lápis (mesmo tamanho de texto das outras).
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(NexoCalendarDay.manualIcon, size: 12, color: c.primary),
+                  SizedBox(width: spacing.xs),
+                  Flexible(
+                    child: Text(
+                      'Registro manual',
+                      style: textTheme.labelSmall!.copyWith(color: c.onSurface),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -775,6 +802,8 @@ class _PlanCalendarState extends ConsumerState<_PlanCalendar> {
                       daySessions.length == 1
                           ? '1 sessão'
                           : '${daySessions.length} sessões',
+                      if (manualCount == 1) '1 registro manual',
+                      if (manualCount > 1) '$manualCount registros manuais',
                       if (topicNames.isNotEmpty) topicNames.join(', '),
                     ].join(' · '),
                     style: textTheme.labelSmall!.copyWith(
@@ -851,7 +880,7 @@ class _PlanSessions extends ConsumerWidget {
             child: NexoButton.secondary(
               label: 'Registrar horas',
               leadingIcon: LucideIcons.plus,
-              onPressed: () => context.push(AppRoutes.logHours),
+              onPressed: () => context.push(AppRoutes.logHoursFor(plan.id)),
             ),
           ),
           SizedBox(height: spacing.md),
@@ -920,7 +949,12 @@ class _PlanSessions extends ConsumerWidget {
                           'Foco',
                           if (crossedMidnight(s)) 'cruzou a meia-noite',
                         ].join(' · '),
-                  onTap: () => context.push(AppRoutes.editSession),
+                  // Só dá para editar até 7 dias atrás (e com o plano aberto).
+                  onTap: closed || !isWithinEditWindow(s.day, today: today)
+                      ? null
+                      : () => context.push(
+                          AppRoutes.editSessionOf(plan.id, s.id),
+                        ),
                 ),
             ],
           ),
