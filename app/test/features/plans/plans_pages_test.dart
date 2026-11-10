@@ -15,10 +15,12 @@ import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/plans/domain/plan.dart';
 import 'package:nexo/features/plans/domain/plan_schedule.dart';
 import 'package:nexo/features/plans/presentation/create_plan_page.dart';
+import 'package:nexo/features/plans/presentation/edit_plan_page.dart';
 import 'package:nexo/features/plans/presentation/plan_detail_page.dart';
 import 'package:nexo/features/progress/application/progress_actions.dart';
 import 'package:nexo/features/subjects/application/subjects_providers.dart';
 
+import '../../helpers/screen_footer_checks.dart';
 import 'plan_seed.dart';
 
 /// App logado, sem dados de exemplo, na aba Planos (360 × [height]).
@@ -196,6 +198,19 @@ void main() {
     // O primeiro plano vira o principal.
     expect(find.text('Principal'), findsOneWidget);
     handle.dispose();
+  });
+
+  testWidgets('Criar plano: rodapé livre da Snackbar e do teclado', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await _tap(tester, find.byType(NexoFab));
+    await _tap(tester, find.text('Novo plano'));
+    await expectFooterClearOfSnackbarAndKeyboard(
+      tester,
+      page: find.byType(CreatePlanPage),
+      footerButton: _button('Continuar'),
+    );
   });
 
   testWidgets('lista por status; Concluídos e Arquivados recolhidos', (
@@ -401,6 +416,18 @@ void main() {
       expect(versions.last.effectiveFrom, seedToday.addDays(1));
       expect(versions.last.dailyGoalMinutes, 75);
       expect(plan.dailyGoalMinutes, 75);
+    });
+
+    testWidgets('Editar plano: rodapé livre da Snackbar e do teclado', (
+      tester,
+    ) async {
+      await open(tester);
+      await _tap(tester, find.byTooltip('Editar plano'));
+      await expectFooterClearOfSnackbarAndKeyboard(
+        tester,
+        page: find.byType(EditPlanPage),
+        footerButton: _button('Salvar'),
+      );
     });
 
     testWidgets('encerrado: Relatório e Arquivar plano', (tester) async {

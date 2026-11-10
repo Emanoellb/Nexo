@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nexo/features/calendar/presentation/agenda_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
@@ -74,7 +75,8 @@ void main() {
     // "Calendário" virou "Agenda" no texto; a rota é a mesma.
     await tester.tap(find.byIcon(LucideIcons.calendarDays));
     await tester.pumpAndSettle();
-    expect(find.text('Agenda'), findsNWidgets(3));
+    expect(find.byType(AgendaPage), findsOneWidget);
+    expect(find.text('Semana'), findsOneWidget);
   });
 
   testWidgets('avatar com as iniciais abre o Perfil, e a seta volta', (

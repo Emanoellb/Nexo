@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nexo/features/calendar/presentation/agenda_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/app/window_background.dart';
@@ -10,7 +11,6 @@ import 'package:nexo/core/theme/nexo_theme.dart';
 import 'package:nexo/core/ui/ui.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
 import 'package:nexo/features/auth/data/fake_auth_repository.dart';
-import 'package:nexo/app/shell/under_construction_page.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
 
 /// Correções do code review da feat/tema-escuro (04/11/2026).
@@ -52,13 +52,6 @@ void _reportList(BuildContext context, {bool long = true}) {
 bool _overContent(WidgetTester tester) =>
     tester.widget<NexoBottomBar>(find.byType(NexoBottomBar)).overContent;
 
-BuildContext _pageOf(WidgetTester tester, String title) => tester.element(
-  find.byWidgetPredicate(
-    (w) => w is UnderConstructionPage && w.title == title,
-    skipOffstage: false,
-  ),
-);
-
 void main() {
   testWidgets('barra de status por tema, sem pintar a barra de navegação', (
     tester,
@@ -86,7 +79,7 @@ void main() {
     expect(_overContent(tester), isFalse);
 
     // A Agenda, fora da tela, avisa uma lista longa (ex.: teclado, rotação).
-    _reportList(_pageOf(tester, 'Agenda'));
+    _reportList(tester.element(find.byType(AgendaPage, skipOffstage: false)));
     await tester.pump();
     expect(_overContent(tester), isFalse);
 

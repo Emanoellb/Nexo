@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/app/nexo_app.dart';
@@ -9,6 +10,7 @@ import 'package:nexo/app/router/routes.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/domain/local_date.dart';
+import 'package:nexo/core/theme/nexo_theme.dart';
 import 'package:nexo/core/ui/ui.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
 import 'package:nexo/features/auth/data/fake_auth_repository.dart';
@@ -18,9 +20,13 @@ import 'package:nexo/features/focus/domain/active_focus.dart';
 import 'package:nexo/features/focus/domain/focus_session.dart';
 import 'package:nexo/features/focus/domain/session_split.dart';
 import 'package:nexo/features/focus/presentation/focus_page.dart';
+import 'package:nexo/features/focus/presentation/session_form_page.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/plans/domain/plan.dart';
 import 'package:nexo/features/plans/presentation/plan_detail_page.dart';
+
+import '../../helpers/screen_footer_checks.dart';
+
 import 'package:nexo/features/plans/domain/plan_schedule.dart';
 
 // Quarta, 04/11/2026, 10:00.
@@ -94,6 +100,7 @@ Future<(ProviderContainer, Plan)> _pump(
   double textScale = 1,
   InMemoryLocalFlags? flags,
   FocusSystem? system,
+  bool immersive = false,
 }) async {
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 3;
@@ -106,6 +113,9 @@ Future<(ProviderContainer, Plan)> _pump(
         authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
         clockProvider.overrideWithValue(() => _now),
         if (system != null) focusSystemProvider.overrideWithValue(system),
+        // Os fluxos testam as ações direto; a tela cheia tem testes
+        // próprios.
+        focusImmersiveProvider.overrideWithValue(immersive),
         localFlagsProvider.overrideWithValue(
           flags ??
               InMemoryLocalFlags(
@@ -567,6 +577,189 @@ void main() {
     expect(find.text('Registro manual'), findsOneWidget);
     await _tap(tester, marked);
     expect(find.text('1 sessão · 1 registro manual'), findsOneWidget);
+
+    // Hoje (4/11): número em Primary e mais pesado, também no Plano; o
+    // selecionado do Plano continua com o número normal.
+    Text number(String day) => tester.widget<Text>(
+      find.descendant(
+        of: find.byType(NexoCalendarDay),
+        matching: find.text(day),
+      ),
+    );
+    final colors = tester.element(find.byType(PlanDetailPage)).nexoColors;
+    expect(number('4').style!.color, colors.primary);
+    expect(
+      number('4').style!.fontWeight!.value,
+      greaterThan(number('3').style!.fontWeight!.value),
+    );
+    expect(number('2').style!.color, colors.onSurface);
+  });
+
+  testWidgets('o relógio e o plano ficam centralizados na largura', (
+    tester,
+  ) async {
+    // Fonte pequena: o relógio fica mais estreito que a barra do dia, como
+    // com a Manrope no aparelho (a fonte dos testes é mais larga).
+    await _pump(tester, textScale: 0.5);
+    await _openFocus(tester);
+    final screen = tester.getRect(find.byType(FocusPage));
+    // A coluna do conteúdo ocupa a largura toda (menos as margens), em vez
+    // de encolher para a esquerda (bug de 09/11/2026).
+    final column = tester.getRect(
+      find
+          .ancestor(
+            of: find.byType(NexoFocusTimer),
+            matching: find.byType(Column),
+          )
+          .first,
+    );
+    expect(column.center.dx, closeTo(screen.center.dx, 1));
+    expect(column.width, greaterThan(screen.width - 48));
+    for (final f in [
+      find.text('00:00:00'),
+      find.text('Concurso Banco Horizonte'),
+      find.byType(NexoAssistChip),
+    ]) {
+      expect(tester.getRect(f).center.dx, closeTo(screen.center.dx, 1));
+    }
+  });
+
+  testWidgets('a Snackbar no Foco fica acima do rodapé, sem cobrir os botões', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await _openFocus(tester);
+    showNexoSnackbar(
+      tester.element(find.byType(FocusPage)),
+      message: 'Aviso de teste.',
+    );
+    await tester.pumpAndSettle();
+    final snackbar = tester.getRect(find.byType(SnackBar));
+    final buttons = tester.getRect(_button('Encerrar'));
+    expect(snackbar.bottom, lessThanOrEqualTo(buttons.top));
+  });
+
+  testWidgets('Registrar horas e Editar sessão: rodapé livre da Snackbar e '
+      'do teclado', (tester) async {
+    final (c, plan) = await _pump(tester);
+    c.read(routerProvider).push(AppRoutes.logHoursFor(plan.id));
+    await tester.pumpAndSettle();
+    await expectFooterClearOfSnackbarAndKeyboard(
+      tester,
+      page: find.byType(SessionFormPage),
+      footerButton: _button('Salvar'),
+    );
+  });
+
+  group('tela cheia', () {
+    /// Os modos de barra pedidos ao Android, em ordem.
+    late List<String> modes;
+
+    setUp(() {
+      modes = [];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+            if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
+              modes.add(call.arguments as String);
+            }
+            return null;
+          });
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+
+    /// As ações (topo, plano, tópicos, rodapé) estão à mostra?
+    bool controlsShown(WidgetTester tester) =>
+        tester
+            .widget<AnimatedOpacity>(
+              find
+                  .ancestor(
+                    of: _button('Encerrar'),
+                    matching: find.byType(AnimatedOpacity),
+                  )
+                  .first,
+            )
+            .opacity ==
+        1;
+
+    testWidgets(
+      'abre só com o relógio; o toque mostra; 5 s sem toque escondem',
+      (tester) async {
+        await _pump(tester, immersive: true);
+        await _openFocus(tester);
+        // Só o relógio: as ações transparentes e fora do toque; as barras do
+        // Android escondidas.
+        expect(controlsShown(tester), isFalse);
+        expect(find.text('00:00:00'), findsOneWidget);
+        // Mostrar e esconder em Short · Standard (decisão de 09/11/2026).
+        final focusPage = find.byType(FocusPage);
+        final motion = tester.element(focusPage).motion;
+        final fades = tester.widgetList<AnimatedOpacity>(
+          find.descendant(
+            of: focusPage,
+            matching: find.byType(AnimatedOpacity),
+          ),
+        );
+        expect(fades, isNotEmpty);
+        for (final fade in fades) {
+          expect(fade.curve, motion.standard);
+          expect(fade.duration, motion.short);
+        }
+        expect(modes.last, 'SystemUiMode.immersiveSticky');
+        final clock = tester.getRect(find.text('00:00:00'));
+        final screen = tester.getRect(find.byType(FocusPage));
+        expect(clock.center.dx, closeTo(screen.center.dx, 1));
+
+        // Tocar no "Pausar" escondido só mostra as ações (não pausa).
+        await tester.tap(_button('Pausar'), warnIfMissed: false);
+        await tester.pumpAndSettle();
+        expect(controlsShown(tester), isTrue);
+        expect(modes.last, 'SystemUiMode.edgeToEdge');
+        expect(find.text('Pausado agora'), findsNothing);
+        // O relógio não pulou.
+        expect(tester.getRect(find.text('00:00:00')), clock);
+
+        // Com as ações à mostra, o toque funciona e reinicia os 5 s.
+        await tester.pump(const Duration(seconds: 4));
+        await _tap(tester, _button('Pausar'));
+        expect(find.text('Pausado agora'), findsOneWidget);
+        await tester.pump(const Duration(seconds: 4));
+        expect(controlsShown(tester), isTrue);
+
+        // Pausado também esconde após 5 s sem toque.
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pumpAndSettle();
+        expect(controlsShown(tester), isFalse);
+        expect(modes.last, 'SystemUiMode.immersiveSticky');
+
+        // Minimizar devolve as barras.
+        await tester.tap(find.text('00:00:00'));
+        await tester.pumpAndSettle();
+        await _tap(tester, find.byTooltip('Minimizar'));
+        expect(find.byType(FocusPage), findsNothing);
+        expect(modes.last, 'SystemUiMode.edgeToEdge');
+      },
+    );
+
+    testWidgets('com o leitor de tela, as ações ficam sempre à mostra', (
+      tester,
+    ) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(accessibleNavigation: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await _pump(tester, immersive: true);
+      await _openFocus(tester);
+      expect(controlsShown(tester), isTrue);
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pumpAndSettle();
+      expect(controlsShown(tester), isTrue);
+      expect(modes, isNot(contains('SystemUiMode.immersiveSticky')));
+    });
   });
 
   for (final dark in [false, true]) {

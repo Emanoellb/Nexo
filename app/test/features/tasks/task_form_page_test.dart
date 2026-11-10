@@ -14,6 +14,8 @@ import 'package:nexo/features/tasks/domain/task.dart';
 import 'package:nexo/features/tasks/domain/task_rules.dart';
 import 'package:nexo/features/tasks/presentation/task_form_page.dart';
 
+import '../../helpers/screen_footer_checks.dart';
+
 // Quarta, 04/11/2026, 10:00.
 final _now = DateTime(2026, 11, 4, 10);
 
@@ -105,6 +107,18 @@ void main() {
     expect(task.dueAt, isNull);
     expect(task.remindersMinutesBefore, isEmpty);
     handle.dispose();
+  });
+
+  testWidgets('Nova tarefa: rodapé livre da Snackbar e do teclado', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await _openNew(tester);
+    await expectFooterClearOfSnackbarAndKeyboard(
+      tester,
+      page: find.byType(TaskFormPage),
+      footerButton: _button('Criar tarefa'),
+    );
   });
 
   testWidgets('prazo sugere "1 dia"; até 3 avisos, sem repetir; sem prazo '
@@ -240,6 +254,17 @@ void main() {
       expect((await _tasks(c)).single.completed, isTrue);
     });
 
+    testWidgets('detalhe: rodapé livre da Snackbar e do teclado', (
+      tester,
+    ) async {
+      await openDetail(tester);
+      await expectFooterClearOfSnackbarAndKeyboard(
+        tester,
+        page: find.byType(TaskFormPage),
+        footerButton: _button('Marcar como concluída'),
+      );
+    });
+
     testWidgets('mudar vira "Salvar"; voltar pergunta; salvar grava', (
       tester,
     ) async {
@@ -305,18 +330,17 @@ void main() {
     });
 
     for (final dark in [false, true]) {
-      testWidgets(
-        'acessibilidade e fonte 2,0 (${dark ? 'escuro' : 'claro'})',
-        (tester) async {
-          final handle = tester.ensureSemantics();
-          await openDetail(tester, dark: dark, textScale: 2);
-          expect(tester.takeException(), isNull);
-          await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
-          await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-          await expectLater(tester, meetsGuideline(textContrastGuideline));
-          handle.dispose();
-        },
-      );
+      testWidgets('acessibilidade e fonte 2,0 (${dark ? 'escuro' : 'claro'})', (
+        tester,
+      ) async {
+        final handle = tester.ensureSemantics();
+        await openDetail(tester, dark: dark, textScale: 2);
+        expect(tester.takeException(), isNull);
+        await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+        await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+        await expectLater(tester, meetsGuideline(textContrastGuideline));
+        handle.dispose();
+      });
     }
   });
 }

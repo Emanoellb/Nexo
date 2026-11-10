@@ -103,6 +103,9 @@ Future<void> _focusFor(
     tester.element(find.byType(FocusPage)),
   ).removeCurrentSnackBar();
   await tester.pump(const Duration(seconds: 1));
+  // Tela cheia: o Foco abre só com o relógio; um toque mostra as ações.
+  await tester.tap(find.byType(NexoFocusTimer));
+  await tester.pumpAndSettle();
   await _tap(tester, _button('Encerrar'));
   await _tap(tester, _button('Salvar sessão'));
 }
