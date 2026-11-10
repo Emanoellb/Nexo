@@ -73,7 +73,7 @@ Esses cálculos seguem regras fixas e iguais para todos os usuários, descritas 
 ### 3.7 Dados que ficam só no seu aparelho
 
 - **Uso sem internet:** parte dos seus dados fica guardada no próprio aparelho e é sincronizada quando a conexão volta.
-- **Cronômetro de foco:** enquanto a sessão está em andamento, só o horário de início fica no aparelho; a sessão vai para a sua conta quando você a encerra.
+- **Sessão de foco em andamento:** o plano, o horário de início, as pausas e os tópicos escolhidos ficam só no aparelho. Quando você encerra, a sessão vai para a sua conta, já sem as pausas.
 - **Preferências do aparelho:** tema (sistema, claro ou escuro), "Ligar o Não perturbe ao focar", "Reduzir transparência" e preferências de silêncio dos avisos. Elas **nunca são enviadas aos nossos servidores** e voltam ao padrão se você reinstalar o app.
 - **Agendamento dos avisos:** os avisos são programados no próprio aparelho (veja a seção 11).
 
@@ -167,11 +167,19 @@ O limite é de um aviso por plano por dia. Os avisos são agendados no próprio 
 
 **Permissões** `[CONFIRMAR A LISTA FINAL NO APP ANTES DE PUBLICAR]`:
 
-- **Notificações:** para mostrar os avisos.
-- **Acesso ao "Não perturbe" (opcional):** pedido só se você ligar a opção "Ligar o Não perturbe ao focar", para ativar e desativar esse modo durante a sessão de foco. Não lemos suas notificações nem seus contatos.
-- **Notificação fixa do cronômetro:** mostra a sessão de foco em andamento enquanto o app está fechado.
+Permissões que o app pede a você:
+
+- **Notificações:** pedida na sua primeira sessão de foco (Android 13 ou mais recente). Serve para a notificação fixa do cronômetro, que mostra a sessão em andamento, e para os avisos. As notificações são criadas no próprio aparelho, e nenhum dado é enviado por elas.
+- **Acesso ao "Não perturbe" (opcional):** só se você ligar a opção "Ligar o Não perturbe ao focar". Você dá esse acesso uma vez, nas configurações do sistema. O app liga o modo durante a sessão de foco e devolve o estado anterior quando você encerra a sessão (ou na próxima vez que abrir o app). Não lemos suas notificações nem seus contatos.
+
+Permissões automáticas, que o Android concede sem perguntar:
+
+- **Internet:** para entrar na sua conta, guardar seus dados e enviar relatórios de falha.
 - **Estado da conexão:** para avisar quando você está sem internet. Não coletamos dados da sua rede.
-- **Vibração:** um retorno leve ao concluir uma ação.
+- **Biometria e impressão digital:** vêm junto com a biblioteca de login do Google. **O Nexo não usa nem lê sua biometria**, e nenhuma tela do app pede isso.
+- **Serviços do Google:** vem junto com a proteção contra abuso do login (reCAPTCHA), do Firebase. `[CONFIRMAR: se a proteção está ativa e quais sinais do aparelho ela envia ao Google]`
+
+O Nexo não usa alarmes exatos nem serviços que fiquem rodando em segundo plano.
 
 ## 12. Usuários entre 16 e 18 anos
 

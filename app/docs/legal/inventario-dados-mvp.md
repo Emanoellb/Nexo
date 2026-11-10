@@ -131,7 +131,7 @@ U1 data de nascimento · U2 nada da Apple, só Android · U3 idioma não guardad
 | Tópicos (`topicIds`, até 3) | C (v0.9) | não |
 | Nota (texto livre, até 500) | C | não |
 
-- **O cronômetro em andamento fica no aparelho:** só o horário de início é guardado localmente; a sessão vai ao banco ao encerrar. As pausas não são guardadas.
+- **A sessão em andamento fica só no aparelho** (`shared_preferences`; aprovado em 09/11, feat/foco): plano, início, pausas e tópicos escolhidos. Ao encerrar, vai ao Firestore como sessão, conforme o contrato (duração líquida; as pausas não sobem).
 - Tempo por tópico = duração ÷ número de tópicos (**D**).
 - **Base:** Contrato. **Retenção:** até editar/excluir (janela de 7 dias), excluir o plano ou a conta.
 
@@ -206,16 +206,21 @@ U1 data de nascimento · U2 nada da Apple, só Android · U3 idioma não guardad
 
 **Preferências só no aparelho (V4):** tema (Sistema · Claro · Escuro), "Ligar o Não perturbe ao focar", "Reduzir transparência", preferências de silêncio. Reinstalando o app, voltam ao padrão.
 
-**Permissões e recursos do Android (V8, todos NC até a Etapa 3c):**
+**Permissões do Android (V8).** Manifesto de release depois da `feat/foco` (na `main` em `7727ace`). Origem conferida em 09/11/2026 no relatório de mesclagem do build de release (`app/build/app/intermediates/manifest_merge_blame_file/release/…/manifest-merger-blame-release-report.txt`, gerado às 15:55) e nos POMs do cache do Gradle. **Lista ainda não final:** faltam Agenda e Perfil.
 
-| Recurso | Para quê | Coleta dado? |
-|---|---|---|
-| Notificações | Mostrar os avisos acima | Não |
-| Acesso ao "Não perturbe" (`ACCESS_NOTIFICATION_POLICY`), opcional, pedido uma vez | Ligar e desligar o modo durante o foco, se o usuário ativar a opção | Não lê notificações nem contatos |
-| Notificação fixa do cronômetro (provável serviço em primeiro plano no Android 14) | Mostrar o foco em andamento com o app fechado | Não |
-| Checagem de conexão (`connectivity_plus`) | Avisar quando está sem internet | Não |
-| Vibração | Retorno leve ao concluir | Não |
-| Agendamento de alarmes exatos | **A confirmar** se o pacote de notificações locais vai pedir | Não |
+| Permissão | Origem [C] | Para quê | Pedida ao usuário? | Coleta dado? |
+|---|---|---|---|---|
+| `POST_NOTIFICATIONS` | Manifesto do app | Notificação fixa do cronômetro durante o foco; depois, os avisos (mesmo pacote, `flutter_local_notifications`) | Sim, no primeiro foco (Android 13+) | Não; criada no aparelho |
+| `ACCESS_NOTIFICATION_POLICY` | Manifesto do app | Ligar o "Não perturbe" durante o foco e devolver o estado anterior ao encerrar ou na próxima abertura. Opcional | Sim: o usuário dá o acesso uma vez nas configurações do sistema | Não lê notificações nem contatos |
+| `INTERNET` | `google_sign_in_android` (e necessária ao Firebase) | Login, banco de dados e relatórios de falha | Não (automática) | Os dados descritos neste inventário |
+| `ACCESS_NETWORK_STATE` | `connectivity_plus` | Saber se há conexão, para avisar quando está offline | Não (automática) | Não |
+| `USE_BIOMETRIC`, `USE_FINGERPRINT` | `androidx.biometric` 1.1.0 ← `androidx.credentials` ← `firebase-auth` e `googleid` (login Google / Credential Manager) | Recurso da biblioteca de credenciais do Google. **O Nexo não usa biometria** | Não (automática); nenhuma tela de biometria no app | Não pelo Nexo |
+| `READ_GSERVICES` | `com.google.android.recaptcha` 18.6.1 ← `firebase-auth` | Proteção contra abuso (reCAPTCHA) do Firebase Auth | Não (automática) | **NC:** se a proteção reCAPTCHA está ligada no console e quais sinais do aparelho ela envia ao Google |
+| `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | `androidx.core` 1.18.0 | Permissão interna do Android, restrita ao próprio app | Não | Não |
+| ~~`VIBRATE`~~ | `flutter_local_notifications` | **Removida** no manifesto (`tools:node="remove"`) | — | — |
+| ~~Alarmes exatos, serviço em primeiro plano~~ | — | **Fora:** sem `SCHEDULE_EXACT_ALARM`/`USE_EXACT_ALARM` e sem foreground service (sem declaração de tipo de serviço na Play) | — | — |
+
+- A sessão em andamento fica no aparelho (seção 6). A notificação fixa não envia dados.
 
 - **Base:** Contrato. A lista final sai do `AndroidManifest.xml` depois da 3c e alimenta a seção "Segurança dos dados" do Google Play.
 
@@ -277,5 +282,5 @@ legalDocuments/current         termsVersion, privacyVersion
 | R12 | Marketing | Não há no MVP |
 | R14 | ~~Notificações locais × etapa 10~~ | **Fechado (V1):** locais, decidido em 24/10 |
 | R15 | Histórico de notificações sem TTL ativo | A política de TTL só nasce depois do primeiro aviso gravado (A13). Até lá, avisos não somem sozinhos aos 30 dias |
-| R16 | Permissões do Android ainda não conferidas | Conferir o `AndroidManifest.xml` depois da 3c e ajustar a Política 11 e o formulário do Google Play |
+| R16 | Permissões do Android | Manifesto de release conferido em 09/11 (seção 12). Faltam Agenda e Perfil, a confirmação do reCAPTCHA (`READ_GSERVICES`) e o formulário "Segurança dos dados" do Google Play |
 | R17 | Vigência vencida | A v0.2 previa 01/11/2026 e não foi publicada. Os textos continuam rascunho até o advogado |
