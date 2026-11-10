@@ -6,8 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Android, pelo canal `nexo/device` (MainActivity.kt), sem pacote, sem
 /// permissão e sem `<queries>` no manifesto.
 abstract interface class DeviceActions {
-  /// `false` se não houver app de e-mail.
-  Future<bool> openEmail(String address);
+  /// Abre o app de e-mail com [address], [subject] e [body] já preenchidos
+  /// (a pessoa revisa e envia). `false` se não houver app de e-mail.
+  Future<bool> openEmail(String address, {String? subject, String? body});
 
   /// `false` se não houver discador (ex.: tablet sem telefone).
   Future<bool> openDialer(String number);
@@ -22,8 +23,17 @@ class AndroidDeviceActions implements DeviceActions {
   static const _channel = MethodChannel('nexo/device');
 
   @override
-  Future<bool> openEmail(String address) async =>
-      await _channel.invokeMethod<bool>('openEmail', address) ?? false;
+  Future<bool> openEmail(
+    String address, {
+    String? subject,
+    String? body,
+  }) async =>
+      await _channel.invokeMethod<bool>('openEmail', {
+        'address': address,
+        'subject': ?subject,
+        'body': ?body,
+      }) ??
+      false;
 
   @override
   Future<bool> openDialer(String number) async =>
@@ -38,7 +48,11 @@ class NoopDeviceActions implements DeviceActions {
   const NoopDeviceActions();
 
   @override
-  Future<bool> openEmail(String address) async => false;
+  Future<bool> openEmail(
+    String address, {
+    String? subject,
+    String? body,
+  }) async => false;
 
   @override
   Future<bool> openDialer(String number) async => false;

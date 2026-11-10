@@ -65,9 +65,23 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "nexo/device")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    "openEmail" -> result.success(
-                        open(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${call.arguments}")))
-                    )
+                    "openEmail" -> {
+                        // {address, subject?, body?}: mailto com o assunto e
+                        // o texto codificados (o app de e-mail só preenche).
+                        val args = call.arguments as? Map<*, *>
+                        val address = args?.get("address") as? String
+                        if (address == null) {
+                            result.error("bad_args", "Endereço esperado", null)
+                        } else {
+                            val query = listOfNotNull(
+                                (args?.get("subject") as? String)?.let { "subject=${Uri.encode(it)}" },
+                                (args?.get("body") as? String)?.let { "body=${Uri.encode(it)}" },
+                            ).joinToString("&")
+                            val uri = "mailto:${Uri.encode(address, "@")}" +
+                                if (query.isEmpty()) "" else "?$query"
+                            result.success(open(Intent(Intent.ACTION_SENDTO, Uri.parse(uri))))
+                        }
+                    }
                     "openDialer" -> result.success(
                         open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${call.arguments}")))
                     )

@@ -11,12 +11,19 @@ import '../../../core/theme/nexo_theme.dart';
 import '../../../core/theme/theme_preference.dart';
 import '../../../core/ui/ui.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../auth/domain/auth_failure.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../focus/application/focus_system.dart';
 import '../../progress/application/achievements_providers.dart';
 import '../../progress/domain/level.dart';
 import '../application/profile_actions.dart';
+import 'about_sheet.dart';
 import 'achievement_sheet.dart';
+
+/// O Aviso da manhã fica escondido até o agendamento existir (decisão do
+/// usuário, 10/11/2026: nada que não funcione no fim da 3c; o agendamento é
+/// da Etapa 5). A preferência `users.morningSummary` continua no modelo.
+const morningSummaryVisible = false;
 
 /// "5 tarefas" / "1 tarefa".
 String _tasksText(int n) => n == 1 ? '1 tarefa' : '$n tarefas';
@@ -72,7 +79,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Future<void> _contact({required bool email}) async {
     final device = ref.read(deviceActionsProvider);
     final opened = email
-        ? await device.openEmail(NexoSupport.email)
+        ? await device.openEmail(
+            NexoSupport.email,
+            subject: NexoSupport.supportSubject,
+          )
         : await device.openDialer(NexoSupport.phoneDial);
     if (opened || !mounted) return;
     showNexoSnackbar(
@@ -84,6 +94,58 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       tone: NexoSnackbarTone.info,
     );
   }
+
+  /// "Pedir cópia dos dados": abre o app de e-mail com a mensagem pronta. O
+  /// Nexo não envia nada sozinho nem guarda o pedido.
+  Future<void> _requestDataCopy() async {
+    final opened = await ref
+        .read(deviceActionsProvider)
+        .openEmail(
+          NexoSupport.email,
+          subject: NexoSupport.dataCopySubject,
+          body: NexoSupport.dataCopyBody,
+        );
+    if (opened || !mounted) return;
+    showNexoSnackbar(
+      context,
+      message:
+          'Nenhum app de e-mail encontrado. Escreva para ${NexoSupport.email} '
+          'com o assunto “${NexoSupport.dataCopySubject}”.',
+      tone: NexoSnackbarTone.info,
+    );
+  }
+
+  /// Alterar senha enviando agora (a linha fica desativada).
+  bool _sendingReset = false;
+
+  /// "Alterar senha": o mesmo e-mail do "Esqueci a senha", direto, sem tela
+  /// nem confirmação (a senha só muda se a pessoa abrir o link).
+  Future<void> _sendPasswordReset(String email) async {
+    setState(() => _sendingReset = true);
+    String message;
+    var tone = NexoSnackbarTone.info;
+    try {
+      await ref.read(authRepositoryProvider).sendPasswordResetEmail(email);
+      message = 'Enviamos um link para $email.';
+      tone = NexoSnackbarTone.success;
+    } on AuthFailure catch (failure) {
+      message = switch (failure.code) {
+        AuthFailureCode.network =>
+          'Sem conexão com a internet. Verifique e tente de novo.',
+        AuthFailureCode.tooManyRequests =>
+          'Muitas tentativas. Tente de novo mais tarde.',
+        _ => 'Não conseguimos enviar o link agora. Tente de novo.',
+      };
+    }
+    if (!mounted) return;
+    setState(() => _sendingReset = false);
+    showNexoSnackbar(context, message: message, tone: tone);
+  }
+
+  /// "Sobre o Nexo": o painel com o nome, a versão e "Oferecido por"; dali,
+  /// as licenças.
+  void _openAbout(String? version) =>
+      showAboutNexoSheet(context, version: version);
 
   Future<void> _signOut() async {
     final confirmed = await showNexoDialog(
@@ -104,7 +166,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final spacing = context.spacing;
     final textTheme = Theme.of(context).textTheme;
     final profile = ref.watch(userProfileProvider).value;
-    final email = ref.watch(authStateProvider).value?.email ?? '';
+    final user = ref.watch(authStateProvider).value;
+    final email = user?.email ?? '';
+    final signedInWithGoogle = user?.signedInWithGoogle ?? false;
     final medals = ref.watch(achievementsViewProvider);
     final uid = ref.watch(currentUidProvider);
     final flags = ref.watch(localFlagsProvider);
@@ -295,19 +359,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     onChanged: (mode) =>
                         ref.read(themePreferenceProvider.notifier).set(mode),
                   ),
-                  divider(),
-                  NexoSwitch(
-                    label: 'Aviso da manhã',
-                    helper: summary.enabled
-                        ? 'Todo dia às ${summary.time}, com os planos e tarefas '
-                              'do dia.'
-                        : 'Desligado.',
-                    value: summary.enabled,
-                    onChanged: (on) => _actions.setMorningSummary(
-                      summary.copyWith(enabled: on),
+                  if (morningSummaryVisible) divider(),
+                  if (morningSummaryVisible)
+                    NexoSwitch(
+                      label: 'Aviso da manhã',
+                      helper: summary.enabled
+                          ? 'Todo dia às ${summary.time}, com os planos e tarefas '
+                                'do dia.'
+                          : 'Desligado.',
+                      value: summary.enabled,
+                      onChanged: (on) => _actions.setMorningSummary(
+                        summary.copyWith(enabled: on),
+                      ),
                     ),
-                  ),
-                  if (summary.enabled) ...[
+                  if (morningSummaryVisible && summary.enabled) ...[
                     SizedBox(height: spacing.md),
                     NexoSelectField(
                       label: 'Horário',
@@ -386,17 +451,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                   onTap: () => _contact(email: true),
                 ),
-                NexoListItem(
-                  icon: LucideIcons.phone,
-                  title: 'Telefone',
-                  supporting: NexoSupport.phoneText,
-                  trailing: Icon(
-                    LucideIcons.externalLink,
-                    size: 20,
-                    color: c.iconSecondary,
+                if (NexoSupport.phoneVisible)
+                  NexoListItem(
+                    icon: LucideIcons.phone,
+                    title: 'Telefone',
+                    supporting: NexoSupport.phoneText,
+                    trailing: Icon(
+                      LucideIcons.externalLink,
+                      size: 20,
+                      color: c.iconSecondary,
+                    ),
+                    onTap: () => _contact(email: false),
                   ),
-                  onTap: () => _contact(email: false),
-                ),
               ],
             ),
             note(
@@ -407,26 +473,44 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             section('Conta'),
             NexoCardList(
               children: [
+                // Termos e Política abrem dentro do app: chevron.
                 NexoListItem(
                   icon: LucideIcons.fileText,
                   title: 'Termos de uso',
-                  trailing: Icon(
-                    LucideIcons.externalLink,
-                    size: 20,
-                    color: c.iconSecondary,
-                  ),
                   onTap: () => context.push(AppRoutes.terms),
                 ),
                 NexoListItem(
                   icon: LucideIcons.shield,
                   title: 'Política de privacidade',
+                  onTap: () => context.push(AppRoutes.privacy),
+                ),
+                NexoListItem(
+                  icon: LucideIcons.download,
+                  title: 'Pedir cópia dos dados',
+                  supporting: 'Pelo e-mail. Respondemos em até 15 dias.',
+                  semanticsLabel:
+                      'Pedir cópia dos dados, pelo e-mail, abre o app de '
+                      'e-mail',
                   trailing: Icon(
                     LucideIcons.externalLink,
                     size: 20,
                     color: c.iconSecondary,
                   ),
-                  onTap: () => context.push(AppRoutes.privacy),
+                  onTap: _requestDataCopy,
                 ),
+                // Só para contas de e-mail e senha (a do Google é do Google).
+                if (!signedInWithGoogle && email.isNotEmpty)
+                  NexoListItem(
+                    icon: LucideIcons.keyRound,
+                    title: 'Alterar senha',
+                    supporting: 'Enviamos um link para o seu e-mail.',
+                    semanticsLabel:
+                        'Alterar senha, envia um link para o seu e-mail',
+                    showChevron: false,
+                    onTap: _sendingReset
+                        ? null
+                        : () => _sendPasswordReset(email),
+                  ),
                 NexoListItem(
                   icon: LucideIcons.logOut,
                   title: 'Sair',
@@ -441,12 +525,41 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
               ],
             ),
+            // "Sobre o Nexo · versão X" abre o painel Sobre o Nexo.
             Padding(
               padding: EdgeInsets.only(top: spacing.lg),
-              child: Text(
-                version == null ? 'Nexo' : 'Nexo $version',
-                style: textTheme.labelSmall!.copyWith(
-                  color: c.onSurfaceVariant,
+              child: Center(
+                child: Semantics(
+                  button: true,
+                  label: version == null
+                      ? 'Sobre o Nexo'
+                      : 'Sobre o Nexo, versão $version',
+                  excludeSemantics: true,
+                  onTap: () => _openAbout(version),
+                  child: NexoTappable(
+                    onTap: () => _openAbout(version),
+                    borderRadius: BorderRadius.circular(context.shape.sm),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: context.sizes.target,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: spacing.md),
+                        child: Center(
+                          widthFactor: 1,
+                          child: Text(
+                            version == null
+                                ? 'Sobre o Nexo'
+                                : 'Sobre o Nexo · versão $version',
+                            textAlign: TextAlign.center,
+                            style: textTheme.labelSmall!.copyWith(
+                              color: c.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),

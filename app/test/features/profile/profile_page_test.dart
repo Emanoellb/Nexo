@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/app/router/app_router.dart';
 import 'package:nexo/app/router/routes.dart';
@@ -36,10 +37,17 @@ class _FakeDevice implements DeviceActions {
   final calls = <String>[];
 
   @override
-  Future<bool> openEmail(String address) async {
+  Future<bool> openEmail(
+    String address, {
+    String? subject,
+    String? body,
+  }) async {
     calls.add('email:$address');
+    emails.add((address: address, subject: subject, body: body));
     return opens;
   }
+
+  final emails = <({String address, String? subject, String? body})>[];
 
   @override
   Future<bool> openDialer(String number) async {
@@ -69,13 +77,16 @@ Future<_Ctx> _pump(
   bool deviceOpens = true,
   UserProfile? profile,
   bool openProfile = true,
+  AuthUser? user,
 }) async {
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 3;
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(tester.view.reset);
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-  final auth = FakeAuthRepository.signedIn();
+  final auth = user == null
+      ? FakeAuthRepository.signedIn()
+      : FakeAuthRepository(initialUser: user, withPrototypeAccounts: true);
   final profiles = FakeUserProfileRepository.prototype()..now = () => _now;
   if (profile != null) profiles.setProfile(_uid, profile);
   final flags = InMemoryLocalFlags(
@@ -157,7 +168,8 @@ void main() {
     expect(find.text('0 de 9'), findsOneWidget);
     expect(find.byType(NexoAchievement), findsNWidgets(9));
     expect(find.text('Tema'), findsOneWidget);
-    expect(find.text('Aviso da manhã'), findsOneWidget);
+    // Escondido até o agendamento existir (Etapa 5).
+    expect(find.text('Aviso da manhã'), findsNothing);
     expect(find.text('5 tarefas'), findsOneWidget);
     // O rótulo visível acima do ajuste (bug de 10/11/2026: só havia o do
     // leitor de tela).
@@ -168,9 +180,14 @@ void main() {
     );
     // Sem as partes nativas (testes), o "Não perturbe" não aparece.
     expect(find.text('Ligar o Não perturbe ao focar'), findsNothing);
-    await tester.scrollUntilVisible(find.text('Nexo 1.0.0'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Sobre o Nexo · versão 1.0.0'),
+      200,
+    );
     expect(find.text(NexoSupport.email), findsOneWidget);
-    expect(find.text(NexoSupport.phoneText), findsOneWidget);
+    // Telefone fictício escondido até haver o número real.
+    expect(find.text('Telefone'), findsNothing);
+    expect(find.text(NexoSupport.phoneText), findsNothing);
     expect(find.text('Excluir conta'), findsOneWidget);
   });
 
@@ -205,9 +222,7 @@ void main() {
     expect(find.text('Faltam 10 tarefas.'), findsOneWidget);
   });
 
-  testWidgets('preferências: tema, transparência, limite e aviso da manhã', (
-    tester,
-  ) async {
+  testWidgets('preferências: tema, transparência e limite', (tester) async {
     final ctx = await _pump(tester);
     await _tap(tester, find.text('Escuro'));
     expect(ctx.flags.themePreference, 'dark');
@@ -219,11 +234,6 @@ void main() {
     await _tap(tester, find.byTooltip('Aumentar o limite'));
     expect(find.text('6 tarefas'), findsOneWidget);
     expect(_profile(ctx.c).overloadThreshold, 6);
-
-    expect(find.text('Horário'), findsOneWidget);
-    await _tap(tester, find.text('Aviso da manhã'));
-    expect(_profile(ctx.c).morningSummary.enabled, isFalse);
-    expect(find.text('Horário'), findsNothing);
   });
 
   testWidgets('limite: não passa de 1 nem de 20', (tester) async {
@@ -247,9 +257,7 @@ void main() {
     expect(_profile(ctx.c).overloadThreshold, 20);
   });
 
-  testWidgets('suporte abre o e-mail e o discador; sem app, avisa', (
-    tester,
-  ) async {
+  testWidgets('suporte abre o e-mail; sem app, avisa', (tester) async {
     final ctx = await _pump(tester, deviceOpens: false);
     await _tap(tester, find.text('E-mail'));
     expect(ctx.device.calls, ['email:${NexoSupport.email}']);
@@ -257,12 +265,136 @@ void main() {
       find.textContaining('Nenhum app de e-mail encontrado'),
       findsOneWidget,
     );
-    await _tap(tester, find.text('Telefone'));
-    expect(ctx.device.calls.last, 'tel:${NexoSupport.phoneDial}');
+  });
+
+  testWidgets('bloco Conta: ordem, chevron nos documentos e Pedir cópia', (
+    tester,
+  ) async {
+    final ctx = await _pump(tester);
+    final rows = tester
+        .widgetList<NexoListItem>(
+          find.descendant(
+            of: find.ancestor(
+              of: find.text('Termos de uso'),
+              matching: find.byType(NexoCardList),
+            ),
+            matching: find.byType(NexoListItem),
+          ),
+        )
+        .map((r) => r.title)
+        .toList();
+    expect(rows, [
+      'Termos de uso',
+      'Política de privacidade',
+      'Pedir cópia dos dados',
+      'Alterar senha',
+      'Sair',
+      'Excluir conta',
+    ]);
+    // Termos e Política abrem no app: chevron, não link externo.
+    for (final title in ['Termos de uso', 'Política de privacidade']) {
+      final row = find.widgetWithText(NexoListItem, title);
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.byIcon(LucideIcons.chevronRight),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.byIcon(LucideIcons.externalLink),
+        ),
+        findsNothing,
+      );
+    }
+
+    // Suporte com o assunto.
+    await _tap(tester, find.text('E-mail'));
+    expect(ctx.device.emails.last.subject, 'Nexo · suporte');
+
+    // Pedir cópia: a mensagem pronta, sem o e-mail da conta.
+    await _tap(tester, find.text('Pedir cópia dos dados'));
+    final mail = ctx.device.emails.last;
+    expect(mail.address, NexoSupport.email);
+    expect(mail.subject, 'Nexo · cópia dos meus dados');
+    expect(mail.body, 'Olá! Quero receber uma cópia dos meus dados do Nexo.');
+    expect(mail.body, isNot(contains(FakeAuthRepository.prototypeEmail)));
+  });
+
+  testWidgets('Pedir cópia sem app de e-mail: Snackbar com o endereço e o '
+      'assunto', (tester) async {
+    await _pump(tester, deviceOpens: false);
+    await _tap(tester, find.text('Pedir cópia dos dados'));
     expect(
-      find.text('Nenhum discador encontrado neste aparelho.'),
+      find.text(
+        'Nenhum app de e-mail encontrado. Escreva para ${NexoSupport.email} '
+        'com o assunto “Nexo · cópia dos meus dados”.',
+      ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Alterar senha envia o link direto, sem confirmação', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await _tap(tester, find.text('Alterar senha'));
+    expect(
+      find.text('Enviamos um link para ${FakeAuthRepository.prototypeEmail}.'),
+      findsOneWidget,
+    );
+  });
+
+  for (final (local, message) in const [
+    ('sem-conexao', 'Sem conexão com a internet. Verifique e tente de novo.'),
+    ('muitas-tentativas', 'Muitas tentativas. Tente de novo mais tarde.'),
+    ('erro', 'Não conseguimos enviar o link agora. Tente de novo.'),
+  ]) {
+    testWidgets('Alterar senha · erro "$local"', (tester) async {
+      await _pump(
+        tester,
+        user: AuthUser(
+          uid: _uid,
+          emailVerified: true,
+          email: '$local@exemplo.com',
+        ),
+      );
+      await _tap(tester, find.text('Alterar senha'));
+      expect(find.text(message), findsOneWidget);
+    });
+  }
+
+  testWidgets('conta Google não tem "Alterar senha"', (tester) async {
+    await _pump(
+      tester,
+      user: const AuthUser(
+        uid: _uid,
+        emailVerified: true,
+        signedInWithGoogle: true,
+        email: FakeAuthRepository.googleEmail,
+      ),
+    );
+    expect(find.text('Alterar senha'), findsNothing);
+    expect(find.text('Pedir cópia dos dados'), findsOneWidget);
+  });
+
+  testWidgets('"Sobre o Nexo": nome, versão, quem oferece e as licenças', (
+    tester,
+  ) async {
+    await _pump(tester);
+    final about = find.text('Sobre o Nexo · versão 1.0.0');
+    expect(about, findsOneWidget);
+    expect(find.bySemanticsLabel('Sobre o Nexo, versão 1.0.0'), findsOneWidget);
+    await _tap(tester, about);
+    expect(find.text('Sobre o Nexo'), findsOneWidget);
+    expect(find.text('Nexo'), findsWidgets);
+    expect(find.text('Versão 1.0.0'), findsOneWidget);
+    expect(find.text('Oferecido por Emanoel Lima Barbosa'), findsOneWidget);
+    expect(find.byType(LicensePage), findsNothing);
+    await _tap(tester, _button('Ver licenças e componentes'));
+    expect(find.byType(LicensePage), findsOneWidget);
   });
 
   testWidgets('05 Editar perfil: só o nome; e-mail e nascimento só leitura', (
@@ -303,6 +435,12 @@ void main() {
     tester,
   ) async {
     final ctx = await _pump(tester);
+    // O que o aparelho guarda da conta (e um ajuste do aparelho).
+    await ctx.flags.setDndOnFocus(_uid, true);
+    await ctx.flags.setDndAllowed(_uid);
+    await ctx.flags.markFirstStepsDone(_uid);
+    await ctx.flags.setActiveFocus(_uid, '{}');
+    await ctx.flags.setReduceTransparency(true);
     await _tap(tester, find.text('Excluir conta'));
     expect(find.byType(DeleteAccountPage), findsOneWidget);
     expect(find.text('Excluir conta?'), findsOneWidget);
@@ -329,6 +467,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(LoginPage), findsOneWidget);
     expect(find.text('Conta excluída.'), findsOneWidget);
+    // O aparelho esquece a conta; o que é do aparelho fica.
+    expect(ctx.flags.dndOnFocus(_uid), isFalse);
+    expect(ctx.flags.dndAllowed(_uid), isFalse);
+    expect(ctx.flags.firstStepsDone(_uid), isFalse);
+    expect(ctx.flags.activeFocus(_uid), isNull);
+    expect(ctx.flags.reduceTransparency, isTrue);
     // A conta não existe mais (o login fake espera um instante: o relógio
     // do teste anda com o pump).
     final attempt = ctx.auth
