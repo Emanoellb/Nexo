@@ -23,14 +23,8 @@ import 'home_widgets.dart';
 /// Estados: 01 carregando (skeleton depois de ~300 ms) · 02–05 primeiros
 /// passos · 06 uso diário · 07 finalizar abaixo da meta (diálogo) · 08/09
 /// dia cumprido · 10 sem conexão (alerta no topo).
-///
-/// Na prototipação, as telas de criar e o cronômetro ainda não existem: os
-/// botões criam exemplos e registram 25 min (decisão do usuário, 04/11).
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
-
-  /// Sessão simulada pelo Focar e pelo Focar mais.
-  static const focusMinutes = 25;
 
   /// Até quantos itens cada lista mostra (Miller).
   static const maxItems = 3;

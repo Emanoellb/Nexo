@@ -227,19 +227,6 @@ class ProgressActions {
     await repository.updatePlan(plan.copyWith(goalId: () => goalId));
   });
 
-  /// Registra uma sessão de foco de [minutes] terminando agora (dividida à
-  /// meia-noite, se for o caso).
-  Future<void> addFocusMinutes(String planId, int minutes) async {
-    final end = _now;
-    await addSessions(
-      planId,
-      splitSessionByDay([
-        ActiveInterval(end.subtract(Duration(minutes: minutes)), end),
-      ]),
-      source: SessionSource.focus,
-    );
-  }
-
   /// Grava as partes de uma sessão (já divididas à meia-noite) e ajusta os
   /// pontos das semanas tocadas. Devolve as sessões criadas (para o
   /// "Desfazer").

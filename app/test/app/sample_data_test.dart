@@ -6,6 +6,7 @@ import 'package:nexo/features/auth/application/auth_providers.dart';
 import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
 import 'package:nexo/features/goals/application/goals_providers.dart';
+import 'package:nexo/features/notifications/application/notifications_providers.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/subjects/application/subjects_providers.dart';
 import 'package:nexo/features/tasks/application/tasks_providers.dart';
@@ -88,6 +89,16 @@ void main() {
         .watchProfile(FakeAuthRepository.prototypeUser.uid)
         .first;
     expect(profile!.points, 3 + 5 + 3 + 5 + 1);
+
+    // Sem avisos de exemplo no sino (decisão de 10/11/2026: fica vazio até
+    // os avisos de verdade).
+    expect(
+      await container
+          .read(notificationsRepositoryProvider)
+          .watchNotifications()
+          .first,
+      isEmpty,
+    );
   });
 
   test('conta nova começa vazia; a de protótipo é o plano principal', () async {

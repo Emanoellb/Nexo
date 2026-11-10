@@ -51,6 +51,13 @@ abstract interface class LocalFlags {
   bool dndOnFocus(String uid);
 
   Future<void> setDndOnFocus(String uid, bool value);
+
+  /// Excluir conta: apaga tudo o que o aparelho guarda **da conta** [uid]
+  /// (foco em andamento, "Permitir durante o uso do app", "Ligar o Não
+  /// perturbe ao focar" e os "Primeiros passos"). O que é do aparelho
+  /// (primeira abertura, tema, visualização de Tarefas, transparência)
+  /// fica.
+  Future<void> clearAccount(String uid);
 }
 
 /// Implementação com `shared_preferences`. Sem dado pessoal: só o uid
@@ -103,6 +110,20 @@ class SharedPreferencesLocalFlags implements LocalFlags {
   Future<void> setActiveFocus(String uid, String? json) => json == null
       ? _prefs.remove('$_activeFocusPrefix$uid')
       : _prefs.setString('$_activeFocusPrefix$uid', json);
+
+  @override
+  Future<void> clearAccount(String uid) async {
+    await _prefs.remove('$_activeFocusPrefix$uid');
+    await _prefs.remove('$_dndAllowedPrefix$uid');
+    await _prefs.remove('$_dndOnFocusPrefix$uid');
+    final done = _prefs.getStringList(_firstStepsDoneKey);
+    if (done != null && done.contains(uid)) {
+      await _prefs.setStringList(_firstStepsDoneKey, [
+        for (final id in done)
+          if (id != uid) id,
+      ]);
+    }
+  }
 
   @override
   bool get reduceTransparency =>
@@ -198,6 +219,14 @@ class InMemoryLocalFlags implements LocalFlags {
   @override
   Future<void> setDndOnFocus(String uid, bool value) async =>
       value ? dndOnFocusFor.add(uid) : dndOnFocusFor.remove(uid);
+
+  @override
+  Future<void> clearAccount(String uid) async {
+    activeFocusByUid.remove(uid);
+    dndAllowedFor.remove(uid);
+    dndOnFocusFor.remove(uid);
+    firstStepsDoneFor.remove(uid);
+  }
 
   @override
   bool dndAllowed(String uid) => dndAllowedFor.contains(uid);

@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/core/domain/local_date.dart';
+import 'package:nexo/features/focus/domain/focus_session.dart';
+import 'package:nexo/features/focus/domain/session_split.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
 import 'package:nexo/features/auth/data/fake_auth_repository.dart';
@@ -39,6 +41,17 @@ Future<({int points, String? primary})> _profile(ProviderContainer c) async {
   return (points: p!.points, primary: p.primaryPlanId);
 }
 
+/// Uma sessão de foco de [minutes] terminando agora, como o Foco grava ao
+/// encerrar (dividida à meia-noite, se for o caso).
+Future<void> _focus(ProgressActions actions, String planId, int minutes) =>
+    actions.addSessions(
+      planId,
+      splitSessionByDay([
+        ActiveInterval(_now.subtract(Duration(minutes: minutes)), _now),
+      ]),
+      source: SessionSource.focus,
+    );
+
 Plan _draft(String name, {int goal = 90}) => Plan(
   id: '',
   name: name,
@@ -63,13 +76,13 @@ void main() {
     final actions = c.read(progressActionsProvider);
     final plan = await actions.createPlan(_draft('Concurso Banco Horizonte'));
 
-    await actions.addFocusMinutes(plan.id, 60);
+    await _focus(actions, plan.id, 60);
     expect((await _profile(c)).points, 0); // 60 de 90: em andamento
 
-    await actions.addFocusMinutes(plan.id, 30);
+    await _focus(actions, plan.id, 30);
     expect((await _profile(c)).points, 5); // na meta
 
-    await actions.addFocusMinutes(plan.id, 25);
+    await _focus(actions, plan.id, 25);
     expect((await _profile(c)).points, 7); // com horas a mais
   });
 
@@ -77,12 +90,12 @@ void main() {
     final c = await _container();
     final actions = c.read(progressActionsProvider);
     final plan = await actions.createPlan(_draft('Concurso Banco Horizonte'));
-    await actions.addFocusMinutes(plan.id, 60);
+    await _focus(actions, plan.id, 60);
 
     // Dois "Focar" ao mesmo tempo: 60 + 25 + 25 = 110 min, com horas a mais.
     await Future.wait([
-      actions.addFocusMinutes(plan.id, 25),
-      actions.addFocusMinutes(plan.id, 25),
+      _focus(actions, plan.id, 25),
+      _focus(actions, plan.id, 25),
     ]);
     expect((await _profile(c)).points, 7);
   });
@@ -91,7 +104,7 @@ void main() {
     final c = await _container();
     final actions = c.read(progressActionsProvider);
     final plan = await actions.createPlan(_draft('Concurso Banco Horizonte'));
-    await actions.addFocusMinutes(plan.id, 70);
+    await _focus(actions, plan.id, 70);
 
     await actions.finalizeDay(plan.id, _today);
     expect((await _profile(c)).points, 3);
@@ -127,7 +140,7 @@ void main() {
         pauses: [PlanPause(start: _today)],
       ),
     );
-    await actions.addFocusMinutes(plan.id, 95);
+    await _focus(actions, plan.id, 95);
     expect((await _profile(c)).points, 0);
 
     // Retomar: hoje volta a contar (95 de 90, na meta) e soma 5.

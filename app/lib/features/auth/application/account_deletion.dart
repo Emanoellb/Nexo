@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/data/local_flags.dart';
 import '../../focus/application/focus_controller.dart';
 import 'auth_providers.dart';
 import 'login_controller.dart';
@@ -53,8 +54,8 @@ class AccountDeletion {
   }
 
   /// Termina a exclusão: tira o foco em andamento (e o "Não perturbe"),
-  /// apaga os dados, o `users/{uid}` e a conta do Auth. O Login abre com
-  /// "Conta excluída.".
+  /// apaga os dados no banco, o `users/{uid}`, o que o aparelho guarda da
+  /// conta e a conta do Auth. O Login abre com "Conta excluída.".
   Future<void> finish() async {
     final uid = _ref.read(currentUidProvider);
     if (uid == null) return;
@@ -63,6 +64,7 @@ class AccountDeletion {
       await _ref.read(activeFocusProvider.notifier).clear();
       await _ref.read(userDataEraserProvider).eraseAll(uid);
       await _ref.read(userProfileRepositoryProvider).deleteProfile(uid);
+      await _ref.read(localFlagsProvider).clearAccount(uid);
       _ref
           .read(entryNoticeProvider.notifier)
           .show(EntryNoticeKind.accountDeleted);
