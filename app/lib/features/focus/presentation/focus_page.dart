@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,12 +26,24 @@ String pausedText(DateTime since, DateTime now) {
   return minutes < 1 ? 'Pausado agora' : 'Pausado há ${formatMinutes(minutes)}';
 }
 
+/// Foco em tela cheia (pedido do usuário, 09/11/2026): ao abrir, só o
+/// relógio; tocar mostra as ações. `false` deixa tudo sempre à mostra (os
+/// testes dos fluxos usam assim).
+final focusImmersiveProvider = Provider<bool>((ref) => true);
+
 /// Foco (design de 07/11/2026, telas 01–07): o plano, o cronômetro, os
 /// tópicos (até 3), o "Não perturbe" (quando o aparelho permite) e as ações
 /// grandes no rodapé (Fitts): Pausar e Encerrar, ou Encerrar e Retomar.
 ///
 /// A seta para baixo e o voltar do Android **minimizam**: o tempo continua
 /// e a Barra do foco aparece acima das abas. Nunca encerram.
+///
+/// Tela cheia (decisões do usuário, 09/11/2026): ao abrir, só o relógio, no
+/// centro da tela, com as barras do Android escondidas. Um toque em
+/// qualquer lugar mostra o topo, o plano, o rótulo, o total do dia, os
+/// tópicos e as ações; somem de novo após 5 s sem toque (pausado também).
+/// As partes escondidas só ficam transparentes, no mesmo lugar: o relógio
+/// não pula. Com o leitor de tela, tudo fica sempre à mostra.
 class FocusPage extends ConsumerStatefulWidget {
   const FocusPage({super.key});
 
@@ -40,6 +54,56 @@ class FocusPage extends ConsumerStatefulWidget {
 class _FocusPageState extends ConsumerState<FocusPage>
     with LeaveOnce<FocusPage> {
   ActiveFocusNotifier get _focus => ref.read(activeFocusProvider.notifier);
+
+  /// Quanto as ações ficam à mostra depois do último toque.
+  static const controlsTimeout = Duration(seconds: 5);
+
+  /// As ações estão à mostra (tela cheia: começa só com o relógio).
+  bool _controls = false;
+  Timer? _hideTimer;
+
+  /// A tela cheia vale agora (ligada e sem leitor de tela).
+  bool _immersive = false;
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    _systemBars(visible: true);
+    super.dispose();
+  }
+
+  /// Barras do Android: escondidas só com as ações escondidas.
+  void _systemBars({required bool visible}) =>
+      SystemChrome.setEnabledSystemUIMode(
+        visible ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
+      );
+
+  /// Qualquer toque: mostra as ações e reinicia os 5 s.
+  void _onTouch() {
+    if (!_immersive) return;
+    if (!_controls) {
+      setState(() => _controls = true);
+      _systemBars(visible: true);
+    }
+    _hideTimer?.cancel();
+    _hideTimer = Timer(controlsTimeout, _hideControls);
+  }
+
+  void _hideControls() {
+    if (!mounted || !_immersive) return;
+    // Com um painel ou menu por cima, espera ele fechar.
+    if (ModalRoute.of(context)?.isCurrent == false) {
+      _hideTimer = Timer(controlsTimeout, _hideControls);
+      return;
+    }
+    setState(() => _controls = false);
+    _systemBars(visible: false);
+  }
+
+  void _minimize() {
+    _systemBars(visible: true);
+    leave();
+  }
 
   Future<void> _finish(ActiveFocus focus) async {
     final now = ref.read(clockProvider)();
@@ -186,52 +250,95 @@ class _FocusPageState extends ConsumerState<FocusPage>
       onPressed: _focus.resume,
     );
 
-    return Scaffold(
-      appBar: NexoTopAppBar(title: 'Foco', minimizeIcon: true, onBack: leave),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: spacing.lg,
-                vertical: spacing.xl,
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight:
-                      MediaQuery.sizeOf(context).height * 0.5 - spacing.xl,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+    // Tela cheia: ligada e sem leitor de tela (ações escondidas ficariam
+    // fora do alcance dele).
+    final immersive =
+        ref.watch(focusImmersiveProvider) &&
+        !MediaQuery.accessibleNavigationOf(context);
+    if (immersive != _immersive) {
+      _immersive = immersive;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _systemBars(visible: !_immersive || _controls);
+      });
+    }
+    final show = !immersive || _controls;
+    final reduce = MediaQuery.disableAnimationsOf(context);
+    Widget chrome(Widget child) => AnimatedOpacity(
+      opacity: show ? 1 : 0,
+      duration: reduce ? Duration.zero : context.motion.short,
+      curve: context.motion.standard,
+      child: IgnorePointer(
+        ignoring: !show,
+        child: ExcludeSemantics(excluding: !show, child: child),
+      ),
+    );
+
+    return Listener(
+      // Qualquer toque (inclusive nas ações) mostra e reinicia os 5 s.
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _onTouch(),
+      child: Scaffold(
+        // O relógio fica no centro da tela inteira: o topo e o rodapé passam
+        // por cima e somem sem mexer nele.
+        extendBodyBehindAppBar: true,
+        extendBody: true,
+        appBar: _ChromeAppBar(
+          bar: NexoTopAppBar(
+            title: 'Foco',
+            minimizeIcon: true,
+            onBack: _minimize,
+          ),
+          wrap: chrome,
+        ),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: spacing.lg,
+              vertical: spacing.xl,
+            ),
+            child: ConstrainedBox(
+              // A largura toda: o conteúdo centraliza na tela, não à
+              // esquerda (bug de 09/11/2026).
+              constraints: const BoxConstraints(minWidth: double.infinity),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  chrome(
                     Text(
                       plan?.name ?? '',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.labelMedium!
                           .copyWith(color: c.onSurfaceVariant),
                     ),
-                    SizedBox(height: spacing.xl),
-                    NexoFocusTimer(
-                      label: paused
-                          ? pausedText(focus.pausedSince!, now)
-                          : 'Sessão de foco',
-                      elapsed: elapsed,
-                      dayTotal: dayTotal,
-                      dayProgress: goal > 0 ? done / goal : null,
-                      paused: paused,
-                    ),
-                    SizedBox(height: spacing.xl),
+                  ),
+                  SizedBox(height: spacing.xl),
+                  NexoFocusTimer(
+                    label: paused
+                        ? pausedText(focus.pausedSince!, now)
+                        : 'Sessão de foco',
+                    elapsed: elapsed,
+                    dayTotal: dayTotal,
+                    dayProgress: goal > 0 ? done / goal : null,
+                    paused: paused,
+                    showDetails: show,
+                  ),
+                  SizedBox(height: spacing.xl),
+                  chrome(
                     SessionTopicsField(
                       planId: focus.planId,
                       topicIds: focus.topicIds,
                       center: true,
                       onChanged: _focus.setTopics,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
+        ),
+        // O rodapé (Pausar e Encerrar) fica no lugar da barra: a Snackbar
+        // flutuante aparece acima dele, não por cima (decisão travada).
+        bottomNavigationBar: chrome(
           SafeArea(
             top: false,
             child: Padding(
@@ -242,6 +349,7 @@ class _FocusPageState extends ConsumerState<FocusPage>
                 spacing.xl,
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   if (system.supportsDnd) ...[
                     NexoSwitch(
@@ -266,7 +374,7 @@ class _FocusPageState extends ConsumerState<FocusPage>
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -469,3 +577,17 @@ Future<DndChoice?> showDndPermissionSheet(BuildContext context) =>
         );
       },
     );
+
+/// O topo do Foco, que some na tela cheia sem mudar de tamanho.
+class _ChromeAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _ChromeAppBar({required this.bar, required this.wrap});
+
+  final NexoTopAppBar bar;
+  final Widget Function(Widget) wrap;
+
+  @override
+  Size get preferredSize => bar.preferredSize;
+
+  @override
+  Widget build(BuildContext context) => wrap(bar);
+}

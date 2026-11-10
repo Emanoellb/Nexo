@@ -25,6 +25,7 @@ class NexoFocusTimer extends StatelessWidget {
     required this.dayTotal,
     required this.dayProgress,
     this.paused = false,
+    this.showDetails = true,
   });
 
   final String label;
@@ -39,12 +40,24 @@ class NexoFocusTimer extends StatelessWidget {
 
   static const double barWidth = 240;
 
+  /// `false`: só o tempo à mostra (Foco em tela cheia). O rótulo, o total
+  /// do dia e a barra ficam transparentes, no mesmo lugar: o tempo não
+  /// pula quando eles voltam.
+  final bool showDetails;
+
   @override
   Widget build(BuildContext context) {
     final c = context.nexoColors;
     final spacing = context.spacing;
     final textTheme = Theme.of(context).textTheme;
     final time = formatClock(elapsed);
+    final reduce = MediaQuery.disableAnimationsOf(context);
+    Widget detail(Widget child) => AnimatedOpacity(
+      opacity: showDetails ? 1 : 0,
+      duration: reduce ? Duration.zero : context.motion.short,
+      curve: context.motion.standard,
+      child: child,
+    );
     return Semantics(
       container: true,
       label: '$label, $time, $dayTotal',
@@ -52,12 +65,14 @@ class NexoFocusTimer extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: context
-                .textStyle(NexoTextStyles.labelSmallEmphasis)
-                .copyWith(color: c.onSurfaceVariant),
+          detail(
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: context
+                  .textStyle(NexoTextStyles.labelSmallEmphasis)
+                  .copyWith(color: c.onSurfaceVariant),
+            ),
           ),
           SizedBox(height: spacing.md),
           FittedBox(
@@ -73,18 +88,22 @@ class NexoFocusTimer extends StatelessWidget {
             ),
           ),
           SizedBox(height: spacing.md),
-          Text(
-            dayTotal,
-            textAlign: TextAlign.center,
-            style: textTheme.bodyMedium!.copyWith(color: c.onSurfaceVariant),
+          detail(
+            Text(
+              dayTotal,
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium!.copyWith(color: c.onSurfaceVariant),
+            ),
           ),
           if (dayProgress != null) ...[
             SizedBox(height: spacing.md),
-            SizedBox(
-              width: barWidth,
-              child: NexoLinearProgress(
-                value: dayProgress!.clamp(0, 1),
-                semanticsLabel: 'Progresso de hoje',
+            detail(
+              SizedBox(
+                width: barWidth,
+                child: NexoLinearProgress(
+                  value: dayProgress!.clamp(0, 1),
+                  semanticsLabel: 'Progresso de hoje',
+                ),
               ),
             ),
           ],
