@@ -87,10 +87,15 @@ class LoginController extends Notifier<LoginState>
       state.copyWith(lockedFor: seconds);
 
   /// Aviso vindo de outra tela (ex.: a 03b apagou a conta).
-  void showEntryNotice(EntryNoticeKind notice) => showAlert(switch (notice) {
-    EntryNoticeKind.underage => LoginAlert.underage,
-    EntryNoticeKind.signUpFailed => LoginAlert.signUpFailed,
-  });
+  void showEntryNotice(EntryNoticeKind notice) {
+    final alert = switch (notice) {
+      EntryNoticeKind.underage => LoginAlert.underage,
+      EntryNoticeKind.signUpFailed => LoginAlert.signUpFailed,
+      // Vira Snackbar no LoginPage ("Conta excluída."), não alerta.
+      EntryNoticeKind.accountDeleted => null,
+    };
+    if (alert != null) showAlert(alert);
+  }
 
   /// Editar um campo tira o erro dele e os alertas que pedem correção.
   LoginAlert? Function() get _alertAfterEdit =>
@@ -176,6 +181,10 @@ enum EntryNoticeKind {
   /// O Cadastro criou a conta no Auth, mas o perfil não foi gravado; a conta
   /// foi desfeita (achado [2] da revisão, 04/11/2026).
   signUpFailed,
+
+  /// Perfil 10: a conta foi excluída. Mostrado como Snackbar "Conta
+  /// excluída." (não como alerta).
+  accountDeleted,
 }
 
 class EntryNotice extends Notifier<EntryNoticeKind?> {

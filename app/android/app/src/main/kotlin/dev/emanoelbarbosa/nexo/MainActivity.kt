@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.ColorDrawable
+import android.net.Uri
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -57,6 +58,32 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        // Suporte e versão do Perfil (09/11/2026). Chamado por
+        // DeviceActions (lib/core/data/device_actions.dart). Abre direto com
+        // startActivity: sem permissão e sem <queries> no manifesto. O
+        // discador só preenche o número (não liga).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "nexo/device")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "openEmail" -> result.success(
+                        open(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${call.arguments}")))
+                    )
+                    "openDialer" -> result.success(
+                        open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${call.arguments}")))
+                    )
+                    "appVersion" -> result.success(
+                        packageManager.getPackageInfo(packageName, 0).versionName
+                    )
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    private fun open(intent: Intent): Boolean = try {
+        startActivity(intent)
+        true
+    } catch (e: ActivityNotFoundException) {
+        false
     }
 
     private fun notifications() =

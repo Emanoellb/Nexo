@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../core/data/local_flags.dart';
 import '../../core/ui/ui.dart';
 import '../../features/auth/application/auth_providers.dart';
 import '../../features/focus/application/focus_controller.dart';
+import '../../features/progress/application/achievements_providers.dart';
 import '../../features/focus/application/focus_system.dart';
 import '../../features/focus/presentation/shell_focus_bar.dart';
 import '../../features/notifications/application/notifications_providers.dart';
@@ -18,17 +20,20 @@ import '../router/routes.dart';
 import 'tab_root.dart';
 
 /// "Reduzir transparência": troca o vidro da barra pela versão sólida.
-/// O Android não expõe essa preferência ao Flutter [NC], então ela será um
-/// ajuste do app (tela de Perfil, em bloco futuro). Começa desligada.
+/// O Android não expõe essa preferência ao Flutter [NC]: é um ajuste do app,
+/// no Perfil, guardado só no aparelho. Começa desligada.
 final reduceTransparencyProvider = NotifierProvider<ReduceTransparency, bool>(
   ReduceTransparency.new,
 );
 
 class ReduceTransparency extends Notifier<bool> {
   @override
-  bool build() => false;
+  bool build() => ref.read(localFlagsProvider).reduceTransparency;
 
-  void set(bool value) => state = value;
+  Future<void> set(bool value) async {
+    state = value;
+    await ref.read(localFlagsProvider).setReduceTransparency(value);
+  }
 }
 
 /// Barra aprovada no Pen.dev em 04/11/2026: Início · Tarefas · Planos ·
@@ -206,6 +211,9 @@ class _NexoShellState extends ConsumerState<NexoShell> {
         MediaQuery.highContrastOf(context) ||
         ref.watch(reduceTransparencyProvider);
     final name = ref.watch(userProfileProvider).value?.displayName ?? '';
+    // Medalhas: grava as que forem atingidas enquanto o app está aberto
+    // (sem Cloud Functions; contrato §4).
+    ref.listen(achievementsKeeperProvider, (_, _) {});
 
     return PopScope(
       canPop: false,

@@ -10,7 +10,8 @@ import '../foundation/nexo_tappable.dart';
 /// container próprio: vive num cartão com divisores.
 ///
 /// [trailing] troca o chevron (ex.: X para remover, check na seleção);
-/// `null` com [showChevron] falso deixa o fim vazio.
+/// `null` com [showChevron] falso deixa o fim vazio. [destructive] põe o
+/// ícone e o título em Error (ex.: "Excluir conta" no Perfil).
 class NexoListItem extends StatelessWidget {
   const NexoListItem({
     super.key,
@@ -22,6 +23,7 @@ class NexoListItem extends StatelessWidget {
     this.showChevron = true,
     this.selected,
     this.semanticsLabel,
+    this.destructive = false,
   });
 
   final IconData icon;
@@ -35,6 +37,7 @@ class NexoListItem extends StatelessWidget {
   /// não. `null`: não é seleção.
   final bool? selected;
   final String? semanticsLabel;
+  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +64,11 @@ class NexoListItem extends StatelessWidget {
                 color: c.surfaceContainer,
                 borderRadius: BorderRadius.circular(context.shape.sm),
               ),
-              child: Icon(icon, size: 20, color: c.iconSecondary),
+              child: Icon(
+                icon,
+                size: 20,
+                color: destructive ? c.iconError : c.iconSecondary,
+              ),
             ),
           ),
           SizedBox(width: spacing.lg),
@@ -71,7 +78,9 @@ class NexoListItem extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: textTheme.bodyLarge!.copyWith(color: c.onSurface),
+                  style: textTheme.bodyLarge!.copyWith(
+                    color: destructive ? c.error : c.onSurface,
+                  ),
                 ),
                 if (supporting != null) ...[
                   SizedBox(height: spacing.xs),

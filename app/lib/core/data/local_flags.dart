@@ -39,6 +39,18 @@ abstract interface class LocalFlags {
   bool dndAllowed(String uid);
 
   Future<void> setDndAllowed(String uid);
+
+  /// Perfil: "Reduzir transparência" (a barra de abas sólida). Do
+  /// aparelho, não da conta (v0.9: não vai ao Firestore).
+  bool get reduceTransparency;
+
+  Future<void> setReduceTransparency(bool value);
+
+  /// Perfil: "Ligar o Não perturbe ao focar", da conta [uid] neste
+  /// aparelho (v0.9: não vai ao Firestore). Desligado por padrão.
+  bool dndOnFocus(String uid);
+
+  Future<void> setDndOnFocus(String uid, bool value);
 }
 
 /// Implementação com `shared_preferences`. Sem dado pessoal: só o uid
@@ -52,6 +64,8 @@ class SharedPreferencesLocalFlags implements LocalFlags {
   static const _taskViewKey = 'task_view';
   static const _activeFocusPrefix = 'active_focus_';
   static const _dndAllowedPrefix = 'dnd_allowed_';
+  static const _reduceTransparencyKey = 'reduce_transparency';
+  static const _dndOnFocusPrefix = 'dnd_on_focus_';
 
   static Future<SharedPreferencesLocalFlags> create() async {
     final prefs = await SharedPreferencesWithCache.create(
@@ -89,6 +103,22 @@ class SharedPreferencesLocalFlags implements LocalFlags {
   Future<void> setActiveFocus(String uid, String? json) => json == null
       ? _prefs.remove('$_activeFocusPrefix$uid')
       : _prefs.setString('$_activeFocusPrefix$uid', json);
+
+  @override
+  bool get reduceTransparency =>
+      _prefs.getBool(_reduceTransparencyKey) ?? false;
+
+  @override
+  Future<void> setReduceTransparency(bool value) =>
+      _prefs.setBool(_reduceTransparencyKey, value);
+
+  @override
+  bool dndOnFocus(String uid) =>
+      _prefs.getBool('$_dndOnFocusPrefix$uid') ?? false;
+
+  @override
+  Future<void> setDndOnFocus(String uid, bool value) =>
+      _prefs.setBool('$_dndOnFocusPrefix$uid', value);
 
   @override
   bool dndAllowed(String uid) =>
@@ -151,6 +181,23 @@ class InMemoryLocalFlags implements LocalFlags {
 
   /// Contas com "Permitir durante o uso do app" no "Não perturbe".
   final Set<String> dndAllowedFor = {};
+
+  @override
+  bool reduceTransparency = false;
+
+  @override
+  Future<void> setReduceTransparency(bool value) async =>
+      reduceTransparency = value;
+
+  /// Contas com "Ligar o Não perturbe ao focar".
+  final Set<String> dndOnFocusFor = {};
+
+  @override
+  bool dndOnFocus(String uid) => dndOnFocusFor.contains(uid);
+
+  @override
+  Future<void> setDndOnFocus(String uid, bool value) async =>
+      value ? dndOnFocusFor.add(uid) : dndOnFocusFor.remove(uid);
 
   @override
   bool dndAllowed(String uid) => dndAllowedFor.contains(uid);

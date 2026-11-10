@@ -59,6 +59,9 @@ class UserProfile {
     this.points = 0,
     this.primaryPlanId,
     int? overloadThreshold,
+    this.morningSummary = MorningSummary.standard,
+    this.birthDate,
+    this.deletionRequestedAt,
   }) : overloadThreshold = overloadThreshold == null
            ? defaultOverloadThreshold
            : overloadThreshold < minOverloadThreshold
@@ -88,12 +91,25 @@ class UserProfile {
   /// Limite de tarefas por dia (editado no Perfil, bloco 11).
   final int overloadThreshold;
 
+  /// `users.morningSummary` (Perfil: Aviso da manhã). Vazio = ligado às
+  /// 08:00.
+  final MorningSummary morningSummary;
+
+  /// `users.birthDate`: só leitura no app (correção pelo contato).
+  final LocalDate? birthDate;
+
+  /// `users.deletionRequestedAt`: a exclusão da conta começou. Terminal:
+  /// se o app fechar no meio, ela continua no próximo login.
+  final DateTime? deletionRequestedAt;
+
   UserProfile copyWith({
     String? displayName,
     bool? tutorialSeen,
     int? points,
     String? Function()? primaryPlanId,
     int? overloadThreshold,
+    MorningSummary? morningSummary,
+    DateTime? deletionRequestedAt,
   }) {
     return UserProfile(
       displayName: displayName ?? this.displayName,
@@ -103,6 +119,9 @@ class UserProfile {
           ? this.primaryPlanId
           : primaryPlanId(),
       overloadThreshold: overloadThreshold ?? this.overloadThreshold,
+      morningSummary: morningSummary ?? this.morningSummary,
+      birthDate: birthDate,
+      deletionRequestedAt: deletionRequestedAt ?? this.deletionRequestedAt,
     );
   }
 
@@ -113,7 +132,10 @@ class UserProfile {
       other.tutorialSeen == tutorialSeen &&
       other.points == points &&
       other.primaryPlanId == primaryPlanId &&
-      other.overloadThreshold == overloadThreshold;
+      other.overloadThreshold == overloadThreshold &&
+      other.morningSummary == morningSummary &&
+      other.birthDate == birthDate &&
+      other.deletionRequestedAt == deletionRequestedAt;
 
   @override
   int get hashCode => Object.hash(
@@ -122,7 +144,34 @@ class UserProfile {
     points,
     primaryPlanId,
     overloadThreshold,
+    morningSummary,
+    birthDate,
+    deletionRequestedAt,
   );
+}
+
+/// `users.morningSummary` (contrato v0.9): o resumo do dia, numa
+/// notificação local. Padrão: ligado, às 08:00.
+@immutable
+class MorningSummary {
+  const MorningSummary({required this.enabled, required this.time});
+
+  static const standard = MorningSummary(enabled: true, time: '08:00');
+
+  final bool enabled;
+
+  /// "HH:mm".
+  final String time;
+
+  MorningSummary copyWith({bool? enabled, String? time}) =>
+      MorningSummary(enabled: enabled ?? this.enabled, time: time ?? this.time);
+
+  @override
+  bool operator ==(Object other) =>
+      other is MorningSummary && other.enabled == enabled && other.time == time;
+
+  @override
+  int get hashCode => Object.hash(enabled, time);
 }
 
 /// Aceite dos Termos e da Política: as versões de `legalDocuments/current`.

@@ -33,8 +33,17 @@ abstract interface class AuthRepository {
   /// ("Já confirmei" da tela 05).
   Future<bool> refreshEmailVerified();
 
-  /// Apaga a conta do Auth logo após o login (menor de 16 na 03b).
+  /// Apaga a conta do Auth logo após o login (menor de 16 na 03b) e no fim
+  /// do Excluir conta.
   Future<void> deleteCurrentUser();
+
+  /// Excluir conta, passo 2: entrar de novo com a senha. Lança
+  /// `AuthFailure` se a senha não confere.
+  Future<void> reauthenticateWithPassword(String password);
+
+  /// Excluir conta, passo 2, conta Google. `false` se a pessoa fechar a
+  /// escolha de conta.
+  Future<bool> reauthenticateWithGoogle();
 
   Future<void> signOut();
 }
@@ -57,4 +66,20 @@ abstract interface class UserProfileRepository {
 
   /// Grava `users.primaryPlanId` (`null` limpa).
   Future<void> setPrimaryPlan(String uid, String? planId);
+
+  /// Editar perfil: só o nome (1 a 80).
+  Future<void> updateDisplayName(String uid, String name);
+
+  /// Perfil: limite de tarefas por dia (1 a 20).
+  Future<void> setOverloadThreshold(String uid, int threshold);
+
+  /// Perfil: Aviso da manhã.
+  Future<void> setMorningSummary(String uid, MorningSummary summary);
+
+  /// Excluir conta, passo 3: grava `deletionRequestedAt` (carimbo do
+  /// servidor; uma vez só, não se desfaz).
+  Future<void> markDeletionRequested(String uid);
+
+  /// Excluir conta: apaga `users/{uid}` (depois dos dados).
+  Future<void> deleteProfile(String uid);
 }

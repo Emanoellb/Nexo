@@ -109,7 +109,16 @@ class ActiveFocusNotifier extends Notifier<ActiveFocus?> {
     await ref.read(focusSystemProvider).requestNotificationPermission();
     final focus = ActiveFocus(planId: planId, startedAt: _now);
     await _set(focus);
-    return focus;
+    // Perfil: "Ligar o Não perturbe ao focar" (só com o acesso já dado).
+    final uid = ref.read(currentUidProvider);
+    final system = ref.read(focusSystemProvider);
+    if (uid != null &&
+        system.supportsDnd &&
+        ref.read(localFlagsProvider).dndOnFocus(uid) &&
+        await system.dndAccessGranted()) {
+      await setDnd(on: true);
+    }
+    return state ?? focus;
   }
 
   Future<void> pause() async {

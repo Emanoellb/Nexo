@@ -114,6 +114,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   void _showNotice(EntryNoticeKind? notice) {
     if (notice == null) return;
     ref.read(entryNoticeProvider.notifier).clear();
+    if (notice == EntryNoticeKind.accountDeleted) {
+      // Perfil 10: o Login com a Snackbar.
+      showNexoSnackbar(
+        context,
+        message: 'Conta excluída.',
+        tone: NexoSnackbarTone.success,
+      );
+      return;
+    }
     ref.read(loginControllerProvider.notifier).showEntryNotice(notice);
   }
 

@@ -17,6 +17,11 @@ enum EntryStatus {
   /// Tutorial ainda não visto (`tutorialSeen`): tela 06.
   tutorial,
 
+  /// Excluir conta em andamento (`deletionRequestedAt`): Perfil 09,
+  /// "Excluindo sua conta…". Também no login seguinte, se o app fechou no
+  /// meio.
+  deleting,
+
   /// Pronto para usar o app.
   ready,
 }
@@ -29,12 +34,15 @@ EntryStatus resolveEntryStatus({
   required AuthUser? user,
   required bool profileLoading,
   required UserProfile? profile,
+  bool deletionRunning = false,
 }) {
   if (authLoading) return EntryStatus.loading;
   if (user == null) return EntryStatus.signedOut;
+  if (deletionRunning) return EntryStatus.deleting;
   if (!user.emailVerified) return EntryStatus.verifyEmail;
   if (profileLoading) return EntryStatus.loading;
   if (profile == null) return EntryStatus.completeProfile;
+  if (profile.deletionRequestedAt != null) return EntryStatus.deleting;
   if (!profile.tutorialSeen) return EntryStatus.tutorial;
   return EntryStatus.ready;
 }

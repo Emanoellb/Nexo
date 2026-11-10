@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../domain/auth_failure.dart';
 import '../domain/auth_rules.dart';
+import '../../../core/domain/local_date.dart';
 import '../domain/auth_user.dart';
 import 'auth_repository.dart';
 
@@ -243,6 +244,22 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> reauthenticateWithPassword(String password) async {
+    await _wait();
+    final user = _user;
+    final account = user?.email == null ? null : _accounts[_key(user!.email!)];
+    if (account == null || account.password != password) {
+      throw const AuthFailure(AuthFailureCode.invalidCredential);
+    }
+  }
+
+  @override
+  Future<bool> reauthenticateWithGoogle() async {
+    await _wait();
+    return _user?.signedInWithGoogle ?? false;
+  }
+
+  @override
   Future<void> signOut() async => setUser(null);
 
   void dispose() => _controller.close();
@@ -258,6 +275,7 @@ class FakeUserProfileRepository implements UserProfileRepository {
       FakeAuthRepository.prototypeUser.uid: const UserProfile(
         displayName: 'Ana',
         tutorialSeen: true,
+        birthDate: LocalDate(2003, 3, 12),
       ),
     },
   );
@@ -288,7 +306,13 @@ class FakeUserProfileRepository implements UserProfileRepository {
   @override
   Future<void> createProfile(String uid, NewUserProfile profile) async {
     created[uid] = profile;
-    setProfile(uid, UserProfile(displayName: profile.displayName));
+    setProfile(
+      uid,
+      UserProfile(
+        displayName: profile.displayName,
+        birthDate: profile.birthDate,
+      ),
+    );
   }
 
   @override
@@ -312,6 +336,37 @@ class FakeUserProfileRepository implements UserProfileRepository {
     if (profile == null) return;
     setProfile(uid, profile.copyWith(primaryPlanId: () => planId));
   }
+
+  void _update(String uid, UserProfile Function(UserProfile) change) {
+    final profile = _profiles[uid];
+    if (profile != null) setProfile(uid, change(profile));
+  }
+
+  @override
+  Future<void> updateDisplayName(String uid, String name) async =>
+      _update(uid, (p) => p.copyWith(displayName: name.trim()));
+
+  @override
+  Future<void> setOverloadThreshold(String uid, int threshold) async =>
+      _update(uid, (p) => p.copyWith(overloadThreshold: threshold));
+
+  @override
+  Future<void> setMorningSummary(String uid, MorningSummary summary) async =>
+      _update(uid, (p) => p.copyWith(morningSummary: summary));
+
+  /// Carimbo do "servidor" no fake (os testes podem trocar).
+  DateTime Function() now = DateTime.now;
+
+  @override
+  Future<void> markDeletionRequested(String uid) async => _update(
+    uid,
+    (p) => p.deletionRequestedAt != null
+        ? p
+        : p.copyWith(deletionRequestedAt: now()),
+  );
+
+  @override
+  Future<void> deleteProfile(String uid) async => setProfile(uid, null);
 
   void dispose() => _controller.close();
 }

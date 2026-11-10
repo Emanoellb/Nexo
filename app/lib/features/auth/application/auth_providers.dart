@@ -4,6 +4,7 @@ import '../data/auth_repository.dart';
 import '../data/fake_auth_repository.dart';
 import '../domain/auth_user.dart';
 import '../domain/entry_status.dart';
+import 'account_deletion.dart';
 
 /// Repositório de auth. Na prototipação, o fake (sem Firebase), que começa
 /// sem sessão; a troca pelo `FirebaseAuthRepository` é feita aqui, no bloco
@@ -54,5 +55,6 @@ final entryStatusProvider = Provider<EntryStatus>((ref) {
     // como "sem perfil" e levaria à 03b (achado [3] da revisão, 04/11/2026).
     profileLoading: profile.isLoading,
     profile: profile.value,
+    deletionRunning: ref.watch(accountDeletionRunningProvider),
   );
 });

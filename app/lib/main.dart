@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/nexo_app.dart';
 import 'app/prototype/sample_data.dart';
 import 'app/startup/app_startup.dart';
+import 'core/data/device_actions.dart';
 import 'core/data/local_flags.dart';
 import 'features/focus/application/focus_system.dart';
 import 'features/focus/data/android_focus_system.dart';
@@ -33,6 +34,8 @@ Future<void> main() async {
       localFlagsProvider.overrideWithValue(localFlags),
       if (focusSystem != null)
         focusSystemProvider.overrideWithValue(focusSystem),
+      if (focusSystem != null)
+        deviceActionsProvider.overrideWithValue(const AndroidDeviceActions()),
       // Na prototipação, os repositórios são fake (sem banco) e a conta de
       // protótipo começa com dados de exemplo fictícios; contas novas
       // começam vazias. A troca pelo Firebase é feita nos providers de cada

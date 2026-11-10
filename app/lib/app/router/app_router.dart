@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/ui/ui.dart';
 import '../../features/auth/application/auth_providers.dart';
 import '../../features/auth/domain/entry_status.dart';
 import '../../features/auth/presentation/forgot_password_page.dart';
@@ -22,6 +21,9 @@ import '../../features/splash/presentation/splash_page.dart';
 import '../../features/subjects/presentation/subject_detail_page.dart';
 import '../../features/goals/presentation/goal_detail_page.dart';
 import '../../features/plans/presentation/create_plan_page.dart';
+import '../../features/profile/presentation/delete_account_pages.dart';
+import '../../features/profile/presentation/edit_profile_page.dart';
+import '../../features/profile/presentation/profile_page.dart';
 import '../../features/plans/presentation/edit_plan_page.dart';
 import '../../features/plans/presentation/plan_detail_page.dart';
 import '../../features/plans/presentation/plans_page.dart';
@@ -30,7 +32,6 @@ import '../../features/tasks/presentation/tasks_page.dart';
 import '../shell/fade_through_branches.dart';
 import '../shell/nexo_shell.dart';
 import '../shell/tab_root.dart';
-import '../shell/under_construction_page.dart';
 import 'entry_redirect.dart';
 import 'nexo_transitions.dart';
 import 'routes.dart';
@@ -294,20 +295,27 @@ final routerProvider = Provider<GoRouter>((ref) {
           NexoPageMotion.slideUp,
         ),
       ),
-      // Perfil: ainda sem design (bloco 11), abre por cima das abas (eixo X).
+      // Perfil (aprovado em 07/11/2026): pelo avatar do topo, por cima das
+      // abas, em eixo X; Editar perfil e Excluir conta também.
+      for (final (path, page) in const [
+        (AppRoutes.profile, ProfilePage()),
+        (AppRoutes.editProfile, EditProfilePage()),
+        (AppRoutes.deleteAccount, DeleteAccountPage()),
+        (AppRoutes.confirmDeletion, ConfirmDeletionPage()),
+      ])
+        GoRoute(
+          path: path,
+          pageBuilder: (context, state) =>
+              _page(context, state, page, NexoPageMotion.sharedAxisX),
+        ),
+      // Perfil 09: "Excluindo sua conta…" (a entrada leva para cá).
       GoRoute(
-        path: AppRoutes.profile,
+        path: AppRoutes.deletingAccount,
         pageBuilder: (context, state) => _page(
           context,
           state,
-          Scaffold(
-            appBar: NexoTopAppBar(title: 'Perfil', onBack: () => context.pop()),
-            body: const UnderConstructionPage(
-              title: 'Perfil',
-              block: 'bloco 11 · Perfil',
-            ),
-          ),
-          NexoPageMotion.sharedAxisX,
+          const DeletingAccountPage(),
+          NexoPageMotion.fade,
         ),
       ),
     ],

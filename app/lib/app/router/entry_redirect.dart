@@ -32,6 +32,8 @@ String? entryRedirect(
       return goTo(AppRoutes.googleFirstAccess);
     case EntryStatus.tutorial:
       return goTo(AppRoutes.welcome);
+    case EntryStatus.deleting:
+      return goTo(AppRoutes.deletingAccount);
     case EntryStatus.ready:
       return AppRoutes.entryLocations.contains(location)
           ? AppRoutes.home

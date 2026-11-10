@@ -9,6 +9,9 @@ abstract final class AppRoutes {
   static const verifyEmail = '/verify-email';
   static const welcome = '/welcome';
 
+  /// Perfil 09: "Excluindo sua conta…" (sem saída até terminar).
+  static const deletingAccount = '/deleting-account';
+
   // Documentos legais, abertos pelos links do aceite.
   static const terms = '/legal/terms';
   static const privacy = '/legal/privacy';
@@ -65,6 +68,13 @@ abstract final class AppRoutes {
 
   /// Fora da barra desde 04/11/2026 (vai para o avatar no topo das abas).
   static const profile = '/profile';
+
+  /// Perfil 05: Editar perfil (só o nome).
+  static const editProfile = '/profile/edit';
+
+  /// Perfil 07 e 08: Excluir conta (explicação) e Confirmar exclusão.
+  static const deleteAccount = '/profile/delete';
+  static const confirmDeletion = '/profile/delete/confirm';
 
   /// Telas que só fazem sentido antes de o usuário estar pronto.
   static const entryLocations = {
