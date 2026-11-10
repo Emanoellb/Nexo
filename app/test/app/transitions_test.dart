@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nexo/features/profile/presentation/profile_page.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
@@ -75,7 +76,7 @@ void main() {
     await tester.pump(motion.short);
     final profile =
         ModalRoute.of(
-              tester.element(find.text('Em construção · bloco 11 · Perfil')),
+              tester.element(find.byType(ProfilePage)),
             )!
             as NexoPageRoute<dynamic>;
     expect(profile.motion, NexoPageMotion.sharedAxisX);

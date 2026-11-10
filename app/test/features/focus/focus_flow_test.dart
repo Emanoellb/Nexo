@@ -762,6 +762,33 @@ void main() {
     });
   });
 
+  testWidgets('Perfil "Ligar o Não perturbe ao focar": liga sozinho ao '
+      'começar, com o acesso dado', (tester) async {
+    final flags = InMemoryLocalFlags(
+      firstOpenDone: true,
+      themePreference: 'light',
+    );
+    await flags.setDndOnFocus(FakeAuthRepository.prototypeUser.uid, true);
+    final system = _FakeSystem()..granted = true;
+    final (c, _) = await _pump(tester, flags: flags, system: system);
+    await _openFocus(tester);
+    expect(system.dndCalls, [true]);
+    expect(c.read(activeFocusProvider)!.dnd, isTrue);
+  });
+
+  testWidgets('sem o acesso dado, a preferência não liga nada', (tester) async {
+    final flags = InMemoryLocalFlags(
+      firstOpenDone: true,
+      themePreference: 'light',
+    );
+    await flags.setDndOnFocus(FakeAuthRepository.prototypeUser.uid, true);
+    final system = _FakeSystem();
+    final (c, _) = await _pump(tester, flags: flags, system: system);
+    await _openFocus(tester);
+    expect(system.dndCalls, isEmpty);
+    expect(c.read(activeFocusProvider)!.dnd, isFalse);
+  });
+
   for (final dark in [false, true]) {
     testWidgets('fonte 2,0 sem estouro · ${dark ? 'escuro' : 'claro'}', (
       tester,

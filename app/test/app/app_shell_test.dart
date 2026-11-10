@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nexo/features/profile/presentation/profile_page.dart';
 import 'package:nexo/features/calendar/presentation/agenda_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
@@ -87,7 +88,7 @@ void main() {
     expect(find.text('A'), findsOneWidget);
     await tester.tap(find.bySemanticsLabel('Perfil'));
     await tester.pumpAndSettle();
-    expect(find.text('Em construção · bloco 11 · Perfil'), findsOneWidget);
+    expect(find.byType(ProfilePage), findsOneWidget);
 
     await tester.tap(find.byTooltip('Voltar'));
     await tester.pumpAndSettle();
