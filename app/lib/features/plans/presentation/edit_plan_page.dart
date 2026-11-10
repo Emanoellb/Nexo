@@ -146,71 +146,66 @@ class _EditPlanPageState extends ConsumerState<EditPlanPage>
       },
       child: Scaffold(
         appBar: bar,
-        body: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  spacing.lg,
-                  spacing.sm,
-                  spacing.lg,
-                  spacing.lg,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const NexoAlert(
-                      tone: NexoAlertTone.info,
-                      icon: LucideIcons.info,
-                      message:
-                          'Mudanças na meta e na frequência valem a partir de '
-                          'amanhã. Os dias que já passaram não mudam.',
-                    ),
-                    SizedBox(height: spacing.lg),
-                    PlanBasicsFields(
-                      nameController: _name,
-                      draft: _draft,
-                      goals: goals,
-                      today: today,
-                      errors: errors,
-                      startLocked: _started,
-                      onChanged: (d) => setState(() => _draft = d),
-                      onNameChanged: () => setState(() {}),
-                      onNewGoal: () async => (await showGoalForm(context))?.id,
-                    ),
-                    SizedBox(height: spacing.xl),
-                    PlanRhythmFields(
-                      draft: _draft,
-                      goalHelper: 'Passos de 15 min.',
-                      reminderHelper: 'O aviso da manhã fica no Perfil.',
-                      weekdaysError: _showErrors && _draft.weekdays.isEmpty
-                          ? 'Escolha pelo menos um dia.'
-                          : null,
-                      onChanged: (d) => setState(() => _draft = d),
-                    ),
-                  ],
-                ),
+        body: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            spacing.lg,
+            spacing.sm,
+            spacing.lg,
+            spacing.lg,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const NexoAlert(
+                tone: NexoAlertTone.info,
+                icon: LucideIcons.info,
+                message:
+                    'Mudanças na meta e na frequência valem a partir de '
+                    'amanhã. Os dias que já passaram não mudam.',
               ),
-            ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  spacing.lg,
-                  spacing.sm,
-                  spacing.lg,
-                  spacing.xl,
-                ),
-                child: NexoButton.primary(
-                  label: 'Salvar',
-                  leadingIcon: LucideIcons.check,
-                  expand: true,
-                  loading: _saving,
-                  onPressed: _dirty ? _save : null,
-                ),
+              SizedBox(height: spacing.lg),
+              PlanBasicsFields(
+                nameController: _name,
+                draft: _draft,
+                goals: goals,
+                today: today,
+                errors: errors,
+                startLocked: _started,
+                onChanged: (d) => setState(() => _draft = d),
+                onNameChanged: () => setState(() {}),
+                onNewGoal: () async => (await showGoalForm(context))?.id,
               ),
+              SizedBox(height: spacing.xl),
+              PlanRhythmFields(
+                draft: _draft,
+                goalHelper: 'Passos de 15 min.',
+                reminderHelper: 'O aviso da manhã fica no Perfil.',
+                weekdaysError: _showErrors && _draft.weekdays.isEmpty
+                    ? 'Escolha pelo menos um dia.'
+                    : null,
+                onChanged: (d) => setState(() => _draft = d),
+              ),
+            ],
+          ),
+        ),
+        // Rodapé no lugar da barra: a Snackbar aparece acima dele e, com o
+        // teclado aberto, ele sobe junto (NexoScreenFooter).
+        bottomNavigationBar: NexoScreenFooter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              spacing.lg,
+              spacing.sm,
+              spacing.lg,
+              spacing.xl,
             ),
-          ],
+            child: NexoButton.primary(
+              label: 'Salvar',
+              leadingIcon: LucideIcons.check,
+              expand: true,
+              loading: _saving,
+              onPressed: _dirty ? _save : null,
+            ),
+          ),
         ),
       ),
     );

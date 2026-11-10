@@ -26,6 +26,7 @@ export 'feedback/nexo_skeleton.dart';
 export 'feedback/nexo_snackbar.dart';
 export 'feedback/nexo_spinner.dart';
 export 'foundation/leave_once.dart';
+export 'foundation/nexo_screen_footer.dart';
 export 'foundation/nexo_tappable.dart';
 export 'inputs/nexo_date_field.dart';
 export 'inputs/nexo_optional_date.dart';

@@ -725,35 +725,30 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage>
       },
       child: Scaffold(
         appBar: bar,
-        body: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  spacing.lg,
-                  spacing.sm,
-                  spacing.lg,
-                  spacing.lg,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: form,
-                ),
-              ),
+        body: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            spacing.lg,
+            spacing.sm,
+            spacing.lg,
+            spacing.lg,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: form,
+          ),
+        ),
+        // Rodapé no lugar da barra: a Snackbar aparece acima dele e, com o
+        // teclado aberto, ele sobe junto (NexoScreenFooter).
+        bottomNavigationBar: NexoScreenFooter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              spacing.lg,
+              spacing.sm,
+              spacing.lg,
+              spacing.xl,
             ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  spacing.lg,
-                  spacing.sm,
-                  spacing.lg,
-                  spacing.xl,
-                ),
-                child: action,
-              ),
-            ),
-          ],
+            child: action,
+          ),
         ),
       ),
     );

@@ -262,28 +262,29 @@ class _CreatePlanPageState extends ConsumerState<CreatePlanPage>
                 ),
               ),
             ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  spacing.lg,
-                  spacing.sm,
-                  spacing.lg,
-                  spacing.xl,
-                ),
-                child: _Footer(
-                  back: _step > 0
-                      ? NexoButton.tertiary(
-                          label: 'Voltar',
-                          leadingIcon: LucideIcons.arrowLeft,
-                          onPressed: _back,
-                        )
-                      : null,
-                  primary: primary,
-                ),
-              ),
-            ),
           ],
+        ),
+        // Rodapé no lugar da barra: a Snackbar aparece acima dele e, com o
+        // teclado aberto, ele sobe junto (NexoScreenFooter).
+        bottomNavigationBar: NexoScreenFooter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              spacing.lg,
+              spacing.sm,
+              spacing.lg,
+              spacing.xl,
+            ),
+            child: _Footer(
+              back: _step > 0
+                  ? NexoButton.tertiary(
+                      label: 'Voltar',
+                      leadingIcon: LucideIcons.arrowLeft,
+                      onPressed: _back,
+                    )
+                  : null,
+              primary: primary,
+            ),
+          ),
         ),
       ),
     );
@@ -305,6 +306,7 @@ class _Footer extends StatelessWidget {
     final large = MediaQuery.textScalerOf(context).scale(1) > 1.3;
     if (large) {
       return Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           primary,
@@ -318,6 +320,9 @@ class _Footer extends StatelessWidget {
         SizedBox(width: spacing.sm),
         Expanded(
           child: Align(
+            // Só a altura do botão (no bottomNavigationBar, sem isto, o
+            // Align ocuparia a tela inteira).
+            heightFactor: 1,
             alignment: AlignmentDirectional.centerEnd,
             child: primary,
           ),

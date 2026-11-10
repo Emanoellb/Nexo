@@ -309,166 +309,159 @@ class _SessionFormPageState extends ConsumerState<SessionFormPage>
 
     return Scaffold(
       appBar: bar,
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                spacing.lg,
-                spacing.sm,
-                spacing.lg,
-                spacing.lg,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          spacing.lg,
+          spacing.sm,
+          spacing.lg,
+          spacing.lg,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (origin != null) ...[
+              Text(
+                origin,
+                style: textTheme.bodyMedium!.copyWith(
+                  color: c.onSurfaceVariant,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              SizedBox(height: spacing.lg),
+            ],
+            if (!_editing) ...[
+              NexoSelectField(
+                label: 'Plano',
+                leadingIcon: LucideIcons.target,
+                value: plan?.name,
+                placeholder: 'Escolha um plano',
+                onTap: plans.isEmpty
+                    ? null
+                    : (anchor) => _pickPlan(anchor, plans),
+              ),
+              SizedBox(height: spacing.lg),
+            ],
+            NexoSelectField(
+              label: 'Dia',
+              leadingIcon: LucideIcons.calendar,
+              value: _day == null ? null : sessionDayText(_day!, today),
+              placeholder: 'Escolha o dia',
+              helperText: 'Até 7 dias atrás.',
+              errorText: errors.day,
+              onTap: _pickDay,
+            ),
+            SizedBox(height: spacing.lg),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: NexoSelectField(
+                    label: 'Início',
+                    trailingIcon: LucideIcons.clock3,
+                    value: start == null ? null : hhmm(start),
+                    placeholder: '—',
+                    onTap: (_) => _pickTime(start: true),
+                  ),
+                ),
+                SizedBox(width: spacing.md),
+                Expanded(
+                  child: NexoSelectField(
+                    label: 'Fim',
+                    trailingIcon: LucideIcons.clock3,
+                    value: end == null ? null : hhmm(end),
+                    placeholder: '—',
+                    errorText: errors.end,
+                    onTap: (_) => _pickTime(start: false),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: spacing.lg),
+            Semantics(
+              container: true,
+              label: 'Duração, $duration',
+              excludeSemantics: true,
+              child: Row(
                 children: [
-                  if (origin != null) ...[
-                    Text(
-                      origin,
-                      style: textTheme.bodyMedium!.copyWith(
-                        color: c.onSurfaceVariant,
+                  Expanded(
+                    child: Text(
+                      'Duração',
+                      style: textTheme.labelMedium!.copyWith(
+                        color: c.onSurface,
                       ),
                     ),
-                    SizedBox(height: spacing.lg),
-                  ],
-                  if (!_editing) ...[
-                    NexoSelectField(
-                      label: 'Plano',
-                      leadingIcon: LucideIcons.target,
-                      value: plan?.name,
-                      placeholder: 'Escolha um plano',
-                      onTap: plans.isEmpty
-                          ? null
-                          : (anchor) => _pickPlan(anchor, plans),
-                    ),
-                    SizedBox(height: spacing.lg),
-                  ],
-                  NexoSelectField(
-                    label: 'Dia',
-                    leadingIcon: LucideIcons.calendar,
-                    value: _day == null ? null : sessionDayText(_day!, today),
-                    placeholder: 'Escolha o dia',
-                    helperText: 'Até 7 dias atrás.',
-                    errorText: errors.day,
-                    onTap: _pickDay,
                   ),
-                  SizedBox(height: spacing.lg),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: NexoSelectField(
-                          label: 'Início',
-                          trailingIcon: LucideIcons.clock3,
-                          value: start == null ? null : hhmm(start),
-                          placeholder: '—',
-                          onTap: (_) => _pickTime(start: true),
-                        ),
-                      ),
-                      SizedBox(width: spacing.md),
-                      Expanded(
-                        child: NexoSelectField(
-                          label: 'Fim',
-                          trailingIcon: LucideIcons.clock3,
-                          value: end == null ? null : hhmm(end),
-                          placeholder: '—',
-                          errorText: errors.end,
-                          onTap: (_) => _pickTime(start: false),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    duration,
+                    style: context
+                        .textStyle(NexoTextStyles.labelMediumEmphasis)
+                        .copyWith(color: c.onSurface),
                   ),
-                  SizedBox(height: spacing.lg),
-                  Semantics(
-                    container: true,
-                    label: 'Duração, $duration',
-                    excludeSemantics: true,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Duração',
-                            style: textTheme.labelMedium!.copyWith(
-                              color: c.onSurface,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          duration,
-                          style: context
-                              .textStyle(NexoTextStyles.labelMediumEmphasis)
-                              .copyWith(color: c.onSurface),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_planId != null) ...[
-                    SizedBox(height: spacing.lg),
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        'Tópicos',
-                        style: textTheme.labelMedium!.copyWith(
-                          color: c.onSurface,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: spacing.sm),
-                    SessionTopicsField(
-                      planId: _planId!,
-                      topicIds: _topics,
-                      helper:
-                          'Opcional · até 3. As horas são divididas '
-                          'igualmente entre eles.',
-                      onChanged: (ids) => setState(() => _topics = ids),
-                    ),
-                  ],
-                  SizedBox(height: spacing.lg),
-                  NexoTextField(
-                    label: 'Nota',
-                    hintText: 'Ex.: Resolvi a lista 3 de juros.',
-                    helperText: 'Opcional · até 500 caracteres.',
-                    controller: _note,
-                    minLines: 2,
-                    maxLines: 4,
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    inputFormatters: [LengthLimitingTextInputFormatter(500)],
-                  ),
-                  if (session != null) ...[
-                    SizedBox(height: spacing.lg),
-                    NexoButton.destructiveLow(
-                      label: 'Excluir sessão',
-                      leadingIcon: LucideIcons.trash2,
-                      expand: true,
-                      onPressed: isWithinEditWindow(session.day, today: today)
-                          ? () => _delete(session!)
-                          : null,
-                    ),
-                  ],
                 ],
               ),
             ),
-          ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                spacing.lg,
-                spacing.sm,
-                spacing.lg,
-                spacing.xl,
+            if (_planId != null) ...[
+              SizedBox(height: spacing.lg),
+              Semantics(
+                header: true,
+                child: Text(
+                  'Tópicos',
+                  style: textTheme.labelMedium!.copyWith(color: c.onSurface),
+                ),
               ),
-              child: NexoButton.primary(
-                label: 'Salvar',
-                leadingIcon: LucideIcons.check,
-                expand: true,
-                loading: _saving,
-                onPressed: plan == null && !_editing ? null : _save,
+              SizedBox(height: spacing.sm),
+              SessionTopicsField(
+                planId: _planId!,
+                topicIds: _topics,
+                helper:
+                    'Opcional · até 3. As horas são divididas '
+                    'igualmente entre eles.',
+                onChanged: (ids) => setState(() => _topics = ids),
               ),
+            ],
+            SizedBox(height: spacing.lg),
+            NexoTextField(
+              label: 'Nota',
+              hintText: 'Ex.: Resolvi a lista 3 de juros.',
+              helperText: 'Opcional · até 500 caracteres.',
+              controller: _note,
+              minLines: 2,
+              maxLines: 4,
+              keyboardType: TextInputType.multiline,
+              textCapitalization: TextCapitalization.sentences,
+              inputFormatters: [LengthLimitingTextInputFormatter(500)],
             ),
+            if (session != null) ...[
+              SizedBox(height: spacing.lg),
+              NexoButton.destructiveLow(
+                label: 'Excluir sessão',
+                leadingIcon: LucideIcons.trash2,
+                expand: true,
+                onPressed: isWithinEditWindow(session.day, today: today)
+                    ? () => _delete(session!)
+                    : null,
+              ),
+            ],
+          ],
+        ),
+      ),
+      // Rodapé no lugar da barra: a Snackbar aparece acima dele e, com o
+      // teclado aberto, ele sobe junto (NexoScreenFooter).
+      bottomNavigationBar: NexoScreenFooter(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            spacing.lg,
+            spacing.sm,
+            spacing.lg,
+            spacing.xl,
           ),
-        ],
+          child: NexoButton.primary(
+            label: 'Salvar',
+            leadingIcon: LucideIcons.check,
+            expand: true,
+            loading: _saving,
+            onPressed: plan == null && !_editing ? null : _save,
+          ),
+        ),
       ),
     );
   }
