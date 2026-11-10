@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nexo/features/legal/presentation/legal_document_page.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/core/data/local_flags.dart';
@@ -269,7 +270,14 @@ void main() {
       await _pumpApp(tester);
       await openSignUp(tester);
       await _tap(tester, find.widgetWithText(NexoButton, 'Termos de Uso'));
-      expect(find.textContaining('terms-2026-11-01'), findsOneWidget);
+      // O texto dos Termos, com a versão do documento (o id técnico fica
+      // para o aceite).
+      expect(find.byType(LegalDocumentPage), findsOneWidget);
+      expect(
+        find.textContaining('Versão:', findRichText: true),
+        findsOneWidget,
+      );
+      expect(find.textContaining('terms-2026-11-01'), findsNothing);
       await _tap(tester, find.byTooltip('Voltar'));
       expect(find.text('Crie sua conta'), findsOneWidget);
     });

@@ -42,6 +42,9 @@ flutter:
     - assets/brand/logo/svg/nexo-nome-integrado-claro.svg
     - assets/brand/logo/svg/nexo-nome-integrado-escuro.svg
     - assets/icons/google-g.svg
+    # Termos de Uso e Política de Privacidade, lidos no app (feat/legal).
+    - assets/legal/termos-de-uso.md
+    - assets/legal/politica-de-privacidade.md
 
   fonts:
     - family: Manrope

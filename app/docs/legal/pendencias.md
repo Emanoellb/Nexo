@@ -1,6 +1,55 @@
 # Pendências dos documentos legais do Nexo (MVP)
 
-Data: 2026-10-20 · atualizado em 2026-10-22 e **2026-11-07**. Documentos: `termos-de-uso.md` e `politica-de-privacidade.md` (rascunhos **v0.3**). Base: `inventario-dados-mvp.md` (v0.3).
+Data: 2026-10-20 · atualizado em 2026-10-22, 2026-11-07 e **2026-11-10**. Documentos: `termos-de-uso.md` e `politica-de-privacidade.md` (rascunhos **v0.3**, texto pronto para o app). Base: `inventario-dados-mvp.md` (v0.3).
+
+**Onde fica o texto:** os dois documentos vão para `app/assets/legal/` (o `git mv`, o `pubspec.yaml` e o código ficam com a sessão do Flutter, na `feat/legal`). Depois disso, é uma cópia só para o app, para quem edita e para a futura página pública. Aqui em `app/docs/legal/` ficam este arquivo e o inventário.
+
+## Texto para o app (10/11/2026, plano aprovado pelo usuário)
+
+Mesma versão 0.3 (regra do MVP sem burocracia). Só a forma mudou:
+
+1. **Fora do texto visível:** aviso de rascunho, notas internas e todos os marcadores para o advogado. Viraram comentários HTML (`<!-- ... -->`), **cada um em linha própria**: o leitor do app descarta só os comentários que começam a linha.
+2. **Formato do leitor do app:** `#`, `##`, `###`, parágrafos, listas, negrito e citações. A tabela da Política §5 virou lista; os trechos entre crases viraram texto comum.
+3. **Decisões do usuário (10/11):**
+   - cabeçalho "Versão: 0.3 · Vigência: a definir";
+   - o texto descreve o produto como vai ser publicado (avisos e histórico de 30 dias), embora o app ainda não agende avisos (Etapa 5);
+   - saiu "preferências de silêncio dos avisos", que não existem no app; ficou "e outras escolhas de exibição";
+   - exclusão da conta: "no Perfil ou pelo e-mail" até a Etapa 5, quando entra o link da página pública;
+   - nova frase na Política §10: "Se o app fechar no meio, a exclusão continua no próximo login.";
+   - fim do serviço: aviso com 30 dias de antecedência (Termos §12);
+   - foro: **a eleição de foro saiu dos Termos** (§15 virou "Lei aplicável", só com "Estes Termos seguem as leis do Brasil."), por decisão do usuário em 10/11 ("E deixe o foro de fora"). Fica a pergunta ao advogado (D13).
+
+### Notas tiradas do texto público
+
+Cada nota está como comentário HTML no próprio documento, logo abaixo do trecho.
+
+| Documento e seção | Nota | Antes (v0.3 de 07/11) |
+|---|---|---|
+| Política §1 | P1: obrigatoriedade de nomear encarregado (Res. CD/ANPD nº 2/2022; adolescentes = alto risco?) | `[VALIDAR COM ADVOGADO]` ao lado do DPO |
+| Política §3.4 | TTL do histórico de avisos ainda não criado (A13) | — (nota nova) |
+| Política §3.6, §5, §9 | P3: registros de acesso (Marco Civil, art. 15). Se valer para pessoa física, voltam o item, a finalidade (obrigação legal) e o prazo de 6 meses | item `[VALIDAR...]` em §3.6, linha `[SE APLICÁVEL]` em §5 e §9 |
+| Política §5 | P6: base legal de cada finalidade (data de nascimento, legítimo interesse) | `[VALIDAR COM ADVOGADO: base legal]` |
+| Política §7 | P4: mecanismo da transferência internacional (Res. CD/ANPD nº 19/2024). Frase provisória: "A transferência segue os mecanismos previstos na LGPD." Região: `southamerica-east1` | `[VALIDAR COM ADVOGADO: mecanismo...]` |
+| Política §9 | P7: prazo de guarda do aceite depois da exclusão | `[VALIDAR COM ADVOGADO]` |
+| Política §10 e Termos §12 | Link da página pública de exclusão (Google Play), Etapa 5 | `[URL DA PÁGINA DE EXCLUSÃO]` |
+| Política §11 | Avisos ainda não agendados pelo app (Etapa 5) | — (nota nova) |
+| Política §11 | **Confirmar a lista final de permissões** antes de publicar (a Etapa 5 traz a de reagendar avisos depois de reiniciar o aparelho) | `[CONFIRMAR A LISTA FINAL NO APP ANTES DE PUBLICAR]` |
+| Política §11 | Se o reCAPTCHA está ativo e quais sinais envia ao Google | `[CONFIRMAR: ...]` |
+| Política §12 | P5: adolescentes (pais/responsáveis, ECA Digital, data de nascimento basta?) | `[VALIDAR COM ADVOGADO: ...]` |
+| Termos §3 | Assistência de relativamente incapaz (Código Civil, art. 4º) e ECA Digital | `[VALIDAR COM ADVOGADO: ...]` |
+| Termos §11 | P8: marca "Nexo" no INPI | `[VERIFICAR DISPONIBILIDADE E REGISTRO...]` |
+| Termos §13 | Limitações de responsabilidade × CDC | `[VALIDAR COM ADVOGADO: ...]` |
+| Termos §15 | P3 dos Termos (= D13): vale ter cláusula de foro? A eleição de foro saiu por decisão do usuário (10/11) | `Fica eleito o foro de [FORO], sem prejuízo do direito do consumidor de propor ação no foro do seu domicílio.` |
+| Política §6 | P9 (= D10): Gmail pessoal como operador | — (nota nova, 10/11) |
+
+### Adendo de 10/11/2026 (decisões do usuário)
+
+1. **Mensagens ao suporte** (remetente, assunto, conteúdo, data e cópia enviada): Política §3.8 (item novo), §5 (finalidade), §6 (Google/Gmail como operador) e §9 (retenção); inventário §14.
+2. **D6, retenção dos e-mails do suporte:** **12 meses** depois de encerrado o atendimento. O advogado revisa na Etapa 5.
+3. **D7, formato da cópia dos dados:** formato eletrônico legível (planilha ou JSON), enviado **só ao e-mail da conta**. Remetente diferente: o pedido é repetido a partir do e-mail da conta. Política §10. **O advogado avalia o envio de dado pessoal por e-mail** (D11).
+4. **Termos §4.4:** "redefina a senha (em Alterar senha, no Perfil)".
+5. **Termos §11:** frase dos componentes de código aberto, listados em Sobre o Nexo.
+6. **Bloco Conta do Perfil** (prototipação): Termos · Política · Pedir cópia dos dados · Alterar senha · Sair · Excluir conta. Os textos legais não citam a ordem; ela está no inventário §14.
 
 ## Mudanças da v0.3 (07/11/2026)
 
@@ -60,13 +109,13 @@ Pedido do usuário pela sessão principal ("pode seguir com o legal"), depois da
 | Nome do controlador | Termos 1, 11, 16 · Política 1, 14 | **Preenchido na v0.2** |
 | E-mail de contato | Termos e Política | **Preenchido na v0.2** |
 | E-mail do encarregado (DPO) | Política 1 | **Preenchido** (mesmo e-mail); obrigatoriedade com o advogado (D2) |
-| Data de vigência | Topo dos dois documentos | **Aberto (v0.3).** 01/11/2026 passou sem publicação; definir depois do advogado (L3) |
-| `[FORO]` | Termos 15 | Aberto |
+| Data de vigência | Topo dos dois documentos | **Aberto (v0.3).** 01/11/2026 passou sem publicação; o texto diz "Vigência: a definir" (10/11). Definir depois do advogado (L3) |
+| ~~`[FORO]`~~ | Termos 15 | **Não é mais campo a preencher:** a eleição de foro saiu dos Termos por decisão do usuário (10/11). Pergunta ao advogado em D13 |
 | Modelo de preço | Termos 9 | **Gratuito no MVP** |
 | Caminho no app | Termos 12 · Política 10 | **Perfil** |
-| `[URL DA PÁGINA DE EXCLUSÃO]` | Termos 12 · Política 10 | Aberto (exigência do Google Play: link web para pedir exclusão) |
+| `[URL DA PÁGINA DE EXCLUSÃO]` | Termos 12 · Política 10 | Aberto (exigência do Google Play). **Até a Etapa 5, o texto diz "pelo e-mail"** (10/11) |
 | Prazo de eliminação dos backups | Política 9 | **Até 7 dias** |
-| `[PRAZO]` de aviso de fim do serviço | Termos 12 | Aberto |
+| Prazo de aviso de fim do serviço | Termos 12 | **30 dias** (decisão do usuário, 10/11) |
 
 ## B. Decisões técnicas (sessões de infra/backend)
 
@@ -122,6 +171,10 @@ Guia de configuração: `docs/backend/firebase-setup.md` (decisões F1–F7, 21/
 7. **Prazo de guarda do registro de aceite** após a exclusão da conta.
 8. **Marca "Nexo":** busca de anterioridade e registro no INPI.
 9. **Branding do botão do Google:** conferir as diretrizes de marca do Google antes de publicar (fonte Manrope × Roboto recomendada pelo Google).
+10. **Gmail pessoal no suporte** (Política §6): a conta Gmail pessoal não tem termos de processamento de dados como o Firebase. Confirmar se o Google pode ser descrito como operador ou se é preciso uma conta com esses termos (ex.: Google Workspace).
+11. **Cópia dos dados por e-mail** (Política §10): avaliar o envio de dado pessoal por e-mail (anexo em planilha ou JSON), inclusive se precisa de proteção extra, como arquivo com senha ou link com validade.
+12. **Retenção dos e-mails do suporte** (Política §9): revisar os 12 meses decididos em 10/11.
+13. **Cláusula de foro** (Termos §15, Etapa 5): a eleição de foro saiu por decisão do usuário (10/11). Avaliar se vale ter uma cláusula de foro, lembrando que o consumidor pode propor ação no foro do próprio domicílio.
 
 ## E. Marca
 

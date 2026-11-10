@@ -1,10 +1,11 @@
-> **RASCUNHO — NÃO PUBLICAR.** Este texto foi redigido a partir do inventário de dados do MVP (`inventario-dados-mvp.md`) e **precisa de revisão jurídica antes de qualquer publicação**. Os trechos entre colchetes (`[ASSIM]`) são informações que ainda não existem ou decisões pendentes. A lista completa está em `pendencias.md`.
+<!-- NOTA INTERNA: rascunho v0.3, ainda sem revisão jurídica (Etapa 5). Não publicar fora do app antes do advogado. -->
+<!-- NOTA INTERNA: os comentários HTML não aparecem no app (legal_markdown.dart). Escreva cada nota numa linha própria, começando por "<!--"; comentário no meio da frase aparece para o usuário. -->
+<!-- NOTA INTERNA: a versão técnica em legalDocuments/current (privacy-2026-11-01) é só para o cadastro funcionar nos testes. Os pontos para o advogado estão em app/docs/legal/pendencias.md, seção "Notas tiradas do texto público". -->
+<!-- NOTA INTERNA: formato aceito pelo leitor do app: #, ##, ###, parágrafos, listas, negrito e citações. Sem tabelas, links, crases ou imagens. -->
 
 # Política de Privacidade do Nexo
 
-**Versão:** 0.3 (rascunho, 07/11/2026) · **Vigência a partir de:** `[DATA DE VIGÊNCIA: definir na publicação]`
-
-> Nota interna (remover antes de publicar): a v0.2 previa vigência em 01/11/2026, mas não foi publicada nem revisada por advogado. A versão gravada em `legalDocuments/current` (`privacy-2026-11-01`) é só técnica, para o cadastro funcionar nos testes.
+**Versão:** 0.3 · **Vigência:** a definir
 
 Esta Política explica quais dados pessoais o aplicativo Nexo coleta, por que coleta, com quem compartilha, por quanto tempo guarda e como você pode exercer seus direitos. Ela segue a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018, "LGPD").
 
@@ -13,7 +14,9 @@ Esta Política explica quais dados pessoais o aplicativo Nexo coleta, por que co
 O controlador dos seus dados pessoais é Emanoel Lima Barbosa, pessoa física responsável pelo Nexo.
 
 - **Contato para assuntos de privacidade:** emanoelbarbosa.dev@gmail.com
-- **Encarregado pelo tratamento de dados (DPO):** emanoelbarbosa.dev@gmail.com `[VALIDAR COM ADVOGADO: obrigatoriedade de nomear encarregado]`
+- **Encarregado pelo tratamento de dados (DPO):** emanoelbarbosa.dev@gmail.com
+
+<!-- ADVOGADO (P1): confirmar se a pessoa física precisa nomear encarregado (Res. CD/ANPD nº 2/2022) e se dados de adolescentes tornam o tratamento de alto risco. -->
 
 ## 2. A quem esta Política se aplica
 
@@ -54,6 +57,8 @@ Vários desses campos são **texto livre** (nomes, descrições, tópicos, notas
 
 Os avisos importantes (entrega próxima, tarefa atrasada, meta do dia e conquista) ficam guardados na sua conta por **30 dias**, para você revê-los no painel de avisos do app, com a marcação de lido. Depois disso, são apagados automaticamente.
 
+<!-- PENDÊNCIA: a apagada automática depende do TTL do Firestore (firebase-setup.md A13), que só será criado depois do primeiro aviso gravado. Criar antes de publicar. -->
+
 ### 3.5 Dados que o Nexo calcula
 
 A partir do que você registra, o app calcula:
@@ -68,14 +73,19 @@ Esses cálculos seguem regras fixas e iguais para todos os usuários, descritas 
 ### 3.6 Dados técnicos
 
 - **Relatórios de falha (Firebase Crashlytics):** quando o app trava, registramos o erro técnico, o modelo do aparelho, a versão do sistema e do app, o estado do aparelho naquele momento (como memória livre e orientação da tela) e um identificador de instalação. Esses relatórios não incluem seu nome, seu e-mail nem o que você escreve no app, e servem só para corrigir falhas.
-- `[VALIDAR COM ADVOGADO: guarda de registros de acesso (endereço IP, data e hora) — Marco Civil da Internet, art. 15]`.
+
+<!-- ADVOGADO (P3): guarda de registros de acesso (endereço IP, data e hora) do Marco Civil da Internet, art. 15. Se valer para pessoa física, voltam um item aqui, uma finalidade na seção 5 (obrigação legal, art. 7º, II) e um prazo de 6 meses na seção 9. -->
 
 ### 3.7 Dados que ficam só no seu aparelho
 
 - **Uso sem internet:** parte dos seus dados fica guardada no próprio aparelho e é sincronizada quando a conexão volta.
 - **Sessão de foco em andamento:** o plano, o horário de início, as pausas e os tópicos escolhidos ficam só no aparelho. Quando você encerra, a sessão vai para a sua conta, já sem as pausas.
-- **Preferências do aparelho:** tema (sistema, claro ou escuro), "Ligar o Não perturbe ao focar", "Reduzir transparência" e preferências de silêncio dos avisos. Elas **nunca são enviadas aos nossos servidores** e voltam ao padrão se você reinstalar o app.
+- **Preferências do aparelho:** tema (sistema, claro ou escuro), "Ligar o Não perturbe ao focar", "Reduzir transparência" e outras escolhas de exibição. Elas **nunca são enviadas aos nossos servidores** e voltam ao padrão se você reinstalar o app.
 - **Agendamento dos avisos:** os avisos são programados no próprio aparelho (veja a seção 11).
+
+### 3.8 Mensagens ao suporte
+
+Se você escreve para o suporte, inclusive pelo "Pedir cópia dos dados" do Perfil, guardamos o endereço de quem enviou, o assunto, o conteúdo e a data das mensagens, além da cópia dos dados que enviarmos a você.
 
 ## 4. Dados que não coletamos
 
@@ -90,18 +100,20 @@ O Nexo **não exibe anúncios** e **não vende dados pessoais**.
 
 ## 5. Para que usamos os dados e com qual base legal
 
-| Finalidade | Dados | Base legal (LGPD, art. 7º) |
-|---|---|---|
-| Criar, autenticar e manter sua conta | Conta, perfil | Execução de contrato (V) |
-| Conferir a idade mínima de 16 anos | Data de nascimento | Execução de contrato (V) `[VALIDAR COM ADVOGADO: base legal]` |
-| Oferecer as funcionalidades (objetivos, planos, sessões, tarefas, calendário, relatórios, pontos e conquistas) | Conteúdo que você cria, dados calculados | Execução de contrato (V) |
-| Agendar os avisos que você configurou e mostrar o histórico de avisos dos últimos 30 dias | Horários e preferências de aviso, prazos das tarefas, histórico de avisos | Execução de contrato (V) |
-| Enviar e-mails do sistema (verificação, redefinição de senha) | E-mail | Execução de contrato (V) |
-| Excluir sua conta quando você pede | Pedido de exclusão | Execução de contrato (V) |
-| Proteger a conta contra acesso indevido (ex.: bloqueio após muitas tentativas) | Dados de login | Legítimo interesse (IX) |
-| Corrigir falhas do app | Relatórios de falha | Legítimo interesse (IX) |
-| Guardar a prova do seu aceite destes documentos | Registro de aceite | Exercício regular de direitos (VI) |
-| `[SE APLICÁVEL]` Guardar registros de acesso | IP, data e hora | Cumprimento de obrigação legal (II) |
+As bases legais são as do art. 7º da LGPD.
+
+- **Criar, autenticar e manter sua conta:** conta e perfil · execução de contrato.
+- **Conferir a idade mínima de 16 anos:** data de nascimento · execução de contrato.
+- **Oferecer as funcionalidades** (objetivos, planos, sessões, tarefas, calendário, relatórios, pontos e conquistas): conteúdo que você cria e dados calculados · execução de contrato.
+- **Agendar os avisos que você configurou e mostrar o histórico de avisos dos últimos 30 dias:** horários e preferências de aviso, prazos das tarefas e histórico de avisos · execução de contrato.
+- **Enviar e-mails do sistema** (verificação e redefinição de senha): e-mail · execução de contrato.
+- **Excluir sua conta quando você pede:** pedido de exclusão · execução de contrato.
+- **Proteger a conta contra acesso indevido** (por exemplo, bloqueio após muitas tentativas): dados de login · legítimo interesse.
+- **Corrigir falhas do app:** relatórios de falha · legítimo interesse.
+- **Guardar a prova do seu aceite destes documentos:** registro de aceite · exercício regular de direitos.
+- **Responder ao suporte e atender seus pedidos sobre seus dados:** mensagens ao suporte e cópia enviada · cumprimento de obrigação legal e execução de contrato.
+
+<!-- ADVOGADO (P6): validar a base legal de cada finalidade, em especial a da data de nascimento e o legítimo interesse (segurança e Crashlytics), com teste de balanceamento se preciso. -->
 
 Não enviamos comunicações de marketing. Se isso mudar, pediremos o seu consentimento separadamente, e você poderá recusar sem perder acesso ao app.
 
@@ -109,13 +121,19 @@ Não enviamos comunicações de marketing. Se isso mudar, pediremos o seu consen
 
 - **Google (Firebase)**, que opera a infraestrutura do Nexo: autenticação, banco de dados e relatórios de falha. O Google trata os dados por nossa conta, como **operador**, conforme os termos de processamento de dados do Firebase.
 - **Google como provedor de login**, se você escolher entrar com a sua conta Google. Nesse caso, o Google também trata dados conforme a política de privacidade própria.
+- **Google (Gmail)**, que hospeda a caixa de e-mail do suporte. As mensagens que você envia ao suporte, as respostas e a cópia dos dados enviada ficam guardadas nesse serviço, que as trata por nossa conta, como **operador**.
 - **Autoridades públicas**, quando houver obrigação legal ou ordem judicial.
+
+<!-- ADVOGADO (P9): o suporte usa uma conta Gmail pessoal, que não tem termos de processamento de dados como o Firebase. Confirmar se o Google pode ser descrito como operador nesse caso ou se é preciso uma conta com esses termos (ex.: Google Workspace). -->
+
 
 Não compartilhamos dados com anunciantes nem com outras empresas para fins comerciais.
 
 ## 7. Transferência internacional de dados
 
-O banco de dados principal do Nexo fica em São Paulo, no Brasil (região `southamerica-east1` do Google Cloud). Alguns serviços do Firebase, como a autenticação e os relatórios de falha, processam dados em servidores fora do Brasil, principalmente nos Estados Unidos. A transferência internacional é feita `[VALIDAR COM ADVOGADO: mecanismo da Resolução CD/ANPD nº 19/2024, ex.: cláusulas-padrão contratuais]`.
+O banco de dados principal do Nexo fica em São Paulo, no Brasil. Alguns serviços do Firebase, como a autenticação e os relatórios de falha, processam dados em servidores fora do Brasil, principalmente nos Estados Unidos. A transferência segue os mecanismos previstos na LGPD.
+
+<!-- ADVOGADO (P4): definir o mecanismo da transferência (Resolução CD/ANPD nº 19/2024, por exemplo cláusulas-padrão contratuais) e ajustar a última frase. Região do banco: southamerica-east1. -->
 
 ## 8. Segurança
 
@@ -128,8 +146,10 @@ Usamos as proteções da plataforma Firebase: comunicação criptografada, regra
 - **Histórico de avisos:** 30 dias. A remoção automática pode levar até cerca de um dia a mais; nesse intervalo, o app já não mostra o aviso vencido.
 - **Ao excluir a conta**, apagamos seus dados pessoais. Cópias de segurança são eliminadas em até 7 dias.
 - **Relatórios de falha** são mantidos por até 90 dias.
-- **O registro do seu aceite** pode ser mantido após a exclusão da conta pelo prazo necessário à defesa de direitos `[VALIDAR COM ADVOGADO]`.
-- `[SE APLICÁVEL]` **Registros de acesso** são mantidos por 6 meses, conforme o Marco Civil da Internet.
+- **Mensagens ao suporte** e a cópia dos dados enviada são mantidas por até 12 meses depois de encerrado o atendimento, para comprovar que o pedido foi atendido.
+- **O registro do seu aceite** pode ser mantido após a exclusão da conta pelo prazo necessário à defesa de direitos.
+
+<!-- ADVOGADO (P7): definir o prazo de guarda do registro de aceite depois da exclusão da conta. -->
 
 ## 10. Seus direitos
 
@@ -148,8 +168,10 @@ Pela LGPD (art. 18), você pode:
 **Como exercer:**
 
 - A maior parte dos dados você mesmo pode ver, editar e excluir no app.
-- **Excluir a conta:** no **Perfil** do app (por segurança, pedimos que você entre de novo antes) ou pelo link `[URL DA PÁGINA DE EXCLUSÃO]`.
-- **Cópia dos seus dados (portabilidade) e demais pedidos:** pelo **Perfil** do app ou pelo e-mail emanoelbarbosa.dev@gmail.com. Respondemos em até 15 dias.
+- **Excluir a conta:** no **Perfil** do app (por segurança, pedimos que você entre de novo antes) ou pelo e-mail emanoelbarbosa.dev@gmail.com. Se o app fechar no meio, a exclusão continua no próximo login.
+- **Cópia dos seus dados (portabilidade) e demais pedidos:** pelo **Perfil** do app (Pedir cópia dos dados) ou pelo e-mail emanoelbarbosa.dev@gmail.com. Respondemos em até 15 dias. A cópia vai em formato eletrônico legível (planilha ou JSON). Por segurança, enviamos a cópia só para o e-mail cadastrado na sua conta (para quem entra com Google, o e-mail da conta Google). Se o pedido chegar de outro endereço, respondemos pedindo que você o repita a partir do e-mail da conta. Assim, ninguém recebe dados que não são seus.
+
+<!-- PENDÊNCIA (Etapa 5): trocar o e-mail da exclusão pelo link da página pública de exclusão exigida pelo Google Play. -->
 
 Você também pode apresentar reclamação à ANPD (www.gov.br/anpd).
 
@@ -165,7 +187,11 @@ Você também pode apresentar reclamação à ANPD (www.gov.br/anpd).
 
 O limite é de um aviso por plano por dia. Os avisos são agendados no próprio aparelho: os horários que você escolhe ficam salvos na sua conta, mas nenhum identificador de notificação do aparelho é enviado aos nossos servidores. Você pode desligá-los no app ou nas configurações do aparelho.
 
-**Permissões** `[CONFIRMAR A LISTA FINAL NO APP ANTES DE PUBLICAR]`:
+<!-- PENDÊNCIA: o app ainda não agenda os avisos (Etapa 5). O texto descreve o produto como vai ser publicado (decisão do usuário, 10/11). -->
+
+**Permissões**
+
+<!-- PENDÊNCIA: CONFIRMAR A LISTA FINAL NO APP ANTES DE PUBLICAR. A Etapa 5 traz a permissão de reagendar os avisos depois que o aparelho reinicia. -->
 
 Permissões que o app pede a você:
 
@@ -177,13 +203,17 @@ Permissões automáticas, que o Android concede sem perguntar:
 - **Internet:** para entrar na sua conta, guardar seus dados e enviar relatórios de falha.
 - **Estado da conexão:** para avisar quando você está sem internet. Não coletamos dados da sua rede.
 - **Biometria e impressão digital:** vêm junto com a biblioteca de login do Google. **O Nexo não usa nem lê sua biometria**, e nenhuma tela do app pede isso.
-- **Serviços do Google:** vem junto com a proteção contra abuso do login (reCAPTCHA), do Firebase. `[CONFIRMAR: se a proteção está ativa e quais sinais do aparelho ela envia ao Google]`
+- **Serviços do Google:** vem junto com a proteção contra abuso do login (reCAPTCHA), do Firebase.
+
+<!-- PENDÊNCIA: confirmar se a proteção reCAPTCHA está ativa no console e quais sinais do aparelho ela envia ao Google; ajustar o item acima. -->
 
 O Nexo não usa alarmes exatos nem serviços que fiquem rodando em segundo plano.
 
 ## 12. Usuários entre 16 e 18 anos
 
-O Nexo não é destinado a menores de 16 anos. O cadastro confere a idade pela data de nascimento. Se soubermos que uma conta pertence a alguém com menos de 16 anos, ela será excluída. Usuários entre 16 e 18 anos têm seus dados tratados no seu melhor interesse, sem perfil comercial nem publicidade, e `[VALIDAR COM ADVOGADO: ciência/assistência dos pais ou responsáveis e exigências da Lei nº 15.211/2025 (ECA Digital)]`. Pais ou responsáveis podem entrar em contato pelo e-mail emanoelbarbosa.dev@gmail.com.
+O Nexo não é destinado a menores de 16 anos. O cadastro confere a idade pela data de nascimento. Se soubermos que uma conta pertence a alguém com menos de 16 anos, ela será excluída. Usuários entre 16 e 18 anos têm seus dados tratados no seu melhor interesse, sem perfil comercial nem publicidade. Pais ou responsáveis podem entrar em contato pelo e-mail emanoelbarbosa.dev@gmail.com.
+
+<!-- ADVOGADO (P5): ciência ou assistência dos pais ou responsáveis e exigências da Lei nº 15.211/2025 (ECA Digital), inclusive se a data de nascimento basta como verificação de idade. -->
 
 ## 13. Alterações desta Política
 

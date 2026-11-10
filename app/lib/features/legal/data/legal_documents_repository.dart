@@ -9,8 +9,10 @@ abstract interface class LegalDocumentsRepository {
   Future<Consents> currentVersions();
 }
 
-/// Versões fictícias da prototipação. A Política em rascunho vale a partir de
-/// 01/11/2026 (docs/legal/politica-de-privacidade.md).
+/// Versões técnicas da prototipação, só para o cadastro funcionar nos testes
+/// (o texto lido no app fica em `app/assets/legal/`; a vigência ainda está a
+/// definir). Trocar o texto pede trocar estas versões na mesma versão do
+/// app.
 class FakeLegalDocumentsRepository implements LegalDocumentsRepository {
   const FakeLegalDocumentsRepository();
 

@@ -32,7 +32,7 @@ U1 data de nascimento · U2 nada da Apple, só Android · U3 idioma não guardad
 | V1 | **Notificações locais confirmadas** (24/10): sem FCM, sem `devices` e sem `notificationLog`. O risco R14 da v0.2 está fechado | `firestore-rules.md` §3 item 7, §5 |
 | V2 | **Sem Cloud Functions**: dias, pontos e conquistas são calculados e gravados pelo app | `firestore-rules.md` §3 item 2 |
 | V3 | **Histórico de notificações** em `users/{uid}/notifications`, guardado **30 dias** (TTL pelo `createdAt`) e apagado com a conta. Decidido em 04/11; contrato e regras ainda **não publicados** | `pendencias.md` B13; `firestore-rules.md` §7; `firebase-setup.md` A13–A15 |
-| V4 | **Preferências só no aparelho**, nunca no banco: tema, "Ligar o Não perturbe ao focar", "Reduzir transparência" e preferências de silêncio | `firestore-rules.md` §4 (users) e §7 item 10 |
+| V4 | **Preferências só no aparelho**, nunca no banco: tema, "Ligar o Não perturbe ao focar", "Reduzir transparência" e escolhas de exibição (o "silêncio dos avisos" não existe no app; saiu em 10/11) | `firestore-rules.md` §4 (users) e §7 item 10 |
 | V5 | Campos novos da v0.9: `tasks.remindersMinutesBefore` (até 3 avisos), `plans.studyTime` + `plans.reminderBefore`, `users.morningSummary`, `sessions.topicIds` (até 3 tópicos). Saíram: `plans.reminder`, `sessions.topicId`, `tasks.reminderMinutesBefore` | `firestore-rules.md` §4, v0.9 |
 | V6 | **Tópicos do plano** (`plans/{id}/topics`): nome digitado + matéria opcional. Substituem o "tópico texto livre" da sessão | `firestore-rules.md` §4 (25/10) |
 | V7 | **Saíram do MVP:** notas da tarefa, pausas dentro da sessão (só a duração líquida é guardada) e cor da disciplina (revertida em 04/11) | `firestore-rules.md` §4 e §5 |
@@ -204,7 +204,7 @@ U1 data de nascimento · U2 nada da Apple, só Android · U3 idioma não guardad
 - avisos de entrega da tarefa (até 3 por tarefa);
 - limite de 1 aviso por plano por dia.
 
-**Preferências só no aparelho (V4):** tema (Sistema · Claro · Escuro), "Ligar o Não perturbe ao focar", "Reduzir transparência", preferências de silêncio. Reinstalando o app, voltam ao padrão.
+**Preferências só no aparelho (V4):** tema (Sistema · Claro · Escuro), "Ligar o Não perturbe ao focar", "Reduzir transparência" e escolhas de exibição (visão das tarefas, primeiros passos; `local_flags.dart`). Reinstalando o app, voltam ao padrão. As "preferências de silêncio" previstas em `firestore-rules.md` §7 item 10 **não existem no app** e saíram da Política (10/11).
 
 **Permissões do Android (V8).** Manifesto de release depois da `feat/foco` (na `main` em `7727ace`). Origem conferida em 09/11/2026 no relatório de mesclagem do build de release (`app/build/app/intermediates/manifest_merge_blame_file/release/…/manifest-merger-blame-release-report.txt`, gerado às 15:55) e nos POMs do cache do Gradle. **Lista ainda não final:** faltam Agenda e Perfil.
 
@@ -238,7 +238,21 @@ U1 data de nascimento · U2 nada da Apple, só Android · U3 idioma não guardad
 ## 14. E-mails do sistema e atendimento
 
 - Verificação de e-mail e redefinição de senha, pelo Firebase Auth (página padrão; remetente do domínio do projeto). **Base:** Contrato.
-- Atendimento: **e-mail** do controlador e opções do Perfil (Termos, Política, pedir cópia dos dados, contato, excluir conta). Telefone fora dos documentos (V9).
+- Atendimento: **e-mail** do controlador e o bloco Conta do Perfil, nesta ordem: Termos · Política · Pedir cópia dos dados · Alterar senha · Sair · Excluir conta. Telefone fora dos documentos (V9).
+
+**Mensagens ao suporte** (categoria nova, decisão do usuário de 10/11/2026):
+
+| Campo | Fonte | Obrig.? |
+|---|---|---|
+| Remetente (e-mail de quem escreve) | C | sim |
+| Assunto, conteúdo e data das mensagens | C | sim |
+| Cópia dos dados enviada ao titular | C | só em pedidos de cópia |
+
+- **Origem:** e-mail do usuário ao suporte, inclusive pelo "Pedir cópia dos dados", que abre o app de e-mail com o assunto "Nexo · cópia dos meus dados" e um texto pronto **sem** o e-mail da conta.
+- **Finalidade:** responder dúvidas e atender pedidos do titular (art. 18). **Base:** obrigação legal e Contrato.
+- **Cópia dos dados (D7):** formato eletrônico legível (planilha ou JSON), enviada **só ao e-mail da conta** (no login Google, o e-mail da conta Google). Pedido de outro remetente: a resposta pede que a pessoa repita o pedido a partir do e-mail da conta. Atendimento **manual**, fora do app, em até 15 dias.
+- **Retenção (D6):** até **12 meses** depois de encerrado o atendimento. O advogado revisa na Etapa 5.
+- **Serviço:** Gmail (conta pessoal do controlador). **Terceiros:** Google. Se ele pode ser descrito como operador fica com o advogado (`pendencias.md` D10).
 
 ---
 
