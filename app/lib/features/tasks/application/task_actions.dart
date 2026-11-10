@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/data/clock.dart';
+import '../../../core/domain/local_date.dart';
 import '../../auth/application/deferred_deletion.dart';
 import '../../progress/application/progress_actions.dart';
 import '../domain/task.dart';
@@ -55,6 +56,26 @@ class TaskActions {
           task.copyWith(dueAt: () => postponedDue(task.dueAt!, now: now)),
         );
     return task;
+  }
+
+  /// "Mover N tarefas" da Agenda: o prazo vai para [day], na mesma hora. O
+  /// Nexo sugere o dia e nunca move sozinho. Devolve as tarefas como eram,
+  /// para o "Desfazer" ([restoreDue] em cada uma).
+  Future<List<NexoTask>> moveToDay(List<NexoTask> tasks, LocalDate day) async {
+    final repository = _ref.read(tasksRepositoryProvider);
+    final moved = <NexoTask>[];
+    for (final task in tasks) {
+      final due = task.dueAt;
+      if (due == null || task.completed) continue;
+      await repository.updateTask(
+        task.copyWith(
+          dueAt: () =>
+              DateTime(day.year, day.month, day.day, due.hour, due.minute),
+        ),
+      );
+      moved.add(task);
+    }
+    return moved;
   }
 
   /// "Desfazer" do adiar: volta só o prazo antigo, sobre a versão atual da

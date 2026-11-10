@@ -58,10 +58,23 @@ class UserProfile {
     this.tutorialSeen = false,
     this.points = 0,
     this.primaryPlanId,
-  });
+    int? overloadThreshold,
+  }) : overloadThreshold = overloadThreshold == null
+           ? defaultOverloadThreshold
+           : overloadThreshold < minOverloadThreshold
+           ? minOverloadThreshold
+           : overloadThreshold > maxOverloadThreshold
+           ? maxOverloadThreshold
+           : overloadThreshold;
 
   /// Limite das regras do Firestore para `users.points`.
   static const maxPoints = 10000000;
+
+  /// `users.overloadThreshold` (contrato §4): 1 a 20 tarefas por dia;
+  /// vazio = 5. Acima disso, a Agenda avisa "Dia carregado".
+  static const defaultOverloadThreshold = 5;
+  static const minOverloadThreshold = 1;
+  static const maxOverloadThreshold = 20;
 
   final String displayName;
   final bool tutorialSeen;
@@ -72,11 +85,15 @@ class UserProfile {
   /// `users.primaryPlanId`: o plano do Início. `null` sem plano.
   final String? primaryPlanId;
 
+  /// Limite de tarefas por dia (editado no Perfil, bloco 11).
+  final int overloadThreshold;
+
   UserProfile copyWith({
     String? displayName,
     bool? tutorialSeen,
     int? points,
     String? Function()? primaryPlanId,
+    int? overloadThreshold,
   }) {
     return UserProfile(
       displayName: displayName ?? this.displayName,
@@ -85,6 +102,7 @@ class UserProfile {
       primaryPlanId: primaryPlanId == null
           ? this.primaryPlanId
           : primaryPlanId(),
+      overloadThreshold: overloadThreshold ?? this.overloadThreshold,
     );
   }
 
@@ -94,11 +112,17 @@ class UserProfile {
       other.displayName == displayName &&
       other.tutorialSeen == tutorialSeen &&
       other.points == points &&
-      other.primaryPlanId == primaryPlanId;
+      other.primaryPlanId == primaryPlanId &&
+      other.overloadThreshold == overloadThreshold;
 
   @override
-  int get hashCode =>
-      Object.hash(displayName, tutorialSeen, points, primaryPlanId);
+  int get hashCode => Object.hash(
+    displayName,
+    tutorialSeen,
+    points,
+    primaryPlanId,
+    overloadThreshold,
+  );
 }
 
 /// Aceite dos Termos e da Política: as versões de `legalDocuments/current`.

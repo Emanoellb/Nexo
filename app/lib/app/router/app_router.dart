@@ -10,6 +10,7 @@ import '../../features/auth/presentation/google_first_access_page.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/sign_up_page.dart';
 import '../../features/auth/presentation/verify_email_page.dart';
+import '../../features/calendar/presentation/agenda_page.dart';
 import '../../features/focus/presentation/focus_page.dart';
 import '../../features/focus/presentation/session_form_page.dart';
 import '../../features/focus/presentation/shell_focus_bar.dart';
@@ -202,25 +203,21 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          for (final (path, title, block) in const [
-            // "Calendário" virou "Agenda" só no texto (04/11/2026).
-            (AppRoutes.calendar, 'Agenda', 'bloco 9 · Calendário'),
-          ])
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: path,
-                  pageBuilder: (context, state) => _page(
-                    context,
-                    state,
-                    NexoTabRoot(
-                      child: UnderConstructionPage(title: title, block: block),
-                    ),
-                    NexoPageMotion.none,
-                  ),
+          // Agenda ("Calendário" virou "Agenda" só no texto, 04/11/2026; a
+          // rota continua `/calendar`).
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.calendar,
+                pageBuilder: (context, state) => _page(
+                  context,
+                  state,
+                  const NexoTabRoot(child: AgendaPage()),
+                  NexoPageMotion.none,
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
         ],
       ),
       // Nova tarefa (pelo "+" e pelos vazios) e detalhe da tarefa (pelo
