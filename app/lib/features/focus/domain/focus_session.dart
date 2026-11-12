@@ -14,6 +14,13 @@ enum SessionSource {
       SessionSource.values.firstWhere((s) => s.value == value);
 }
 
+/// `days.doneMinutes`: a soma das sessões do dia em minutos inteiros, sem
+/// passar de 1440 (limite das regras).
+int dayDoneMinutes(Iterable<FocusSession> sessions) {
+  final seconds = sessions.fold<int>(0, (sum, s) => sum + s.durationSeconds);
+  return (seconds ~/ 60).clamp(0, 1440);
+}
+
 /// `…/plans/{planId}/sessions/{sessionId}` (contrato §4). Já dividida por
 /// dia: uma sessão nunca atravessa a meia-noite (RF13).
 @immutable

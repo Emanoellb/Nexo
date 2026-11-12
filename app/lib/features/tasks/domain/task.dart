@@ -20,6 +20,18 @@ enum TaskPriority {
       TaskPriority.values.firstWhere((p) => p.value == value);
 }
 
+/// Ordem de `TasksRepository.watchTasks`: pendentes primeiro, por prazo
+/// (sem prazo no fim, por título); depois as concluídas.
+int compareTasksByDue(NexoTask a, NexoTask b) {
+  if (a.completed != b.completed) return a.completed ? 1 : -1;
+  final da = a.dueAt;
+  final db = b.dueAt;
+  if (da == null && db == null) return a.title.compareTo(b.title);
+  if (da == null) return 1;
+  if (db == null) return -1;
+  return da.compareTo(db);
+}
+
 /// `users/{uid}/tasks/{taskId}` (contrato §4). "Notas" ficam fora do MVP.
 @immutable
 class NexoTask {
