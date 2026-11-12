@@ -30,6 +30,10 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+  # Firestore em memória, só nos testes dos repositórios (não entra no APK).
+  # Fixo na 4.4.0: a 4.5.0 pede cloud_firestore 7.1, e os plugins do Firebase
+  # ficam nas versões atuais até o A16 (firebase-setup.md §11.2).
+  fake_cloud_firestore: 4.4.0
 
 flutter:
   uses-material-design: true
