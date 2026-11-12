@@ -1,28 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/data/firestore_access.dart';
 import '../../../core/data/local_flags.dart';
+import '../data/firestore_user_data_eraser.dart';
 import '../../focus/application/focus_controller.dart';
 import 'auth_providers.dart';
 import 'login_controller.dart';
 
 /// Apaga os dados da conta no banco (planos e o que há dentro, tarefas,
-/// disciplinas, objetivos, medalhas, avisos). No bloco de integração, o
-/// Firestore em lotes, liberado pelo `deletionRequestedAt` (contrato §3,
-/// item 6). Na prototipação os repositórios fake são por conta e somem com
-/// ela, então não há o que apagar.
+/// disciplinas, objetivos e medalhas): o Firestore em lotes, liberado pelo
+/// `deletionRequestedAt` (contrato §3, item 6; `FirestoreUserDataEraser`).
 abstract interface class UserDataEraser {
   Future<void> eraseAll(String uid);
 }
 
-class FakeUserDataEraser implements UserDataEraser {
-  const FakeUserDataEraser();
-
-  @override
-  Future<void> eraseAll(String uid) async {}
-}
-
 final userDataEraserProvider = Provider<UserDataEraser>(
-  (ref) => const FakeUserDataEraser(),
+  (ref) => FirestoreUserDataEraser(ref.watch(firestoreAccessProvider)),
 );
 
 /// A exclusão está rodando nesta abertura do app: a entrada fica em
@@ -50,7 +43,14 @@ class AccountDeletion {
     final uid = _ref.read(currentUidProvider);
     if (uid == null) return;
     _ref.read(accountDeletionRunningProvider.notifier).set(true);
-    await _ref.read(userProfileRepositoryProvider).markDeletionRequested(uid);
+    try {
+      await _ref.read(userProfileRepositoryProvider).markDeletionRequested(uid);
+    } catch (_) {
+      // Sem a marca no servidor, as regras recusariam apagar os dados: a
+      // entrada sai de "Excluindo" e a tela mostra o erro.
+      _ref.read(accountDeletionRunningProvider.notifier).set(false);
+      rethrow;
+    }
   }
 
   /// Termina a exclusão: tira o foco em andamento (e o "Não perturbe"),

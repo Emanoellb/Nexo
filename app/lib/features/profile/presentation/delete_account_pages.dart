@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../app/router/routes.dart';
+import '../../../core/data/data_failure.dart';
 import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/ui.dart';
 import '../../auth/application/account_deletion.dart';
@@ -191,6 +192,15 @@ class _ConfirmDeletionPageState extends ConsumerState<ConfirmDeletionPage> {
             'Muitas tentativas. Espere um pouco e tente de novo.',
           _ => 'Não foi possível confirmar. Tente de novo.',
         };
+      });
+    } on DataFailure catch (failure) {
+      // A marca de exclusão não foi gravada (passo 3).
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = failure.code == DataFailureCode.network
+            ? 'Sem conexão. Confira a internet e tente de novo.'
+            : 'Não foi possível excluir agora. Tente de novo.';
       });
     }
   }
