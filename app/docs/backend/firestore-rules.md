@@ -352,6 +352,12 @@ Itens do Perfil aprovados (22/10): editar nome, nível e conquistas, privacidade
 O Flutter e o design estão pausados até o fim da configuração do Firebase (decisão de 24/10). Esta lista é para quando voltarem; nenhuma mensagem foi enviada.
 
 **nexo-flutter (quando o app ligar o Firestore):**
+
+> **Feito na feat/firebase-real (11/11/2026), sem mudar regra:** itens 1 a 6, 9, 11, 12, 14 e 15 (os itens 7, 8 e 13 já eram do app). O item 10 (notificações locais) e o histórico de notificações ficam para a Etapa 5. Diferenças de execução, sem efeito nas regras:
+> - item 3: o "Já confirmei" renova o token **antes** do `reload()`, para o perfil não começar a ser lido com o token antigo (sem `email_verified`);
+> - item 5: o `primaryPlanId` vai numa gravação logo depois do lote do plano, na mesma fila. As regras aceitam (o plano já existe), e se o plano for recusado o `primaryPlanId` também é (`existsAfter`);
+> - item 11: o `primaryPlanId` é limpo antes de marcar `deleting`, também na mesma fila.
+
 1. Usar os nomes e formatos da seção 4. Inteiros: `dailyGoalMinutes`, `durationSeconds`, `doneMinutes`, cada item de `remindersMinutesBefore`, `reminderBefore.minutesBefore`, `overloadThreshold`, `points`.
 2. Carimbos com `FieldValue.serverTimestamp()`: `createdAt`, `updatedAt`, `consents.acceptedAt`, `completedAt`, `finalizedAt`, `earnedAt`, `deletionRequestedAt`.
 3. Cadastro: criar `users/{uid}` com `displayName`, `birthDate`, `timeZone` e `consents` (versões de `legalDocuments/current`). Depois do "Já confirmei": `reload()` + `getIdToken(true)`.
