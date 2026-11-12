@@ -5,11 +5,8 @@ import 'package:nexo/features/focus/presentation/session_form_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/domain/local_date.dart';
 import 'package:nexo/core/ui/ui.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/goals/application/goals_providers.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/plans/domain/plan.dart';
@@ -22,6 +19,8 @@ import 'package:nexo/features/subjects/application/subjects_providers.dart';
 
 import '../../helpers/screen_footer_checks.dart';
 import 'plan_seed.dart';
+
+import '../../fakes/fakes.dart';
 
 /// App logado, sem dados de exemplo, na aba Planos (360 × [height]).
 Future<ProviderContainer> _pump(
@@ -41,14 +40,14 @@ Future<ProviderContainer> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
-        clockProvider.overrideWithValue(() => seedNow),
-        localFlagsProvider.overrideWithValue(
-          InMemoryLocalFlags(
+        ...fakeBackend(
+          auth: FakeAuthRepository.signedIn(),
+          flags: InMemoryLocalFlags(
             firstOpenDone: true,
             themePreference: dark ? 'dark' : 'light',
           ),
         ),
+        clockProvider.overrideWithValue(() => seedNow),
       ],
       child: const NexoApp(),
     ),

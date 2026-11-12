@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/theme/nexo_theme.dart';
 import 'package:nexo/core/theme/theme_preference.dart';
 import 'package:nexo/core/ui/ui.dart';
+
+import '../../fakes/fakes.dart';
 
 /// Modo escuro aprovado no Pen.dev em 04/11/2026
 /// (pen.dev/notas/modo-escuro-especificacao.md).
@@ -110,7 +111,7 @@ void main() {
   group('preferência de tema (Sistema · Claro · Escuro)', () {
     ProviderContainer containerWith(InMemoryLocalFlags flags) {
       final container = ProviderContainer(
-        overrides: [localFlagsProvider.overrideWithValue(flags)],
+        overrides: [...fakeBackend(flags: flags)],
       );
       addTearDown(container.dispose);
       return container;

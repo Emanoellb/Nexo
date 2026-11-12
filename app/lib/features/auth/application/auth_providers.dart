@@ -1,46 +1,56 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/data/firebase_ready.dart';
+import '../../../core/data/firestore_access.dart';
 import '../data/auth_repository.dart';
-import '../data/fake_auth_repository.dart';
+import '../data/firebase_auth_repository.dart';
+import '../data/firestore_user_profile_repository.dart';
 import '../domain/auth_user.dart';
 import '../domain/entry_status.dart';
 import 'account_deletion.dart';
 
-/// Repositório de auth. Na prototipação, o fake (sem Firebase), que começa
-/// sem sessão; a troca pelo `FirebaseAuthRepository` é feita aqui, no bloco
-/// de integração.
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final repository = FakeAuthRepository.prototype();
-  ref.onDispose(repository.dispose);
-  return repository;
-});
+/// Firebase Auth, depois da carga do Firebase (feita na splash).
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => FirebaseAuthRepository(ready: ref.watch(firebaseReadyProvider)),
+);
 
-/// Fuso IANA do aparelho, gravado em `users/{uid}.timeZone`. Fixo na
-/// prototipação: ler o fuso real pede um pacote novo (ex. flutter_timezone),
-/// a aprovar no bloco de integração.
+/// Fuso IANA do aparelho, gravado em `users/{uid}.timeZone`. O `main` lê
+/// pelo canal `nexo/device` (sem pacote) e normaliza
+/// (`normalizeTimeZone`); sem leitura, o padrão do Brasil.
 final deviceTimeZoneProvider = Provider<String>((ref) => 'America/Sao_Paulo');
 
-final userProfileRepositoryProvider = Provider<UserProfileRepository>((ref) {
-  final repository = FakeUserProfileRepository.prototype();
-  ref.onDispose(repository.dispose);
-  return repository;
-});
+/// `users/{uid}` no Firestore.
+final userProfileRepositoryProvider = Provider<UserProfileRepository>(
+  (ref) => FirestoreUserProfileRepository(ref.watch(firestoreAccessProvider)),
+);
 
 final authStateProvider = StreamProvider<AuthUser?>(
   (ref) => ref.watch(authRepositoryProvider).authStateChanges(),
 );
 
-/// uid da sessão atual (`null` sem login). Os repositórios de dados assistem
-/// a ele: cada conta tem os próprios dados, como em `users/{uid}` no
-/// Firestore (decisão do usuário, 05/11/2026).
+/// uid da sessão atual (`null` sem login). Os repositórios de dados usam o
+/// [verifiedUidProvider].
 final currentUidProvider = Provider<String?>(
   (ref) => ref.watch(authStateProvider.select((auth) => auth.value?.uid)),
 );
 
-/// Perfil do usuário logado; `null` sem login ou sem documento.
+/// uid só com o e-mail verificado: as regras só liberam os dados de
+/// `users/{uid}` assim. É o uid dos repositórios do Firestore.
+final verifiedUidProvider = Provider<String?>(
+  (ref) => ref.watch(
+    authStateProvider.select((auth) {
+      final user = auth.value;
+      return user != null && user.emailVerified ? user.uid : null;
+    }),
+  ),
+);
+
+/// Perfil do usuário logado; `null` sem login ou sem documento. Só escuta
+/// depois da verificação do e-mail: antes, as regras recusam a leitura de
+/// `users/{uid}` (e a entrada nem olha o perfil, vai para a tela 05).
 final userProfileProvider = StreamProvider<UserProfile?>((ref) {
   final user = ref.watch(authStateProvider).value;
-  if (user == null) return Stream.value(null);
+  if (user == null || !user.emailVerified) return Stream.value(null);
   return ref.watch(userProfileRepositoryProvider).watchProfile(user.uid);
 });
 

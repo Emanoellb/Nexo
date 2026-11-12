@@ -26,7 +26,7 @@ final _steps = [
     (t) => GoalPlanIllustration(t: t),
   ),
   _Step(
-    'Tarefas e calendário',
+    'Tarefas e agenda',
     'Organize disciplinas, entregas e prazos. Cada dia mostra o que você '
         'planejou.',
     (t) => TasksCalendarIllustration(t: t),

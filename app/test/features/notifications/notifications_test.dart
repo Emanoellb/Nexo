@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/core/ui/ui.dart';
-import 'package:nexo/features/notifications/data/notifications_repository.dart';
 import 'package:nexo/features/notifications/domain/nexo_notification.dart';
+
+import '../../fakes/fakes.dart';
 
 final _now = DateTime(2026, 11, 4, 12);
 

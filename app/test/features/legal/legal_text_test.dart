@@ -6,14 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/app/router/app_router.dart';
 import 'package:nexo/app/router/routes.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/ui/ui.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/legal/data/legal_texts.dart';
 import 'package:nexo/features/legal/domain/legal_markdown.dart';
 import 'package:nexo/features/legal/presentation/legal_document_page.dart';
 import 'package:nexo/features/legal/presentation/legal_text.dart';
+
+import '../../fakes/fakes.dart';
 
 /// Texto de exemplo, só para os testes (o app não leva texto de teste).
 const _sample = '''
@@ -79,9 +78,9 @@ Future<void> _pumpLegal(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
-        localFlagsProvider.overrideWithValue(
-          InMemoryLocalFlags(
+        ...fakeBackend(
+          auth: FakeAuthRepository(),
+          flags: InMemoryLocalFlags(
             firstOpenDone: true,
             themePreference: dark ? 'dark' : 'light',
           ),

@@ -6,16 +6,14 @@ import 'package:nexo/features/calendar/presentation/agenda_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
-import 'package:nexo/features/notifications/application/notifications_providers.dart';
-import 'package:nexo/features/notifications/data/notifications_repository.dart';
 import 'package:nexo/features/notifications/domain/nexo_notification.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
 import 'package:nexo/features/plans/presentation/plans_page.dart';
 import 'package:nexo/features/tasks/presentation/tasks_page.dart';
 import 'package:nexo/core/ui/ui.dart';
+
+import '../fakes/fakes.dart';
 
 /// App logado com a conta pronta e, se pedido, avisos de exemplo.
 Future<FakeNotificationsRepository> _pumpReady(WidgetTester tester) async {
@@ -34,11 +32,11 @@ Future<FakeNotificationsRepository> _pumpReady(WidgetTester tester) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
-        userProfileRepositoryProvider.overrideWithValue(
-          FakeUserProfileRepository.prototype(),
+        ...fakeBackend(
+          auth: FakeAuthRepository.signedIn(),
+          profiles: FakeUserProfileRepository.prototype(),
+          notifications: notifications,
         ),
-        notificationsRepositoryProvider.overrideWithValue(notifications),
         clockProvider.overrideWithValue(() => now),
       ],
       child: const NexoApp(),
@@ -155,7 +153,7 @@ void main() {
     final auth = FakeAuthRepository();
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [authRepositoryProvider.overrideWithValue(auth)],
+        overrides: [...fakeBackend(auth: auth)],
         child: const NexoApp(),
       ),
     );
@@ -179,7 +177,7 @@ void main() {
     );
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [authRepositoryProvider.overrideWithValue(auth)],
+        overrides: [...fakeBackend(auth: auth)],
         child: const NexoApp(),
       ),
     );
@@ -200,10 +198,7 @@ void main() {
     final profiles = FakeUserProfileRepository();
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          authRepositoryProvider.overrideWithValue(auth),
-          userProfileRepositoryProvider.overrideWithValue(profiles),
-        ],
+        overrides: [...fakeBackend(auth: auth, profiles: profiles)],
         child: const NexoApp(),
       ),
     );

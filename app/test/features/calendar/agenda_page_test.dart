@@ -4,12 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/domain/local_date.dart';
 import 'package:nexo/core/theme/nexo_theme.dart';
 import 'package:nexo/core/ui/ui.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/calendar/application/agenda_view.dart';
 import 'package:nexo/features/calendar/presentation/agenda_page.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
@@ -19,6 +16,8 @@ import 'package:nexo/features/plans/presentation/plan_detail_page.dart';
 import 'package:nexo/features/tasks/application/tasks_providers.dart';
 import 'package:nexo/features/tasks/domain/task.dart';
 import 'package:nexo/features/tasks/presentation/task_form_page.dart';
+
+import '../../fakes/fakes.dart';
 
 // Quarta, 04/11/2026, 10:00. A semana vai de dom 1/11 a sáb 7/11.
 final _now = DateTime(2026, 11, 4, 10);
@@ -41,14 +40,14 @@ Future<ProviderContainer> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
-        clockProvider.overrideWithValue(() => _now),
-        localFlagsProvider.overrideWithValue(
-          InMemoryLocalFlags(
+        ...fakeBackend(
+          auth: FakeAuthRepository.signedIn(),
+          flags: InMemoryLocalFlags(
             firstOpenDone: true,
             themePreference: dark ? 'dark' : 'light',
           ),
         ),
+        clockProvider.overrideWithValue(() => _now),
       ],
       child: const NexoApp(),
     ),

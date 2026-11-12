@@ -7,11 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/core/data/connectivity.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/domain/local_date.dart';
 import 'package:nexo/core/ui/ui.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/focus/domain/focus_session.dart';
 import 'package:nexo/features/focus/domain/session_split.dart';
 import 'package:nexo/features/focus/presentation/focus_page.dart';
@@ -24,6 +22,8 @@ import 'package:nexo/features/plans/domain/plan_schedule.dart';
 import 'package:nexo/features/tasks/application/tasks_providers.dart';
 import 'package:nexo/features/tasks/domain/task.dart';
 import 'package:nexo/features/tasks/presentation/task_form_page.dart';
+
+import '../../fakes/fakes.dart';
 
 // Quarta, 04/11/2026, 10:00.
 final _now = DateTime(2026, 11, 4, 10);
@@ -59,14 +59,14 @@ Future<ProviderContainer> _pumpHome(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
-        clockProvider.overrideWithValue(clock ?? () => _clockNow),
-        localFlagsProvider.overrideWithValue(
-          InMemoryLocalFlags(
+        ...fakeBackend(
+          auth: FakeAuthRepository.signedIn(),
+          flags: InMemoryLocalFlags(
             firstOpenDone: true,
             themePreference: dark ? 'dark' : 'light',
           ),
         ),
+        clockProvider.overrideWithValue(clock ?? () => _clockNow),
         connectivitySourceProvider.overrideWithValue(
           connectivity ?? _FakeConnectivity(),
         ),
@@ -99,9 +99,8 @@ Future<void> _focusFor(
   expect(find.byType(FocusPage), findsOneWidget);
   _clockNow = _clockNow.add(Duration(minutes: minutes));
   // Avisos de antes (ex.: "Plano criado.") não cobrem o rodapé do Foco.
-  ScaffoldMessenger.of(
-    tester.element(find.byType(FocusPage)),
-  ).removeCurrentSnackBar();
+  ScaffoldMessenger.of(tester.element(find.byType(FocusPage)))
+      .removeCurrentSnackBar();
   await tester.pump(const Duration(seconds: 1));
   // Tela cheia: o Foco abre só com o relógio; um toque mostra as ações.
   await tester.tap(find.byType(NexoFocusTimer));

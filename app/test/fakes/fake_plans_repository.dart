@@ -1,11 +1,12 @@
-import '../../../core/data/in_memory_store.dart';
-import '../../../core/domain/edit_window.dart';
-import '../../../core/domain/local_date.dart';
-import '../../focus/domain/focus_session.dart';
-import '../../focus/domain/session_split.dart';
-import '../domain/plan.dart';
-import '../domain/plan_schedule.dart';
-import 'plans_repository.dart';
+import 'package:nexo/core/domain/edit_window.dart';
+import 'package:nexo/core/domain/local_date.dart';
+import 'package:nexo/features/focus/domain/focus_session.dart';
+import 'package:nexo/features/focus/domain/session_split.dart';
+import 'package:nexo/features/plans/data/plans_repository.dart';
+import 'package:nexo/features/plans/domain/plan.dart';
+import 'package:nexo/features/plans/domain/plan_schedule.dart';
+
+import 'in_memory_store.dart';
 
 /// Planos em memória para a prototipação. Aplica as mesmas regras que o
 /// app terá de aplicar com o Firestore (lote plano + versão, `doneMinutes`
@@ -232,10 +233,9 @@ class FakePlansRepository implements PlansRepository {
 
   /// `doneMinutes` = soma das sessões do dia (mesmo lote que a sessão).
   void _recomputeDay(String planId, LocalDate day) {
-    final seconds = _sessions.all
-        .where((s) => s.planId == planId && s.day == day)
-        .fold<int>(0, (sum, s) => sum + s.durationSeconds);
-    final minutes = (seconds ~/ 60).clamp(0, 1440);
+    final minutes = dayDoneMinutes(
+      _sessions.all.where((s) => s.planId == planId && s.day == day),
+    );
     final current = _days.get('$planId/${day.toIso()}')?.day;
     _days.put((
       planId: planId,

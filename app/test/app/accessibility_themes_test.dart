@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/ui/ui.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 
 import '../helpers/nexo_test_app.dart';
+
+import '../fakes/fakes.dart';
 
 /// Diretrizes de alvo (48), rótulo e contraste (WCAG AA) em campos,
 /// checkbox, alerta e telas de entrada, nos temas claro e escuro
@@ -121,19 +120,15 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
-              authRepositoryProvider.overrideWithValue(
-                FakeAuthRepository(withPrototypeAccounts: true),
-              ),
-              userProfileRepositoryProvider.overrideWithValue(
-                FakeUserProfileRepository.prototype(),
-              ),
-              clockProvider.overrideWithValue(() => DateTime(2026, 11, 4, 12)),
-              localFlagsProvider.overrideWithValue(
-                InMemoryLocalFlags(
+              ...fakeBackend(
+                auth: FakeAuthRepository(withPrototypeAccounts: true),
+                profiles: FakeUserProfileRepository.prototype(),
+                flags: InMemoryLocalFlags(
                   firstOpenDone: true,
                   themePreference: dark ? 'dark' : 'light',
                 ),
               ),
+              clockProvider.overrideWithValue(() => DateTime(2026, 11, 4, 12)),
             ],
             child: const NexoApp(),
           ),

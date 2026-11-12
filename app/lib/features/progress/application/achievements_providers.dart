@@ -12,19 +12,20 @@ import '../../plans/domain/plan.dart';
 import '../../plans/domain/plan_report.dart';
 import '../../tasks/application/screen_now.dart';
 import '../../tasks/application/task_actions.dart';
+import '../../../core/data/firestore_access.dart';
 import '../data/achievements_repository.dart';
+import '../data/firestore_achievements_repository.dart';
 import '../domain/achievements.dart';
 
-/// Na prototipação, o fake em memória; no bloco de integração, o Firestore.
-/// Um por conta: trocar de conta recria.
-final achievementsRepositoryProvider = Provider<AchievementsRepository>((ref) {
-  ref.watch(currentUidProvider);
-  final repository = FakeAchievementsRepository(
+/// Firestore (`users/{uid}/…`), com o uid verificado: sem login ou antes de
+/// verificar o e-mail, listas vazias. Trocar de conta recria.
+final achievementsRepositoryProvider = Provider<AchievementsRepository>(
+  (ref) => FirestoreAchievementsRepository(
+    ref.watch(firestoreAccessProvider),
+    uid: ref.watch(verifiedUidProvider),
     clock: ref.watch(clockProvider),
-  );
-  ref.onDispose(repository.dispose);
-  return repository;
-});
+  ),
+);
 
 final earnedAchievementsProvider = StreamProvider<List<EarnedAchievement>>(
   (ref) => ref.watch(achievementsRepositoryProvider).watchEarned(),

@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/ui/ui.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
 import 'package:nexo/features/subjects/application/subjects_providers.dart';
 import 'package:nexo/features/subjects/data/subjects_repository.dart';
@@ -18,6 +14,8 @@ import 'package:nexo/features/subjects/presentation/subject_detail_page.dart';
 import 'package:nexo/features/tasks/application/tasks_providers.dart';
 import 'package:nexo/features/tasks/domain/task.dart';
 import 'package:nexo/features/tasks/presentation/tasks_page.dart';
+
+import '../../fakes/fakes.dart';
 
 // Quarta, 04/11/2026, 10:00.
 var _now = DateTime(2026, 11, 4, 10);
@@ -30,7 +28,7 @@ Future<(ProviderContainer, InMemoryLocalFlags)> _pumpTasks(
   bool dark = false,
   String? taskView,
   bool phone = false,
-  List<Override> overrides = const [],
+  SubjectsRepository? subjects,
 }) async {
   _now = DateTime(2026, 11, 4, 10);
   tester.view.physicalSize = Size(1080, phone ? 2400 : 3600);
@@ -44,10 +42,12 @@ Future<(ProviderContainer, InMemoryLocalFlags)> _pumpTasks(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
+        ...fakeBackend(
+          auth: FakeAuthRepository.signedIn(),
+          subjects: subjects,
+          flags: flags,
+        ),
         clockProvider.overrideWithValue(() => _now),
-        localFlagsProvider.overrideWithValue(flags),
-        ...overrides,
       ],
       child: const NexoApp(),
     ),
@@ -368,12 +368,7 @@ void main() {
     testWidgets('falha ao salvar: avisa no campo e deixa tentar de novo', (
       tester,
     ) async {
-      await _pumpTasks(
-        tester,
-        overrides: [
-          subjectsRepositoryProvider.overrideWithValue(_FailingSubjects()),
-        ],
-      );
+      await _pumpTasks(tester, subjects: _FailingSubjects());
       await _tap(tester, find.text('Disciplinas'));
       await _tap(tester, find.text('Adicionar disciplina'));
       await tester.enterText(find.byType(TextField), 'Física');

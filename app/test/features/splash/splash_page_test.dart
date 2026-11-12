@@ -11,6 +11,8 @@ import 'package:nexo/core/ui/feedback/nexo_circular_progress.dart';
 import 'package:nexo/features/splash/application/splash_providers.dart';
 import 'package:nexo/features/splash/presentation/splash_page.dart';
 
+import '../../fakes/fakes.dart';
+
 Future<ProviderContainer> _pumpSplash(
   WidgetTester tester, {
   required LocalFlags flags,
@@ -19,7 +21,7 @@ Future<ProviderContainer> _pumpSplash(
 }) async {
   final container = ProviderContainer(
     overrides: [
-      localFlagsProvider.overrideWithValue(flags),
+      ...fakeBackend(flags: flags),
       if (startup != null) appStartupProvider.overrideWith((ref) => startup()),
     ],
   );

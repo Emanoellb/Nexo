@@ -2,11 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
 import 'package:nexo/features/tasks/application/task_actions.dart';
 import 'package:nexo/features/tasks/application/tasks_providers.dart';
 import 'package:nexo/features/tasks/domain/task.dart';
+
+import '../../fakes/fakes.dart';
 
 const _otherUser = AuthUser(
   uid: 'outra-conta',
@@ -19,8 +20,8 @@ Future<(ProviderContainer, FakeAuthRepository)> _container() async {
   final auth = FakeAuthRepository.signedIn();
   final c = ProviderContainer(
     overrides: [
+      ...fakeBackend(auth: auth),
       clockProvider.overrideWithValue(() => DateTime(2026, 11, 4, 10)),
-      authRepositoryProvider.overrideWithValue(auth),
     ],
   );
   addTearDown(c.dispose);

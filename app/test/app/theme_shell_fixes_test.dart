@@ -9,9 +9,9 @@ import 'package:nexo/app/window_background.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/core/theme/nexo_theme.dart';
 import 'package:nexo/core/ui/ui.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
+
+import '../fakes/fakes.dart';
 
 /// Correções do code review da feat/tema-escuro (04/11/2026).
 Future<void> _pumpReady(WidgetTester tester) async {
@@ -21,9 +21,9 @@ Future<void> _pumpReady(WidgetTester tester) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
-        userProfileRepositoryProvider.overrideWithValue(
-          FakeUserProfileRepository.prototype(),
+        ...fakeBackend(
+          auth: FakeAuthRepository.signedIn(),
+          profiles: FakeUserProfileRepository.prototype(),
         ),
         clockProvider.overrideWithValue(() => DateTime(2026, 11, 4, 12)),
       ],

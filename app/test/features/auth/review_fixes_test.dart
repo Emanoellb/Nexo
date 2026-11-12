@@ -6,16 +6,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/core/data/data_failure.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/ui/ui.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
 import 'package:nexo/features/auth/application/login_controller.dart';
 import 'package:nexo/features/auth/domain/auth_failure.dart';
 import 'package:nexo/features/auth/application/sign_up_controller.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
 import 'package:nexo/features/legal/data/legal_documents_repository.dart';
+
+import '../../fakes/fakes.dart';
 
 /// Testes dos achados da revisão de código de 04/11/2026.
 
@@ -84,16 +83,13 @@ Future<void> _pumpApp(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(auth),
-        userProfileRepositoryProvider.overrideWithValue(
-          profiles ?? FakeUserProfileRepository.prototype(),
+        ...fakeBackend(
+          auth: auth,
+          profiles: profiles ?? FakeUserProfileRepository.prototype(),
+          legal: legal,
+          flags: InMemoryLocalFlags(firstOpenDone: true),
         ),
-        if (legal != null)
-          legalDocumentsRepositoryProvider.overrideWithValue(legal),
         clockProvider.overrideWithValue(() => DateTime(2026, 11, 4, 12)),
-        localFlagsProvider.overrideWithValue(
-          InMemoryLocalFlags(firstOpenDone: true),
-        ),
       ],
       child: const NexoApp(),
     ),
@@ -158,9 +154,7 @@ Future<(ProviderContainer, LoginController)> _lockedLogin(
   WidgetTester tester,
   _SlowGoogleAuth auth,
 ) async {
-  final container = ProviderContainer(
-    overrides: [authRepositoryProvider.overrideWithValue(auth)],
-  );
+  final container = ProviderContainer(overrides: [...fakeBackend(auth: auth)]);
   addTearDown(container.dispose);
   final sub = container.listen(loginControllerProvider, (_, _) {});
   addTearDown(sub.close);
@@ -357,6 +351,7 @@ void main() {
   test('[11] dica do Cadastro sem "campos marcados" se nada está marcado', () {
     final container = ProviderContainer(
       overrides: [
+        ...fakeBackend(),
         clockProvider.overrideWithValue(() => DateTime(2026, 11, 4, 12)),
       ],
     );

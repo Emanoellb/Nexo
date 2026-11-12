@@ -1,17 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/application/auth_providers.dart';
+import '../../../core/data/firestore_access.dart';
+import '../data/firestore_goals_repository.dart';
 import '../data/goals_repository.dart';
 import '../domain/goal.dart';
 
-/// Na prototipação, o fake em memória; no bloco de integração, o Firestore.
-/// Um por conta: trocar de conta recria (dados de `users/{uid}`).
-final goalsRepositoryProvider = Provider<GoalsRepository>((ref) {
-  ref.watch(currentUidProvider);
-  final repository = FakeGoalsRepository();
-  ref.onDispose(repository.dispose);
-  return repository;
-});
+/// Firestore (`users/{uid}/…`), com o uid verificado: sem login ou antes de
+/// verificar o e-mail, listas vazias. Trocar de conta recria.
+final goalsRepositoryProvider = Provider<GoalsRepository>(
+  (ref) => FirestoreGoalsRepository(
+    ref.watch(firestoreAccessProvider),
+    uid: ref.watch(verifiedUidProvider),
+  ),
+);
 
 final goalsProvider = StreamProvider<List<Goal>>(
   (ref) => ref.watch(goalsRepositoryProvider).watchGoals(),

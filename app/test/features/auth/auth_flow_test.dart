@@ -6,14 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/features/legal/presentation/legal_document_page.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/ui/ui.dart';
 import 'package:nexo/features/auth/application/auth_messages.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
-import 'package:nexo/features/legal/data/legal_documents_repository.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
+
+import '../../fakes/fakes.dart';
 
 final _home = find.byType(HomePage);
 
@@ -38,12 +36,12 @@ Future<_App> _pumpApp(WidgetTester tester, {AuthUser? user}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(auth),
-        userProfileRepositoryProvider.overrideWithValue(profiles),
-        clockProvider.overrideWithValue(() => DateTime(2026, 10, 27, 12)),
-        localFlagsProvider.overrideWithValue(
-          InMemoryLocalFlags(firstOpenDone: true),
+        ...fakeBackend(
+          auth: auth,
+          profiles: profiles,
+          flags: InMemoryLocalFlags(firstOpenDone: true),
         ),
+        clockProvider.overrideWithValue(() => DateTime(2026, 10, 27, 12)),
       ],
       child: const NexoApp(),
     ),

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_failure.dart';
+
+import '../../fakes/fakes.dart';
 
 Matcher _fails(AuthFailureCode code) =>
     throwsA(isA<AuthFailure>().having((f) => f.code, 'code', code));

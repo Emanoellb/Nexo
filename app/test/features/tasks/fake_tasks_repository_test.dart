@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nexo/features/tasks/data/tasks_repository.dart';
 import 'package:nexo/features/tasks/domain/task.dart';
 import 'package:nexo/features/tasks/domain/task_rules.dart';
+
+import '../../fakes/fakes.dart';
 
 final _now = DateTime(2026, 10, 26, 12);
 

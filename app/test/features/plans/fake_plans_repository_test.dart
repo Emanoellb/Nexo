@@ -2,9 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/core/domain/local_date.dart';
 import 'package:nexo/features/focus/domain/focus_session.dart';
 import 'package:nexo/features/focus/domain/session_split.dart';
-import 'package:nexo/features/plans/data/fake_plans_repository.dart';
 import 'package:nexo/features/plans/domain/plan.dart';
 import 'package:nexo/features/plans/domain/plan_schedule.dart';
+
+import '../../fakes/fakes.dart';
 
 final _now = DateTime(2026, 10, 26, 12);
 const _today = LocalDate(2026, 10, 26);

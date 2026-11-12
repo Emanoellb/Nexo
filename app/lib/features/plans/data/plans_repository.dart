@@ -8,8 +8,8 @@ import '../domain/plan_schedule.dart';
 typedef NewTopic = ({String name, String? subjectId});
 
 /// Planos e as subcoleções (`scheduleVersions`, `topics`, `sessions`,
-/// `days`). A versão Firestore implementa esta interface no bloco de
-/// integração, seguindo `firestore-rules.md` §4 e §7.
+/// `days`). No Firestore, `FirestorePlansRepository`, seguindo
+/// `firestore-rules.md` §4 e §7.
 abstract interface class PlansRepository {
   Stream<List<Plan>> watchPlans();
   Stream<Plan?> watchPlan(String planId);

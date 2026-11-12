@@ -6,12 +6,13 @@ import 'package:nexo/features/focus/domain/focus_session.dart';
 import 'package:nexo/features/focus/domain/session_split.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/plans/domain/plan.dart';
 import 'package:nexo/features/plans/domain/plan_schedule.dart';
 import 'package:nexo/features/progress/application/progress_actions.dart';
 import 'package:nexo/features/tasks/application/tasks_providers.dart';
 import 'package:nexo/features/tasks/domain/task.dart';
+
+import '../../fakes/fakes.dart';
 
 const _today = LocalDate(2026, 11, 4);
 final _now = DateTime(2026, 11, 4, 20);
@@ -20,8 +21,8 @@ final _now = DateTime(2026, 11, 4, 20);
 Future<ProviderContainer> _container() async {
   final container = ProviderContainer(
     overrides: [
+      ...fakeBackend(auth: FakeAuthRepository.signedIn()),
       clockProvider.overrideWithValue(() => _now),
-      authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
     ],
   );
   addTearDown(container.dispose);

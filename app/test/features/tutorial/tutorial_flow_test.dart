@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/core/data/clock.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/ui/ui.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
+
+import '../../fakes/fakes.dart';
 
 const _user = AuthUser(
   uid: 'nova',
@@ -39,14 +38,12 @@ Future<FakeUserProfileRepository> _pumpTutorial(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(
-          FakeAuthRepository(initialUser: _user),
+        ...fakeBackend(
+          auth: FakeAuthRepository(initialUser: _user),
+          profiles: profiles,
+          flags: InMemoryLocalFlags(firstOpenDone: true),
         ),
-        userProfileRepositoryProvider.overrideWithValue(profiles),
         clockProvider.overrideWithValue(() => DateTime(2026, 10, 28, 12)),
-        localFlagsProvider.overrideWithValue(
-          InMemoryLocalFlags(firstOpenDone: true),
-        ),
       ],
       child: const NexoApp(),
     ),

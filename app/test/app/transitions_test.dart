@@ -8,11 +8,8 @@ import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/app/router/nexo_transitions.dart';
 import 'package:nexo/app/router/routes.dart';
 import 'package:nexo/core/data/clock.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/theme/nexo_theme.dart';
 import 'package:nexo/core/ui/ui.dart';
-import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/home/presentation/home_page.dart';
 import 'package:nexo/features/plans/presentation/create_plan_page.dart';
 import 'package:nexo/features/tasks/presentation/tasks_page.dart';
@@ -23,6 +20,8 @@ import 'package:nexo/features/tasks/domain/task.dart';
 
 import '../features/plans/plan_seed.dart';
 
+import '../fakes/fakes.dart';
+
 /// Padrão de transições (`pen.dev/notas/transicoes-especificacao.md`,
 /// aprovado em 08/11/2026).
 Future<void> _pump(WidgetTester tester, {bool reduceMotion = false}) async {
@@ -32,11 +31,14 @@ Future<void> _pump(WidgetTester tester, {bool reduceMotion = false}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
-        clockProvider.overrideWithValue(() => DateTime(2026, 11, 4, 10)),
-        localFlagsProvider.overrideWithValue(
-          InMemoryLocalFlags(firstOpenDone: true, themePreference: 'light'),
+        ...fakeBackend(
+          auth: FakeAuthRepository.signedIn(),
+          flags: InMemoryLocalFlags(
+            firstOpenDone: true,
+            themePreference: 'light',
+          ),
         ),
+        clockProvider.overrideWithValue(() => DateTime(2026, 11, 4, 10)),
       ],
       child: reduceMotion
           ? const MediaQuery(
@@ -75,9 +77,7 @@ void main() {
     await tester.pump();
     await tester.pump(motion.short);
     final profile =
-        ModalRoute.of(
-              tester.element(find.byType(ProfilePage)),
-            )!
+        ModalRoute.of(tester.element(find.byType(ProfilePage)))!
             as NexoPageRoute<dynamic>;
     expect(profile.motion, NexoPageMotion.sharedAxisX);
     await tester.pumpAndSettle();

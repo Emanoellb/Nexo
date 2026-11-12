@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/core/domain/local_date.dart';
-import 'package:nexo/features/plans/data/fake_plans_repository.dart';
 import 'package:nexo/features/plans/domain/plan.dart';
 import 'package:nexo/features/plans/domain/plan_day_result.dart';
 import 'package:nexo/features/plans/domain/plan_report.dart';
@@ -10,6 +9,8 @@ import 'package:nexo/features/plans/presentation/plan_list_item.dart';
 import 'package:nexo/features/plans/presentation/plan_text.dart';
 
 import 'plan_seed.dart';
+
+import '../../fakes/fakes.dart';
 
 void main() {
   late FakePlansRepository repo;

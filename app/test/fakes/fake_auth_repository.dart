@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import '../domain/auth_failure.dart';
-import '../domain/auth_rules.dart';
-import '../../../core/domain/local_date.dart';
-import '../domain/auth_user.dart';
-import 'auth_repository.dart';
+import 'package:nexo/core/domain/local_date.dart';
+import 'package:nexo/features/auth/data/auth_repository.dart';
+import 'package:nexo/features/auth/domain/auth_failure.dart';
+import 'package:nexo/features/auth/domain/auth_rules.dart';
+import 'package:nexo/features/auth/domain/auth_user.dart';
 
 class _FakeAccount {
   _FakeAccount({

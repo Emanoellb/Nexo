@@ -8,11 +8,9 @@ import 'package:nexo/app/router/routes.dart';
 import 'package:nexo/app/shell/nexo_shell.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/core/data/device_actions.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/domain/local_date.dart';
 import 'package:nexo/core/ui/ui.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
 import 'package:nexo/features/auth/presentation/login_page.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
@@ -23,6 +21,8 @@ import 'package:nexo/features/profile/presentation/delete_account_pages.dart';
 import 'package:nexo/features/profile/presentation/edit_profile_page.dart';
 import 'package:nexo/features/profile/presentation/profile_page.dart';
 import 'package:nexo/features/progress/domain/achievements.dart';
+
+import '../../fakes/fakes.dart';
 
 // Quarta, 04/11/2026, 10:00.
 final _now = DateTime(2026, 11, 4, 10);
@@ -57,6 +57,9 @@ class _FakeDevice implements DeviceActions {
 
   @override
   Future<String?> appVersion() async => '1.0.0';
+
+  @override
+  Future<String?> timeZone() async => 'America/Sao_Paulo';
 }
 
 class _Ctx {
@@ -97,10 +100,8 @@ Future<_Ctx> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(auth),
-        userProfileRepositoryProvider.overrideWithValue(profiles),
+        ...fakeBackend(auth: auth, profiles: profiles, flags: flags),
         clockProvider.overrideWithValue(() => _now),
-        localFlagsProvider.overrideWithValue(flags),
         deviceActionsProvider.overrideWithValue(device),
       ],
       child: const NexoApp(),

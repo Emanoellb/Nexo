@@ -1,20 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nexo/core/data/clock.dart';
+import 'package:nexo/core/domain/local_date.dart';
+import 'package:nexo/features/auth/application/auth_providers.dart';
+import 'package:nexo/features/focus/domain/focus_session.dart';
+import 'package:nexo/features/focus/domain/session_split.dart';
+import 'package:nexo/features/goals/application/goals_providers.dart';
+import 'package:nexo/features/plans/application/plans_providers.dart';
+import 'package:nexo/features/plans/domain/plan.dart';
+import 'package:nexo/features/plans/domain/plan_day_result.dart';
+import 'package:nexo/features/plans/domain/plan_schedule.dart';
+import 'package:nexo/features/subjects/application/subjects_providers.dart';
+import 'package:nexo/features/tasks/application/tasks_providers.dart';
+import 'package:nexo/features/tasks/domain/task.dart';
+import 'package:nexo/features/tasks/domain/task_rules.dart';
 
-import '../../core/data/clock.dart';
-import '../../core/domain/local_date.dart';
-import '../../features/auth/application/auth_providers.dart';
-import '../../features/auth/data/fake_auth_repository.dart';
-import '../../features/focus/domain/focus_session.dart';
-import '../../features/focus/domain/session_split.dart';
-import '../../features/goals/application/goals_providers.dart';
-import '../../features/plans/application/plans_providers.dart';
-import '../../features/plans/domain/plan.dart';
-import '../../features/plans/domain/plan_day_result.dart';
-import '../../features/plans/domain/plan_schedule.dart';
-import '../../features/subjects/application/subjects_providers.dart';
-import '../../features/tasks/application/tasks_providers.dart';
-import '../../features/tasks/domain/task.dart';
-import '../../features/tasks/domain/task_rules.dart';
+import 'fake_auth_repository.dart';
 
 /// Liga os dados de exemplo. O `main` liga; nos testes fica desligado, para
 /// cada teste montar só os dados de que precisa.

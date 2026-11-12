@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/data/firestore_access.dart';
 import '../../auth/domain/auth_user.dart';
+import 'firestore_legal_documents_repository.dart';
 
 /// Leitura de `legalDocuments/current`: as versões vigentes dos Termos e da
 /// Política, que o aceite precisa repetir (firestore-rules.md §4). Lança
@@ -9,24 +11,9 @@ abstract interface class LegalDocumentsRepository {
   Future<Consents> currentVersions();
 }
 
-/// Versões técnicas da prototipação, só para o cadastro funcionar nos testes
-/// (o texto lido no app fica em `app/assets/legal/`; a vigência ainda está a
-/// definir). Trocar o texto pede trocar estas versões na mesma versão do
-/// app.
-class FakeLegalDocumentsRepository implements LegalDocumentsRepository {
-  const FakeLegalDocumentsRepository();
-
-  static const current = Consents(
-    termsVersion: 'terms-2026-11-01',
-    privacyVersion: 'privacy-2026-11-01',
-  );
-
-  @override
-  Future<Consents> currentVersions() async => current;
-}
-
 final legalDocumentsRepositoryProvider = Provider<LegalDocumentsRepository>(
-  (ref) => const FakeLegalDocumentsRepository(),
+  (ref) =>
+      FirestoreLegalDocumentsRepository(ref.watch(firestoreAccessProvider)),
 );
 
 /// Versões vigentes, lidas uma vez e guardadas enquanto alguém as usa (a

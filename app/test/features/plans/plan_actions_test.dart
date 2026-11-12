@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/goals/application/goal_actions.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/plans/domain/plan.dart';
@@ -10,11 +9,13 @@ import 'package:nexo/features/progress/application/progress_actions.dart';
 
 import 'plan_seed.dart';
 
+import '../../fakes/fakes.dart';
+
 Future<ProviderContainer> _container() async {
   final c = ProviderContainer(
     overrides: [
+      ...fakeBackend(auth: FakeAuthRepository.signedIn()),
       clockProvider.overrideWithValue(() => seedNow),
-      authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
     ],
   );
   addTearDown(c.dispose);

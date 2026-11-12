@@ -1,9 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nexo/app/prototype/sample_data.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
 import 'package:nexo/features/goals/application/goals_providers.dart';
 import 'package:nexo/features/notifications/application/notifications_providers.dart';
@@ -11,13 +9,15 @@ import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/subjects/application/subjects_providers.dart';
 import 'package:nexo/features/tasks/application/tasks_providers.dart';
 
+import '../fakes/fakes.dart';
+
 /// Conta de protótipo logada (os exemplos são só dela) e semeadura ligada,
 /// como no `main`.
 Future<ProviderContainer> _seeded(DateTime now) async {
   final container = ProviderContainer(
     overrides: [
+      ...fakeBackend(auth: FakeAuthRepository.signedIn()),
       clockProvider.overrideWithValue(() => now),
-      authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
       prototypeSeedingProvider.overrideWithValue(true),
     ],
   );
@@ -104,9 +104,8 @@ void main() {
   test('conta nova começa vazia; a de protótipo é o plano principal', () async {
     final container = ProviderContainer(
       overrides: [
-        clockProvider.overrideWithValue(() => DateTime(2026, 10, 26, 12)),
-        authRepositoryProvider.overrideWithValue(
-          FakeAuthRepository(
+        ...fakeBackend(
+          auth: FakeAuthRepository(
             initialUser: const AuthUser(
               uid: 'conta-nova',
               emailVerified: true,
@@ -114,6 +113,7 @@ void main() {
             ),
           ),
         ),
+        clockProvider.overrideWithValue(() => DateTime(2026, 10, 26, 12)),
         prototypeSeedingProvider.overrideWithValue(true),
       ],
     );

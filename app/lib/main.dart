@@ -7,10 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/nexo_app.dart';
-import 'app/prototype/sample_data.dart';
 import 'app/startup/app_startup.dart';
 import 'core/data/device_actions.dart';
+import 'core/data/firebase_ready.dart';
 import 'core/data/local_flags.dart';
+import 'features/auth/application/auth_providers.dart';
 import 'features/focus/application/focus_system.dart';
 import 'features/focus/data/android_focus_system.dart';
 import 'firebase_options.dart';
@@ -23,9 +24,16 @@ Future<void> main() async {
   final localFlags = await SharedPreferencesLocalFlags.create();
 
   // Notificação fixa e "Não perturbe" do Foco (só no Android).
-  final focusSystem = !kIsWeb && defaultTargetPlatform == TargetPlatform.android
-      ? AndroidFocusSystem()
-      : null;
+  final android = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  final focusSystem = android ? AndroidFocusSystem() : null;
+  const device = AndroidDeviceActions();
+
+  // Fuso do aparelho para o cadastro (users.timeZone), lido uma vez.
+  final timeZone = normalizeTimeZone(android ? await device.timeZone() : null);
+
+  // Firebase começa já e roda durante a splash. Os repositórios (Auth e
+  // Firestore, nos providers de cada feature) esperam por ele.
+  final firebaseReady = _initFirebase();
 
   // O resto da carga roda enquanto a splash anima (appStartupProvider), para
   // o primeiro quadro sair o quanto antes.
@@ -34,25 +42,18 @@ Future<void> main() async {
       localFlagsProvider.overrideWithValue(localFlags),
       if (focusSystem != null)
         focusSystemProvider.overrideWithValue(focusSystem),
-      if (focusSystem != null)
-        deviceActionsProvider.overrideWithValue(const AndroidDeviceActions()),
-      // Na prototipação, os repositórios são fake (sem banco) e a conta de
-      // protótipo começa com dados de exemplo fictícios; contas novas
-      // começam vazias. A troca pelo Firebase é feita nos providers de cada
-      // feature; aí estes dados saem.
-      prototypeSeedingProvider.overrideWithValue(true),
+      if (android) deviceActionsProvider.overrideWithValue(device),
+      deviceTimeZoneProvider.overrideWithValue(timeZone),
+      firebaseReadyProvider.overrideWithValue(firebaseReady),
       appStartupProvider.overrideWith((ref) async {
         // O Foco desliga um "Não perturbe" que tenha ficado ligado de antes
         // (app fechado à força) antes de qualquer tela usar o foco.
-        await Future.wait([_initFirebase(), ?focusSystem?.init()]);
+        await Future.wait([firebaseReady, ?focusSystem?.init()]);
       }),
     ],
   );
   // Começa já; a splash espera o resultado no fim da animação.
   container.read(appStartupProvider);
-  // Semeia os exemplos a cada login na conta de protótipo (os dados são por
-  // conta e recriados na troca de conta).
-  container.listen(prototypeSampleDataProvider, (_, _) {});
 
   runApp(
     UncontrolledProviderScope(container: container, child: const NexoApp()),

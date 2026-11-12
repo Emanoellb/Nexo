@@ -8,12 +8,10 @@ import 'package:nexo/app/nexo_app.dart';
 import 'package:nexo/app/router/app_router.dart';
 import 'package:nexo/app/router/routes.dart';
 import 'package:nexo/core/data/clock.dart';
-import 'package:nexo/core/data/local_flags.dart';
 import 'package:nexo/core/domain/local_date.dart';
 import 'package:nexo/core/theme/nexo_theme.dart';
 import 'package:nexo/core/ui/ui.dart';
 import 'package:nexo/features/auth/application/auth_providers.dart';
-import 'package:nexo/features/auth/data/fake_auth_repository.dart';
 import 'package:nexo/features/focus/application/focus_controller.dart';
 import 'package:nexo/features/focus/application/focus_system.dart';
 import 'package:nexo/features/focus/domain/active_focus.dart';
@@ -28,6 +26,8 @@ import 'package:nexo/features/plans/presentation/plan_detail_page.dart';
 import '../../helpers/screen_footer_checks.dart';
 
 import 'package:nexo/features/plans/domain/plan_schedule.dart';
+
+import '../../fakes/fakes.dart';
 
 // Quarta, 04/11/2026, 10:00.
 final _start = DateTime(2026, 11, 4, 10);
@@ -110,19 +110,22 @@ Future<(ProviderContainer, Plan)> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository.signedIn()),
-        clockProvider.overrideWithValue(() => _now),
-        if (system != null) focusSystemProvider.overrideWithValue(system),
-        // Os fluxos testam as ações direto; a tela cheia tem testes
-        // próprios.
-        focusImmersiveProvider.overrideWithValue(immersive),
-        localFlagsProvider.overrideWithValue(
-          flags ??
+        ...fakeBackend(
+          auth: FakeAuthRepository.signedIn(),
+          flags:
+              flags ??
               InMemoryLocalFlags(
                 firstOpenDone: true,
                 themePreference: dark ? 'dark' : 'light',
               ),
         ),
+        clockProvider.overrideWithValue(() => _now),
+        if (system != null)
+          focusSystemProvider.overrideWithValue(
+            system,
+          ), // Os fluxos testam as ações direto; a tela cheia tem testes
+        // próprios.
+        focusImmersiveProvider.overrideWithValue(immersive),
       ],
       child: const NexoApp(),
     ),
