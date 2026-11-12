@@ -12,7 +12,7 @@
 
 ---
 
-## O Nexo
+## Nexo
 
 O Nexo junta, num lugar só, o que normalmente fica espalhado em vários apps:
 
@@ -92,4 +92,4 @@ Os testes cobrem:
 
 ---
 
-© 2026 Emanoel Lima Barbosa. Todos os direitos reservados.
+© 2026 Emanoel Barbosa. Todos os direitos reservados.
