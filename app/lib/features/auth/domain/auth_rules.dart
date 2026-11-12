@@ -16,7 +16,8 @@ abstract final class AuthRules {
 
   /// Caracteres especiais aceitos pela política de senha do Firebase
   /// (Password policy, "special character"). [NC] contra o console: a
-  /// conferência final é o `validatePassword` no bloco de integração.
+  /// conferência final é o `validatePassword` do Cadastro
+  /// (`FirebaseAuthRepository`).
   static final _special = RegExp(
     r'''[\^$*.\[\]{}()?"!@#%&/\\,><':;|_~`=+\-]''',
   );

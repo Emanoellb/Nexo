@@ -1,7 +1,6 @@
 import '../domain/auth_user.dart';
 
-/// Autenticação do app. A implementação real (`FirebaseAuthRepository`,
-/// pendência A1 de firebase-setup.md §11.2) entra no bloco de integração.
+/// Autenticação do app (Firebase Auth: `FirebaseAuthRepository`).
 ///
 /// Os métodos lançam `AuthFailure` (auth_failure.dart) nos erros que a
 /// interface trata.

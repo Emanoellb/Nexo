@@ -85,6 +85,8 @@ class MainActivity : FlutterActivity() {
                     "openDialer" -> result.success(
                         open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${call.arguments}")))
                     )
+                    // Fuso IANA do aparelho (users.timeZone).
+                    "timeZone" -> result.success(java.util.TimeZone.getDefault().id)
                     "appVersion" -> result.success(
                         packageManager.getPackageInfo(packageName, 0).versionName
                     )
