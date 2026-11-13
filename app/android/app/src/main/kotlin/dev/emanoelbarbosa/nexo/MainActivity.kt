@@ -85,6 +85,24 @@ class MainActivity : FlutterActivity() {
                     "openDialer" -> result.success(
                         open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${call.arguments}")))
                     )
+                    // Configurações de notificação do app (Aviso da manhã
+                    // negado: depois de duas recusas, o Android não pergunta
+                    // mais). Sem permissão.
+                    "openNotificationSettings" -> result.success(
+                        open(
+                            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                                // Formato antigo, que alguns aparelhos ainda leem.
+                                .putExtra("app_package", packageName)
+                                .putExtra("app_uid", applicationInfo.uid)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        ) || open(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.parse("package:$packageName"),
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    )
                     // Fuso IANA do aparelho (users.timeZone).
                     "timeZone" -> result.success(java.util.TimeZone.getDefault().id)
                     "appVersion" -> result.success(
@@ -99,6 +117,8 @@ class MainActivity : FlutterActivity() {
         startActivity(intent)
         true
     } catch (e: ActivityNotFoundException) {
+        false
+    } catch (e: SecurityException) {
         false
     }
 

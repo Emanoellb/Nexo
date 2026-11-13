@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,12 +7,14 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../app/router/routes.dart';
 import '../../../app/shell/nexo_shell.dart';
+import '../../../core/data/data_failure.dart';
 import '../../../core/data/device_actions.dart';
 import '../../../core/data/local_flags.dart';
 import '../../../core/theme/nexo_theme.dart';
 import '../../../core/theme/theme_preference.dart';
 import '../../../core/ui/ui.dart';
 import '../../auth/application/auth_providers.dart';
+import '../../notifications/application/local_notices.dart';
 import '../../auth/domain/auth_failure.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../focus/application/focus_system.dart';
@@ -20,10 +24,9 @@ import '../application/profile_actions.dart';
 import 'about_sheet.dart';
 import 'achievement_sheet.dart';
 
-/// O Aviso da manhã fica escondido até o agendamento existir (decisão do
-/// usuário, 10/11/2026: nada que não funcione no fim da 3c; o agendamento é
-/// da Etapa 5). A preferência `users.morningSummary` continua no modelo.
-const morningSummaryVisible = false;
+/// O Aviso da manhã ficou escondido até o agendamento existir (decisão do
+/// usuário, 10/11/2026). Com os avisos agendados (Etapa 5), volta.
+const morningSummaryVisible = true;
 
 /// "5 tarefas" / "1 tarefa".
 String _tasksText(int n) => n == 1 ? '1 tarefa' : '$n tarefas';
@@ -42,6 +45,52 @@ class ProfilePage extends ConsumerStatefulWidget {
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   ProfileActions get _actions => ref.read(profileActionsProvider);
 
+  /// Ligar pede a permissão de notificações. Negada, o aviso fica
+  /// desligado e a Snackbar leva às configurações (depois de duas recusas o
+  /// Android não mostra mais o pedido).
+  Future<void> _setMorningSummary(
+    MorningSummary summary, {
+    required bool on,
+  }) async {
+    if (!on) {
+      await _saveMorningSummary(summary.copyWith(enabled: false));
+      return;
+    }
+    final granted = await ref
+        .read(notificationsAllowedProvider.notifier)
+        .request();
+    if (!mounted) return;
+    if (!granted) {
+      showNexoSnackbar(
+        context,
+        message: 'Permita as notificações do Nexo para receber o aviso.',
+        actionLabel: 'Configurações',
+        onAction: () =>
+            unawaited(ref.read(localNoticesProvider).openSettings()),
+      );
+      return;
+    }
+    if (!summary.enabled) {
+      await _saveMorningSummary(summary.copyWith(enabled: true));
+    }
+  }
+
+  /// Grava o Aviso da manhã. Se o servidor recusar, a tela volta ao que
+  /// está salvo e a Snackbar avisa (antes, voltava em silêncio).
+  Future<void> _saveMorningSummary(MorningSummary summary) async {
+    try {
+      await _actions.setMorningSummary(summary);
+    } on DataFailure catch (failure) {
+      if (!mounted) return;
+      showNexoSnackbar(
+        context,
+        message: failure.code == DataFailureCode.network
+            ? 'Sem conexão. O Aviso da manhã não foi salvo.'
+            : 'Não foi possível salvar o Aviso da manhã. Tente de novo.',
+      );
+    }
+  }
+
   Future<void> _pickMorningTime(MorningSummary summary) async {
     final parts = summary.time.split(':');
     final picked = await showTimePicker(
@@ -56,7 +105,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final time =
         '${picked.hour.toString().padLeft(2, '0')}:'
         '${picked.minute.toString().padLeft(2, '0')}';
-    await _actions.setMorningSummary(summary.copyWith(time: time));
+    await _saveMorningSummary(summary.copyWith(time: time));
   }
 
   /// "Ligar o Não perturbe ao focar": ligar pede o acesso do sistema, se
@@ -157,7 +206,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           'de novo.',
       confirmLabel: 'Sair',
     );
-    if (confirmed) await _actions.signOut();
+    if (!confirmed || !mounted) return;
+    // "Saindo…" até a conta sair (o Google desconecta antes, e leva alguns
+    // segundos). Saindo, a entrada leva ao Login e a tela fecha junto.
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final route = PageRouteBuilder<void>(
+      opaque: true,
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
+      pageBuilder: (_, _, _) => const _SigningOutView(),
+    );
+    unawaited(navigator.push(route));
+    try {
+      await _actions.signOut();
+    } catch (_) {
+      if (route.isActive) navigator.removeRoute(route);
+      if (mounted) {
+        showNexoSnackbar(
+          context,
+          message: 'Não foi possível sair agora. Tente de novo.',
+        );
+      }
+    }
   }
 
   @override
@@ -216,6 +286,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final points = profile.points;
     final earned = medals?.where((m) => m.earned).length ?? 0;
     final summary = profile.morningSummary;
+    // Ligado só com as notificações permitidas (decisão do usuário,
+    // 12/11/2026); sem elas, aparece desligado.
+    final morningOn =
+        summary.enabled &&
+        (ref.watch(notificationsAllowedProvider).value ?? false);
     final dndOnFocus = uid != null && flags.dndOnFocus(uid);
 
     return Scaffold(
@@ -363,16 +438,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   if (morningSummaryVisible)
                     NexoSwitch(
                       label: 'Aviso da manhã',
-                      helper: summary.enabled
+                      helper: morningOn
                           ? 'Todo dia às ${summary.time}, com os planos e tarefas '
                                 'do dia.'
                           : 'Desligado.',
-                      value: summary.enabled,
-                      onChanged: (on) => _actions.setMorningSummary(
-                        summary.copyWith(enabled: on),
-                      ),
+                      value: morningOn,
+                      onChanged: (on) => _setMorningSummary(summary, on: on),
                     ),
-                  if (morningSummaryVisible && summary.enabled) ...[
+                  if (morningSummaryVisible && morningOn) ...[
                     SizedBox(height: spacing.md),
                     NexoSelectField(
                       label: 'Horário',
@@ -564,6 +637,46 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Saindo…": tela cheia enquanto a conta sai, sem voltar (como a 09,
+/// "Excluindo sua conta…").
+class _SigningOutView extends StatelessWidget {
+  const _SigningOutView();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.nexoColors;
+    final spacing = context.spacing;
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(spacing.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const NexoCircularProgress(semanticsLabel: 'Saindo'),
+                  SizedBox(height: spacing.lg),
+                  Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      'Saindo…',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleMedium!
+                          .copyWith(color: c.onSurface),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

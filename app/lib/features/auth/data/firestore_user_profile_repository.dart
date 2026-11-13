@@ -71,11 +71,16 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
   Future<void> setOverloadThreshold(String uid, int threshold) =>
       _change(uid, {'overloadThreshold': threshold});
 
+  /// Espera o servidor (bug de 12/11/2026: no aparelho, a gravação voltava
+  /// atrás em silêncio). Recusada, lança `DataFailure` e o Perfil avisa.
   @override
   Future<void> setMorningSummary(String uid, MorningSummary summary) =>
-      _change(uid, {
-        'morningSummary': {'enabled': summary.enabled, 'time': summary.time},
-      });
+      _access.run(
+        (db) => _doc(db, uid).update({
+          'morningSummary': {'enabled': summary.enabled, 'time': summary.time},
+          ...updatedStamp(),
+        }),
+      );
 
   /// Uma vez só: as regras recusam trocar o carimbo depois de gravado.
   /// Espera o servidor, porque a exclusão dos dados depende dele.

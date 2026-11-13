@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../../../core/data/android_notifications.dart';
 import '../../../core/ui/nexo/nexo_focus_timer.dart';
 import '../application/focus_system.dart';
 import '../domain/active_focus.dart';
@@ -17,10 +18,13 @@ import '../domain/active_focus.dart';
 ///   de terceiros. Se o app fechar com ele ligado, [init] o desliga na
 ///   próxima abertura.
 class AndroidFocusSystem implements FocusSystem {
-  AndroidFocusSystem({FlutterLocalNotificationsPlugin? plugin})
-    : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+  AndroidFocusSystem(this._notifications);
 
-  final FlutterLocalNotificationsPlugin _plugin;
+  /// O plugin de notificações do app, iniciado uma vez (os avisos
+  /// agendados usam o mesmo).
+  final AndroidNotifications _notifications;
+
+  FlutterLocalNotificationsPlugin get _plugin => _notifications.plugin;
   static const _channel = MethodChannel('nexo/focus');
   static const _notificationId = 1001;
   static const _payload = 'focus';
@@ -35,34 +39,22 @@ class AndroidFocusSystem implements FocusSystem {
     showBadge: false,
   );
 
-  final _openRequests = StreamController<void>.broadcast();
   bool _launchedFromNotification = false;
   bool _dndOn = false;
   Future<void>? _ready;
 
-  AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
-      .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-      >();
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _notifications.android;
 
   /// Prepara as notificações, vê se o app abriu pelo toque e desliga o
   /// "Não perturbe" que tenha ficado ligado de antes (app fechado à força).
   Future<void> init() => _ready ??= _init();
 
   Future<void> _init() async {
-    await _plugin.initialize(
-      settings: const InitializationSettings(
-        android: AndroidInitializationSettings('ic_splash_symbol'),
-      ),
-      onDidReceiveNotificationResponse: (response) {
-        if (response.payload == _payload) _openRequests.add(null);
-      },
-    );
+    await _notifications.init();
     await _android?.createNotificationChannel(_androidChannel);
-    final launch = await _plugin.getNotificationAppLaunchDetails();
     _launchedFromNotification =
-        (launch?.didNotificationLaunchApp ?? false) &&
-        launch?.notificationResponse?.payload == _payload;
+        _notifications.takeLaunchPayload((p) => p == _payload) != null;
     await _channel.invokeMethod<bool>('restoreDnd');
   }
 
@@ -109,7 +101,8 @@ class AndroidFocusSystem implements FocusSystem {
   @override
   Future<void> requestNotificationPermission() async {
     await init();
-    await _android?.requestNotificationsPermission();
+    await _notifications.requestPermission();
+    // O resultado não muda o foco: sem permissão, só não há notificação.
   }
 
   @override
@@ -154,7 +147,8 @@ class AndroidFocusSystem implements FocusSystem {
   }
 
   @override
-  Stream<void> get openFocusRequests => _openRequests.stream;
+  Stream<void> get openFocusRequests =>
+      _notifications.taps.where((p) => p == _payload).map((_) {});
 
   @override
   bool takeLaunchFromNotification() {

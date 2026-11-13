@@ -8,12 +8,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/nexo_app.dart';
 import 'app/startup/app_startup.dart';
+import 'core/data/android_notifications.dart';
 import 'core/data/device_actions.dart';
 import 'core/data/firebase_ready.dart';
 import 'core/data/local_flags.dart';
 import 'features/auth/application/auth_providers.dart';
 import 'features/focus/application/focus_system.dart';
 import 'features/focus/data/android_focus_system.dart';
+import 'features/notifications/application/local_notices.dart';
+import 'features/notifications/data/android_local_notices.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -23,9 +26,13 @@ Future<void> main() async {
   // a splash precisa delas para decidir se mostra as boas-vindas.
   final localFlags = await SharedPreferencesLocalFlags.create();
 
-  // Notificação fixa e "Não perturbe" do Foco (só no Android).
+  // Notificações (só no Android): um plugin para a notificação fixa e o
+  // "Não perturbe" do Foco e para os avisos agendados.
   final android = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-  final focusSystem = android ? AndroidFocusSystem() : null;
+  final notifications = android ? AndroidNotifications() : null;
+  final focusSystem = notifications == null
+      ? null
+      : AndroidFocusSystem(notifications);
   const device = AndroidDeviceActions();
 
   // Fuso do aparelho para o cadastro (users.timeZone), lido uma vez.
@@ -42,6 +49,10 @@ Future<void> main() async {
       localFlagsProvider.overrideWithValue(localFlags),
       if (focusSystem != null)
         focusSystemProvider.overrideWithValue(focusSystem),
+      if (notifications != null)
+        localNoticesProvider.overrideWithValue(
+          AndroidLocalNotices(notifications),
+        ),
       if (android) deviceActionsProvider.overrideWithValue(device),
       deviceTimeZoneProvider.overrideWithValue(timeZone),
       firebaseReadyProvider.overrideWithValue(firebaseReady),
@@ -54,6 +65,8 @@ Future<void> main() async {
   );
   // Começa já; a splash espera o resultado no fim da animação.
   container.read(appStartupProvider);
+  // Avisos agendados iguais aos dados (refeitos a cada mudança).
+  container.listen(localNoticesSyncProvider, (_, _) {});
 
   runApp(
     UncontrolledProviderScope(container: container, child: const NexoApp()),

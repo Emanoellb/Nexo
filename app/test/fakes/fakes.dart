@@ -14,3 +14,4 @@ export 'fake_user_data_eraser.dart';
 export 'in_memory_local_flags.dart';
 export 'in_memory_store.dart';
 export 'sample_data.dart';
+export 'spy_local_notices.dart';
