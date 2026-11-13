@@ -16,6 +16,7 @@ import 'features/auth/application/auth_providers.dart';
 import 'features/focus/application/focus_system.dart';
 import 'features/focus/data/android_focus_system.dart';
 import 'features/notifications/application/local_notices.dart';
+import 'features/notifications/application/notifications_providers.dart';
 import 'features/notifications/data/android_local_notices.dart';
 import 'firebase_options.dart';
 
@@ -67,6 +68,8 @@ Future<void> main() async {
   container.read(appStartupProvider);
   // Avisos agendados iguais aos dados (refeitos a cada mudança).
   container.listen(localNoticesSyncProvider, (_, _) {});
+  // Histórico do sino: grava os avisos que já aconteceram.
+  container.listen(notificationHistorySyncProvider, (_, _) {});
 
   runApp(
     UncontrolledProviderScope(container: container, child: const NexoApp()),

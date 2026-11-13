@@ -28,6 +28,10 @@ class NexoNotification {
     required this.body,
     required this.createdAt,
     this.read = false,
+    this.taskId,
+    this.planId,
+    this.day,
+    this.achievementId,
   });
 
   final String id;
@@ -36,6 +40,14 @@ class NexoNotification {
   final String body;
   final DateTime createdAt;
   final bool read;
+
+  /// O item ligado, conforme o tipo (contrato v0.10): a tarefa
+  /// (`dueSoon`, `overdue`), o plano e o dia (`dailyGoal`) ou a medalha
+  /// (`achievement`). O toque leva a ele.
+  final String? taskId;
+  final String? planId;
+  final String? day;
+  final String? achievementId;
 
   NotificationTarget get target => switch (kind) {
     NotificationKind.dueSoon ||
@@ -51,6 +63,10 @@ class NexoNotification {
     body: body,
     createdAt: createdAt,
     read: read ?? this.read,
+    taskId: taskId,
+    planId: planId,
+    day: day,
+    achievementId: achievementId,
   );
 }
 

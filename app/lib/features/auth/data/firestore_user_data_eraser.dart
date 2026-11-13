@@ -9,7 +9,7 @@ import '../application/account_deletion.dart';
 /// 1. limpa o `primaryPlanId` (as regras não deixam apagar o plano para o
 ///    qual ele aponta);
 /// 2. cada plano: as subcoleções e o plano;
-/// 3. tarefas, disciplinas, objetivos e medalhas.
+/// 3. tarefas, disciplinas, objetivos, medalhas e o histórico do sino.
 ///
 /// O `users/{uid}` sai depois (`AccountDeletion.finish`) e a conta do Auth
 /// por último. Lê do servidor: sem internet, falha e a tela 09 oferece
@@ -22,7 +22,13 @@ class FirestoreUserDataEraser implements UserDataEraser {
   final FirestoreAccess _access;
 
   /// Coleções de `users/{uid}` fora os planos.
-  static const collections = ['tasks', 'subjects', 'goals', 'achievements'];
+  static const collections = [
+    'tasks',
+    'subjects',
+    'goals',
+    'achievements',
+    'notifications',
+  ];
 
   static const _server = GetOptions(source: Source.server);
 

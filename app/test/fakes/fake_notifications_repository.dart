@@ -28,6 +28,8 @@ class FakeNotificationsRepository implements NotificationsRepository {
     required String body,
     required DateTime createdAt,
     bool read = false,
+    String? taskId,
+    String? planId,
   }) {
     final item = NexoNotification(
       id: 'aviso-${_nextId++}',
@@ -36,6 +38,8 @@ class FakeNotificationsRepository implements NotificationsRepository {
       body: body,
       createdAt: createdAt,
       read: read,
+      taskId: taskId,
+      planId: planId,
     );
     _items[item.id] = item;
     _emit();
@@ -48,8 +52,12 @@ class FakeNotificationsRepository implements NotificationsRepository {
     yield* _controller.stream;
   }
 
+  /// Para os testes: chamado a cada `markRead`.
+  void Function(String id)? onMarkRead;
+
   @override
   Future<void> markRead(String id) async {
+    onMarkRead?.call(id);
     final item = _items[id];
     if (item == null || item.read) return;
     _items[id] = item.copyWith(read: true);
@@ -62,6 +70,17 @@ class FakeNotificationsRepository implements NotificationsRepository {
       if (!value.read) _items[key] = value.copyWith(read: true);
     }
     _emit();
+  }
+
+  @override
+  Future<void> record(List<NexoNotification> notices) async {
+    var changed = false;
+    for (final notice in notices) {
+      if (_items.containsKey(notice.id)) continue;
+      _items[notice.id] = notice;
+      changed = true;
+    }
+    if (changed) _emit();
   }
 
   void dispose() => _controller.close();

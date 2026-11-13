@@ -183,7 +183,7 @@ List<LocalNotice> planLocalNotices({
           at: at,
           channel: NoticeChannel.tasks,
           title: task.title,
-          body: 'Entrega ${_dueText(due, at)}.',
+          body: 'Entrega ${dueText(due, at)}.',
           payload: NoticeTarget.task(task.id),
         ),
       );
@@ -223,7 +223,7 @@ DateTime _at(LocalDate day, String time) {
 
 /// O prazo visto da hora do aviso: "hoje às 18:00", "amanhã às 18:00" ou
 /// "em 14/11 às 18:00".
-String _dueText(DateTime due, DateTime at) {
+String dueText(DateTime due, DateTime at) {
   final dueDay = LocalDate.fromDateTime(due);
   final diff = LocalDate.fromDateTime(at).daysUntil(dueDay);
   final time =

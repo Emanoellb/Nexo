@@ -54,7 +54,8 @@ class NotificationsPanel extends ConsumerWidget {
             time: formatRelativeTime(item.createdAt, now),
             unread: !item.read,
             onTap: () async {
-              await repository.markRead(item.id);
+              // Já lido: as regras não deixam gravar `readAt` de novo.
+              if (!item.read) await repository.markRead(item.id);
               onOpen(item);
             },
           ),

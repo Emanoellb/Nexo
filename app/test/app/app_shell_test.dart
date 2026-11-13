@@ -5,6 +5,10 @@ import 'package:nexo/features/profile/presentation/profile_page.dart';
 import 'package:nexo/features/calendar/presentation/agenda_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:nexo/app/nexo_app.dart';
+import 'package:nexo/features/tasks/domain/task.dart';
+import 'package:nexo/features/tasks/application/tasks_providers.dart';
+import 'package:nexo/app/router/routes.dart';
+import 'package:nexo/app/router/app_router.dart';
 import 'package:nexo/core/data/clock.dart';
 import 'package:nexo/features/auth/domain/auth_user.dart';
 import 'package:nexo/features/notifications/domain/nexo_notification.dart';
@@ -115,6 +119,66 @@ void main() {
     );
     expect(find.byType(TasksPage), findsOneWidget);
     expect(find.bySemanticsLabel('Notificações'), findsOneWidget);
+  });
+
+  testWidgets('sino: aviso de tarefa abre o detalhe; apagada, o Início', (
+    tester,
+  ) async {
+    final notifications = await _pumpReady(tester);
+    final c = ProviderScope.containerOf(tester.element(find.byType(NexoApp)));
+    final task = await c
+        .read(tasksRepositoryProvider)
+        .createTask(NexoTask(id: '', title: 'Lista 3'));
+    notifications
+      ..add(
+        kind: NotificationKind.overdue,
+        title: 'Lista 3',
+        body: 'A entrega era ontem às 23:59.',
+        createdAt: DateTime(2026, 11, 4, 11),
+        taskId: task.id,
+      )
+      ..add(
+        kind: NotificationKind.dueSoon,
+        title: 'Apagada',
+        body: 'Entrega hoje às 18:00.',
+        createdAt: DateTime(2026, 11, 4, 11, 30),
+        taskId: 'nao-existe',
+      );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(LucideIcons.bell));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lista 3'));
+    await tester.pumpAndSettle();
+    expect(
+      c.read(routerProvider).state.uri.path,
+      AppRoutes.taskDetailOf(task.id),
+    );
+
+    c.read(routerProvider).go(AppRoutes.tasks);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(LucideIcons.bell));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Apagada'));
+    await tester.pumpAndSettle();
+    expect(c.read(routerProvider).state.uri.path, AppRoutes.home);
+    expect(find.text('Isso não está mais no Nexo.'), findsOneWidget);
+  });
+
+  testWidgets('sino: aviso já lido só abre (sem gravar lido de novo)', (
+    tester,
+  ) async {
+    final notifications = await _pumpReady(tester);
+    final read = (await notifications.watchNotifications().first).single;
+    await notifications.markRead(read.id);
+    await tester.pumpAndSettle();
+    var marks = 0;
+    notifications.onMarkRead = (_) => marks++;
+    await tester.tap(find.byIcon(LucideIcons.bell));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tarefa atrasada'));
+    await tester.pumpAndSettle();
+    expect(marks, 0);
   });
 
   testWidgets('painel fecha com toque fora', (tester) async {

@@ -15,6 +15,7 @@ import '../../features/focus/application/focus_system.dart';
 import '../../features/focus/presentation/shell_focus_bar.dart';
 import '../../features/notifications/application/local_notices.dart';
 import '../../features/notifications/application/notifications_providers.dart';
+import '../../features/notifications/domain/local_notice.dart';
 import '../../features/plans/application/plans_providers.dart';
 import '../../features/tasks/application/tasks_providers.dart';
 import '../../features/notifications/domain/nexo_notification.dart';
@@ -210,14 +211,28 @@ class _NexoShellState extends ConsumerState<NexoShell> {
         onClose: () => Navigator.of(panelContext).pop(),
         onOpen: (item) {
           Navigator.of(panelContext).pop();
-          _openTarget(item.target);
+          unawaited(_openHistoryItem(item));
         },
       ),
     );
   }
 
-  /// Na prototipação, o aviso leva à aba correspondente (decisão do usuário,
-  /// 04/11/2026); as telas de detalhe ainda não existem.
+  /// Aviso do sino: leva ao detalhe da tarefa ou do plano, como os avisos
+  /// do celular (item apagado: o Início com "Isso não está mais no Nexo."),
+  /// e a medalha ao Perfil.
+  Future<void> _openHistoryItem(NexoNotification item) async {
+    final taskId = item.taskId;
+    final planId = item.planId;
+    if (taskId != null) return _openNotice(NoticeTarget.task(taskId));
+    if (planId != null) return _openNotice(NoticeTarget.plan(planId));
+    if (item.kind == NotificationKind.achievement) {
+      await context.push(AppRoutes.profile);
+      return;
+    }
+    _openTarget(item.target);
+  }
+
+  /// Aviso sem item ligado: a aba correspondente.
   void _openTarget(NotificationTarget target) {
     switch (target) {
       case NotificationTarget.tasks:
