@@ -174,7 +174,19 @@ Decisões da lib (pen.dev), registradas em 05/11/2026 na auditoria de componente
   - O toque leva ao destino da especificação do Foco: o Início, o detalhe do plano ou o da tarefa. Item excluído: o Início com "Isso não está mais no Nexo.".
   - A permissão de notificações é pedida na entrada das abas (também em contas de antes dos avisos), ao ligar o Aviso da manhã e ao ligar "Avisar antes do horário". O Android só mostra o pedido enquanto a pessoa não decidiu.
   - O **Aviso da manhã só vale com as notificações permitidas** (decisão do usuário, 12/11/2026). Sem elas, aparece desligado no Perfil e não é agendado. Ligar pede a permissão. Se for negada, continua desligado e a Snackbar "Permita as notificações do Nexo para receber o aviso." leva às configurações de notificação do app (`openNotificationSettings` no canal `nexo/device`). Ao voltar ao app, a permissão é lida de novo.
-  - O histórico do sino (`notifications` no Firestore) espera as regras.
+- **Histórico do sino** (feat/notificacoes-sino-criada, 13/11/2026, regras v0.10): `users/{uid}/notifications`.
+  - `FirestoreNotificationsRepository` lê os avisos dos últimos 30 dias, os não lidos primeiro.
+  - Tocar num aviso grava `readAt`; o ícone do painel marca todos num lote.
+  - O app grava só o aviso que ainda não existe (id fixo por evento).
+  - `notificationHistoryAt` (função pura) decide o que entra:
+    - `overdue_{tarefa}`: prazo vencido nos últimos 30 dias;
+    - `dueSoon_{tarefa}_{dia}`: o horário de um aviso da tarefa já passou;
+    - `dailyGoal_{plano}_{dia}`: depois das 21h, com a meta aberta;
+    - `achievement_{medalha}`: medalha ganha nos últimos 30 dias.
+  - O `notificationHistorySyncProvider` grava ao abrir o app e a cada mudança, 1 s depois da última.
+  - O toque leva ao detalhe da tarefa ou do plano (item apagado: o Início com "Isso não está mais no Nexo."), a medalha leva ao Perfil e um aviso sem item vai à aba.
+  - A exclusão de conta apaga a coleção.
+  - O TTL de 30 dias (A13) é criado no console depois do primeiro aviso gravado.
   - Saíram as sobras: `HomePage.focusMinutes`, `ProgressActions.addFocusMinutes` (os testes usam `addSessions` + `splitSessionByDay`) e a `UnderConstructionPage`.
 - **Cartão tocável**: `NexoCard(onTap:)` usa o `NexoTappable` com a mesma decoração. O plano principal do Início abre o detalhe do plano; os botões de dentro mantêm o próprio toque.
 - **Cartão**: `NexoCard` (= `Content/Card`: Card/Default, borda Card/Border, `Shape/MD`, padding LG). Não repita a decoração à mão.
