@@ -5,7 +5,7 @@ import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/ui.dart';
 
 /// Quem oferece o Nexo (o mesmo nome dos Termos de Uso, §1).
-const nexoPublisher = 'Emanoel Lima Barbosa';
+const nexoPublisher = 'Emanoel Barbosa';
 
 /// Sobre o Nexo (decisão do usuário, 10/11/2026): o símbolo, o nome, a
 /// versão e "Oferecido por"; embaixo, "Ver licenças e componentes" abre a
