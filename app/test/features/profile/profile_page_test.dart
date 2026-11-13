@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +9,7 @@ import 'package:nexo/app/router/app_router.dart';
 import 'package:nexo/app/router/routes.dart';
 import 'package:nexo/app/shell/nexo_shell.dart';
 import 'package:nexo/core/data/clock.dart';
+import 'package:nexo/core/data/data_failure.dart';
 import 'package:nexo/core/data/device_actions.dart';
 import 'package:nexo/core/domain/local_date.dart';
 import 'package:nexo/core/ui/ui.dart';
@@ -16,6 +19,7 @@ import 'package:nexo/features/auth/presentation/login_page.dart';
 import 'package:nexo/features/plans/application/plans_providers.dart';
 import 'package:nexo/features/plans/domain/plan.dart';
 import 'package:nexo/features/plans/domain/plan_schedule.dart';
+import 'package:nexo/features/notifications/application/local_notices.dart';
 import 'package:nexo/features/profile/application/profile_actions.dart';
 import 'package:nexo/features/profile/presentation/delete_account_pages.dart';
 import 'package:nexo/features/profile/presentation/edit_profile_page.dart';
@@ -81,16 +85,22 @@ Future<_Ctx> _pump(
   UserProfile? profile,
   bool openProfile = true,
   AuthUser? user,
+  SpyLocalNotices? notices,
+  FakeAuthRepository? auth,
+  FakeUserProfileRepository? profileRepository,
 }) async {
   tester.view.physicalSize = const Size(1080, 2400);
   tester.view.devicePixelRatio = 3;
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(tester.view.reset);
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-  final auth = user == null
-      ? FakeAuthRepository.signedIn()
-      : FakeAuthRepository(initialUser: user, withPrototypeAccounts: true);
-  final profiles = FakeUserProfileRepository.prototype()..now = () => _now;
+  final authRepo =
+      auth ??
+      (user == null
+          ? FakeAuthRepository.signedIn()
+          : FakeAuthRepository(initialUser: user, withPrototypeAccounts: true));
+  final profiles = (profileRepository ?? FakeUserProfileRepository.prototype())
+    ..now = () => _now;
   if (profile != null) profiles.setProfile(_uid, profile);
   final flags = InMemoryLocalFlags(
     firstOpenDone: true,
@@ -100,9 +110,10 @@ Future<_Ctx> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        ...fakeBackend(auth: auth, profiles: profiles, flags: flags),
+        ...fakeBackend(auth: authRepo, profiles: profiles, flags: flags),
         clockProvider.overrideWithValue(() => _now),
         deviceActionsProvider.overrideWithValue(device),
+        if (notices != null) localNoticesProvider.overrideWithValue(notices),
       ],
       child: const NexoApp(),
     ),
@@ -114,7 +125,7 @@ Future<_Ctx> _pump(
     await tester.pumpAndSettle();
     expect(find.byType(ProfilePage), findsOneWidget);
   }
-  return _Ctx(c, auth, profiles, flags, device);
+  return _Ctx(c, authRepo, profiles, flags, device);
 }
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
@@ -169,8 +180,8 @@ void main() {
     expect(find.text('0 de 9'), findsOneWidget);
     expect(find.byType(NexoAchievement), findsNWidgets(9));
     expect(find.text('Tema'), findsOneWidget);
-    // Escondido até o agendamento existir (Etapa 5).
-    expect(find.text('Aviso da manhã'), findsNothing);
+    // Volta com os avisos agendados (Etapa 5).
+    expect(find.text('Aviso da manhã'), findsOneWidget);
     expect(find.text('5 tarefas'), findsOneWidget);
     // O rótulo visível acima do ajuste (bug de 10/11/2026: só havia o do
     // leitor de tela).
@@ -190,6 +201,90 @@ void main() {
     expect(find.text('Telefone'), findsNothing);
     expect(find.text(NexoSupport.phoneText), findsNothing);
     expect(find.text('Excluir conta'), findsOneWidget);
+  });
+
+  group('Aviso da manhã e a permissão de notificações', () {
+    Future<Finder> toggle(WidgetTester tester) async {
+      final finder = find.widgetWithText(NexoSwitch, 'Aviso da manhã');
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      return finder;
+    }
+
+    bool isOn(WidgetTester tester) => tester
+        .widget<NexoSwitch>(find.widgetWithText(NexoSwitch, 'Aviso da manhã'))
+        .value;
+
+    testWidgets('a entrada pede; permitido, liga e desliga', (tester) async {
+      final notices = SpyLocalNotices();
+      await _pump(tester, notices: notices);
+      // Pedido na entrada das abas (também em contas de antes dos avisos).
+      expect(notices.permissionRequests, 1);
+      final finder = await toggle(tester);
+      expect(isOn(tester), isTrue);
+
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+      expect(isOn(tester), isFalse);
+      expect(find.text('Desligado.'), findsOneWidget);
+
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+      expect(isOn(tester), isTrue);
+      expect(find.textContaining('Todo dia às 08:00'), findsOneWidget);
+    });
+
+    testWidgets('negada: aparece desligado; ligar pede e leva às '
+        'configurações', (tester) async {
+      final notices = SpyLocalNotices(allowed: false);
+      await _pump(tester, notices: notices);
+      final finder = await toggle(tester);
+      // Gravado como ligado (padrão), mas sem permissão: desligado.
+      expect(isOn(tester), isFalse);
+      expect(find.text('Desligado.'), findsOneWidget);
+
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+      expect(notices.permissionRequests, 2);
+      expect(isOn(tester), isFalse);
+      expect(
+        find.text('Permita as notificações do Nexo para receber o aviso.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Configurações'));
+      await tester.pumpAndSettle();
+      expect(notices.settingsOpened, 1);
+    });
+
+    testWidgets('gravação recusada: avisa e fica como estava', (tester) async {
+      final notices = SpyLocalNotices();
+      await _pump(
+        tester,
+        notices: notices,
+        profileRepository: _RejectingMorningProfiles(),
+      );
+      final finder = await toggle(tester);
+      expect(isOn(tester), isTrue);
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+      expect(isOn(tester), isTrue);
+      expect(
+        find.text('Não foi possível salvar o Aviso da manhã. Tente de novo.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('permitida no pedido do interruptor: liga', (tester) async {
+      final notices = SpyLocalNotices(allowed: false);
+      await _pump(tester, notices: notices);
+      final finder = await toggle(tester);
+      expect(isOn(tester), isFalse);
+
+      notices.grantOnRequest = true;
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+      expect(isOn(tester), isTrue);
+    });
   });
 
   testWidgets('03 e 04 medalhas: conquistada com a data; bloqueada com o que '
@@ -392,7 +487,7 @@ void main() {
     expect(find.text('Sobre o Nexo'), findsOneWidget);
     expect(find.text('Nexo'), findsWidgets);
     expect(find.text('Versão 1.0.0'), findsOneWidget);
-    expect(find.text('Oferecido por Emanoel Lima Barbosa'), findsOneWidget);
+    expect(find.text('Oferecido por Emanoel Barbosa'), findsOneWidget);
     expect(find.byType(LicensePage), findsNothing);
     await _tap(tester, _button('Ver licenças e componentes'));
     expect(find.byType(LicensePage), findsOneWidget);
@@ -430,6 +525,24 @@ void main() {
     expect(find.text('Sair da conta?'), findsOneWidget);
     await _tap(tester, _button('Sair'));
     expect(find.byType(LoginPage), findsOneWidget);
+    expect(find.text('Saindo…'), findsNothing);
+  });
+
+  testWidgets('06 Sair: "Saindo…" enquanto a conta sai', (tester) async {
+    final leaving = Completer<void>();
+    final auth = _SlowSignOutAuth(leaving.future);
+    await _pump(tester, auth: auth);
+    await _tap(tester, find.text('Sair'));
+    await tester.tap(_button('Sair'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Saindo…'), findsOneWidget);
+    expect(find.byType(LoginPage), findsNothing);
+
+    leaving.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(LoginPage), findsOneWidget);
+    expect(find.text('Saindo…'), findsNothing);
   });
 
   testWidgets('07 a 10 Excluir conta: caixa, senha, excluindo e Login', (
@@ -521,4 +634,38 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+}
+
+/// Sair que só termina quando [leaving] completar (o Google demora).
+class _SlowSignOutAuth extends FakeAuthRepository {
+  _SlowSignOutAuth(this.leaving)
+    : super(
+        initialUser: FakeAuthRepository.prototypeUser,
+        withPrototypeAccounts: true,
+      );
+
+  final Future<void> leaving;
+
+  @override
+  Future<void> signOut() async {
+    await leaving;
+    await super.signOut();
+  }
+}
+
+/// O servidor recusa o Aviso da manhã (as regras, no aparelho).
+class _RejectingMorningProfiles extends FakeUserProfileRepository {
+  _RejectingMorningProfiles()
+    : super(
+        profiles: {
+          FakeAuthRepository.prototypeUserUid: const UserProfile(
+            displayName: 'Ana',
+            tutorialSeen: true,
+          ),
+        },
+      );
+
+  @override
+  Future<void> setMorningSummary(String uid, MorningSummary summary) async =>
+      throw const DataFailure(DataFailureCode.permissionDenied);
 }

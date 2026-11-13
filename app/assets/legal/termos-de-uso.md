@@ -9,7 +9,7 @@
 
 ## 1. Quem oferece o Nexo e como você aceita estes Termos
 
-O Nexo é oferecido por Emanoel Lima Barbosa, pessoa física, contato emanoelbarbosa.dev@gmail.com ("nós").
+O Nexo é oferecido por Emanoel Barbosa, pessoa física, contato emanoelbarbosa.dev@gmail.com ("nós").
 
 Para criar uma conta, você precisa ler e aceitar estes Termos e a Política de Privacidade. Isso vale para contas criadas com e-mail e para as criadas com a sua conta Google. Se não concordar, não use o app.
 
@@ -84,7 +84,7 @@ Nesta versão, o Nexo é gratuito. Se houver plano pago no futuro, as condiçõe
 
 ## 11. Propriedade intelectual
 
-O app, sua marca, sua identidade visual, seus textos e seu código pertencem a Emanoel Lima Barbosa ou a seus licenciadores. Estes Termos não transferem esses direitos a você. A marca Google pertence ao seu titular.
+O app, sua marca, sua identidade visual, seus textos e seu código pertencem a Emanoel Barbosa ou a seus licenciadores. Estes Termos não transferem esses direitos a você. A marca Google pertence ao seu titular.
 
 O Nexo usa componentes de código aberto, que seguem as licenças próprias, listadas em Sobre o Nexo, no Perfil.
 
@@ -123,4 +123,4 @@ Estes Termos seguem as leis do Brasil.
 
 ## 16. Contato
 
-Emanoel Lima Barbosa · emanoelbarbosa.dev@gmail.com
+Emanoel Barbosa · emanoelbarbosa.dev@gmail.com

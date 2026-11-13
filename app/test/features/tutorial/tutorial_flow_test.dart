@@ -17,7 +17,7 @@ const _user = AuthUser(
 final _home = find.byType(HomePage);
 const _titles = [
   'Objetivo e plano',
-  'Tarefas e calendário',
+  'Tarefas e agenda',
   'Seu dia no Início',
   'Sessão de foco',
   'Seu progresso',

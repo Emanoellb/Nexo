@@ -7,6 +7,10 @@
     <!-- O flutter_local_notifications traz VIBRATE; a notificação do Foco é
          silenciosa e a vibração ao concluir tarefa não precisa dela. -->
     <uses-permission android:name="android.permission.VIBRATE" tools:node="remove" />
+    <!-- Avisos agendados (Etapa 5, aprovado em 12/11/2026): refazer o
+         agendamento depois que o aparelho reinicia. Hora inexata, sem
+         permissão de alarme exato. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
         android:label="Nexo"
         android:name="${applicationName}"
@@ -34,6 +38,17 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- flutter_local_notifications: mostra os avisos agendados e os
+             refaz depois de reiniciar o aparelho ou atualizar o app. -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

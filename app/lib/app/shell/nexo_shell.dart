@@ -13,7 +13,10 @@ import '../../features/focus/application/focus_controller.dart';
 import '../../features/progress/application/achievements_providers.dart';
 import '../../features/focus/application/focus_system.dart';
 import '../../features/focus/presentation/shell_focus_bar.dart';
+import '../../features/notifications/application/local_notices.dart';
 import '../../features/notifications/application/notifications_providers.dart';
+import '../../features/plans/application/plans_providers.dart';
+import '../../features/tasks/application/tasks_providers.dart';
 import '../../features/notifications/domain/nexo_notification.dart';
 import '../../features/notifications/presentation/notifications_panel.dart';
 import '../router/routes.dart';
@@ -82,6 +85,12 @@ class _NexoShellState extends ConsumerState<NexoShell> {
   /// Toques na notificação fixa do Foco (com o app aberto).
   StreamSubscription<void>? _focusTaps;
 
+  /// Toques nos avisos agendados (com o app aberto).
+  StreamSubscription<String>? _noticeTaps;
+
+  /// Relê a permissão de notificações ao voltar ao app.
+  AppLifecycleListener? _lifecycle;
+
   @override
   void initState() {
     super.initState();
@@ -92,12 +101,72 @@ class _NexoShellState extends ConsumerState<NexoShell> {
     if (system.takeLaunchFromNotification()) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _openFocus());
     }
+    final notices = ref.read(localNoticesProvider);
+    _noticeTaps = notices.taps.listen(_openNotice);
+    // Entrada no app (também em contas de antes dos avisos): pede a
+    // permissão de notificações. O Android só mostra o pedido enquanto a
+    // pessoa não decidiu.
+    unawaited(ref.read(notificationsAllowedProvider.notifier).request());
+    // Voltando ao app (ex.: das configurações), relê a permissão. Voltando
+    // do segundo plano, pede de novo se ainda faltar. O `onRestart` só vem
+    // de uma volta real: a janela do próprio pedido não passa por ele.
+    _lifecycle = AppLifecycleListener(
+      onResume: () {
+        final allowed = ref.read(notificationsAllowedProvider.notifier);
+        if (!allowed.requesting) unawaited(allowed.refresh());
+      },
+      onRestart: () {
+        final allowed = ref.read(notificationsAllowedProvider.notifier);
+        final granted = ref.read(notificationsAllowedProvider).value ?? false;
+        if (!granted && !allowed.requesting) unawaited(allowed.request());
+      },
+    );
+    // Mesmo caminho para um aviso: depois do Login, as abas levam ao
+    // destino.
+    final launch = notices.takeLaunchPayload();
+    if (launch != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openNotice(launch));
+    }
   }
 
   @override
   void dispose() {
     _focusTaps?.cancel();
+    _noticeTaps?.cancel();
+    _lifecycle?.dispose();
     super.dispose();
+  }
+
+  /// Leva ao destino do aviso (foco-especificacao.md, notificações do
+  /// celular): o Início, o detalhe do plano ou o da tarefa. Item que não
+  /// existe mais: o Início com "Isso não está mais no Nexo.".
+  Future<void> _openNotice(String payload) async {
+    if (!mounted) return;
+    final router = GoRouter.of(context);
+    final (kind, id) = switch (payload.split(':')) {
+      [final kind, final id] => (kind, id),
+      _ => (payload, ''),
+    };
+    final String? location = switch (kind) {
+      'plan' =>
+        (await ref.read(plansProvider.future)).any((p) => p.id == id)
+            ? AppRoutes.planDetailOf(id)
+            : null,
+      'task' =>
+        (await ref.read(tasksProvider.future)).any((t) => t.id == id)
+            ? AppRoutes.taskDetailOf(id)
+            : null,
+      _ => AppRoutes.home,
+    };
+    if (!mounted) return;
+    if (location == null) {
+      router.go(AppRoutes.home);
+      showNexoSnackbar(context, message: 'Isso não está mais no Nexo.');
+    } else if (location == AppRoutes.home) {
+      router.go(AppRoutes.home);
+    } else {
+      router.push(location);
+    }
   }
 
   /// Abre o foco em andamento (tela 01, ou 04 se pausado), se ainda houver

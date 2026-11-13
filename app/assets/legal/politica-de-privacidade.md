@@ -11,7 +11,7 @@ Esta Política explica quais dados pessoais o aplicativo Nexo coleta, por que co
 
 ## 1. Quem é responsável pelos seus dados
 
-O controlador dos seus dados pessoais é Emanoel Lima Barbosa, pessoa física responsável pelo Nexo.
+O controlador dos seus dados pessoais é Emanoel Barbosa, pessoa física responsável pelo Nexo.
 
 - **Contato para assuntos de privacidade:** emanoelbarbosa.dev@gmail.com
 - **Encarregado pelo tratamento de dados (DPO):** emanoelbarbosa.dev@gmail.com
@@ -221,4 +221,4 @@ Podemos atualizar esta Política. Se a mudança for relevante, avisaremos no app
 
 ## 14. Contato
 
-Emanoel Lima Barbosa · emanoelbarbosa.dev@gmail.com
+Emanoel Barbosa · emanoelbarbosa.dev@gmail.com

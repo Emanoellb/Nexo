@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/domain/edit_window.dart';
@@ -7,6 +10,7 @@ import '../../../core/domain/local_date.dart';
 import '../../../core/theme/nexo_theme.dart';
 import '../../../core/ui/ui.dart';
 import '../../goals/domain/goal.dart';
+import '../../notifications/application/local_notices.dart';
 import '../../../core/format/duration_text.dart';
 import '../../tasks/presentation/task_text.dart';
 import '../domain/plan.dart';
@@ -501,7 +505,17 @@ class PlanRhythmFields extends StatelessWidget {
           label: 'Avisar antes do horário',
           helper: reminderHelper,
           value: draft.reminderEnabled,
-          onChanged: (v) => onChanged(draft.copyWith(reminderEnabled: v)),
+          onChanged: (v) {
+            // Ligar o aviso pede a permissão de notificações (Android 13+).
+            if (v) {
+              unawaited(
+                ProviderScope.containerOf(context)
+                    .read(notificationsAllowedProvider.notifier)
+                    .request(),
+              );
+            }
+            onChanged(draft.copyWith(reminderEnabled: v));
+          },
         ),
         if (draft.reminderEnabled) ...[
           SizedBox(height: spacing.md),
