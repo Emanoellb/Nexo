@@ -1,6 +1,6 @@
 # Nexo · Security Rules do Cloud Firestore (MVP)
 
-Status: **v0.9 republicada em 13/11/2026 pelo próprio usuário** (mesmo arquivo do commit `839877b`). **Conferido no console após o deploy:** o usuário encontrou `validMorningSummary` (users) e o trecho de `remindersMinutesBefore`/`validReminders` (tasks). Dica: no console, buscar com o Ctrl+F **do editor** (clicando dentro do texto); a busca do navegador não alcança linhas fora da tela. Em 12/11, o Flutter viu o servidor recusar `users.morningSummary`, e o usuário conferiu no console que as regras publicadas **não tinham `morningSummary`**: o deploy de 07/11 não publicou a v0.9, ao menos em `users` (causa provável [NC]: outra sessão trocou de branch no checkout compartilhado durante o deploy, como já tinha acontecido em 04/11). **Antes de cada deploy, conferir a branch e o arquivo** (`git diff --quiet <commit> -- app/firestore.rules`) no mesmo comando. Primeira publicação registrada da v0.9: 07/11/2026 pelo próprio usuário: pacote da Etapa 3c, vindo do design da 3b (aprovado pelo usuário: "Aprovo juntar as regras no começo da 3c"). Até 3 avisos por tarefa (`remindersMinutesBefore`); horário do plano e aviso antes do horário (`studyTime`, `reminderBefore`); aviso da manhã (`users.morningSummary`); até 3 tópicos por sessão (`topicIds`). Antes: **v0.8 em 04/11/2026 pelo próprio usuário** (deploy a partir de `app/` na `main`, commit `bf84a48`; a CLI respondeu "Deploy complete!"): a cor por disciplina sai do MVP; `subjects` volta a ser só nome e ícone. Antes: **v0.7 em 04/11/2026**, com autorização do usuário ("pode publicar"): `deleting` passa a ser terminal e o plano em exclusão não recebe filhos novos (achado [4] da revisão de código de 04/11/2026). Antes: **v0.6 em 25/10/2026** (tópicos do plano, cor da disciplina, situação da entrega), com os **3 índices compostos** (seção 4.1), com autorização do usuário ("pode criar e publicar"). Antes: v0.5, publicada em 24/10/2026. Roteiro completo (etapas 1 a 11) decidido pelo usuário em 22 e 24/10/2026. **Deploy em 24/10/2026** no projeto `nexo-app-gestao-f97bb`, com autorização do usuário ("pode publicar"): regras compiladas e liberadas sem erro. · Sessão: segurança do Firestore · 24/10/2026
+Status: **v0.10 no repositório (branch `feat/regras-notificacoes`), ainda não publicada:** coleção `users/{uid}/notifications`, o histórico do sino (seção 4). Publicada: **v0.9, republicada em 13/11/2026 pelo próprio usuário** (mesmo arquivo do commit `839877b`). **Conferido no console após o deploy:** o usuário encontrou `validMorningSummary` (users) e o trecho de `remindersMinutesBefore`/`validReminders` (tasks). Dica: no console, buscar com o Ctrl+F **do editor** (clicando dentro do texto); a busca do navegador não alcança linhas fora da tela. Em 12/11, o Flutter viu o servidor recusar `users.morningSummary`, e o usuário conferiu no console que as regras publicadas **não tinham `morningSummary`**: o deploy de 07/11 não publicou a v0.9, ao menos em `users` (causa provável [NC]: outra sessão trocou de branch no checkout compartilhado durante o deploy, como já tinha acontecido em 04/11). **Antes de cada deploy, conferir a branch e o arquivo** (`git diff --quiet <commit> -- app/firestore.rules`) no mesmo comando. Primeira publicação registrada da v0.9: 07/11/2026 pelo próprio usuário: pacote da Etapa 3c, vindo do design da 3b (aprovado pelo usuário: "Aprovo juntar as regras no começo da 3c"). Até 3 avisos por tarefa (`remindersMinutesBefore`); horário do plano e aviso antes do horário (`studyTime`, `reminderBefore`); aviso da manhã (`users.morningSummary`); até 3 tópicos por sessão (`topicIds`). Antes: **v0.8 em 04/11/2026 pelo próprio usuário** (deploy a partir de `app/` na `main`, commit `bf84a48`; a CLI respondeu "Deploy complete!"): a cor por disciplina sai do MVP; `subjects` volta a ser só nome e ícone. Antes: **v0.7 em 04/11/2026**, com autorização do usuário ("pode publicar"): `deleting` passa a ser terminal e o plano em exclusão não recebe filhos novos (achado [4] da revisão de código de 04/11/2026). Antes: **v0.6 em 25/10/2026** (tópicos do plano, cor da disciplina, situação da entrega), com os **3 índices compostos** (seção 4.1), com autorização do usuário ("pode criar e publicar"). Antes: v0.5, publicada em 24/10/2026. Roteiro completo (etapas 1 a 11) decidido pelo usuário em 22 e 24/10/2026. **Deploy em 24/10/2026** no projeto `nexo-app-gestao-f97bb`, com autorização do usuário ("pode publicar"): regras compiladas e liberadas sem erro. · Sessão: segurança do Firestore · 24/10/2026
 Base: `docs/backend/firebase-setup.md` §7.2 (esqueleto e mapa), `docs/legal/inventario-dados-mvp.md` e as telas do `nexo.lib.pen` (`ca7IW` Regras e requisitos, `oXRSc` Fluxo do Plano de ação) e do `nexo.app.pen` (fluxo de entrada).
 
 Legenda: **[C]** confirmado na documentação oficial · **[NC]** não confirmado · **[D]** decisão do usuário.
@@ -32,6 +32,7 @@ Histórico de execuções:
 | 04/11/2026 | v0.8 | 1ª execução **interrompida**: o emulador caiu no meio (código `0xC000013A`, encerramento tipo Ctrl+C), sem teste reprovado; processos órfãos encerrados. 2ª execução, com autorização do usuário: **76/76**. Emulador encerrado ao final |
 | 07/11/2026 | v0.9 | **88/88** (execução única antes do deploy; testes novos para avisos da tarefa, horário e aviso do plano, aviso da manhã, tópicos da sessão, preferências fora do Firestore e campos antigos). Emulador encerrado ao final |
 | 13/11/2026 | v0.9 (republicação) | **88/88** (execução única antes do novo deploy; arquivo idêntico ao `839877b`). Emulador encerrado ao final |
+| 13/11/2026 | v0.10 | **97/97** (execução única antes do deploy; 9 testes novos em `notifications`). Emulador encerrado ao final |
 
 Instalação global (uma vez por máquina, não muda o repositório): Node 20+, Firebase CLI e JDK 11+. Esta máquina tem Node 22.17, CLI 15.28.2 e JDK 23. O emulador do Firestore já está em `~/.cache/firebase/emulators`.
 
@@ -258,6 +259,29 @@ Telas: 05 Finalizar o dia, 06 Dia cumprido, 08 Calendário do plano. RF14–RF17
 - O id precisa existir em `achievementsCatalog` (1 leitura).
 - O app grava quando o critério é atingido. Não muda depois; delete só ao excluir a conta.
 
+### `users/{uid}/notifications/{notificationId}` (histórico do sino, v0.10)
+
+Painel aberto pelo sino no topo das abas, com os avisos dos últimos 30 dias. O app grava o aviso quando detecta o evento; a notificação local continua saindo na hora certa.
+
+| Campo | Tipo e validação | Obrig. |
+|---|---|---|
+| `type` | `dueSoon` (entrega próxima), `overdue` (atrasada), `dailyGoal` (meta do dia), `achievement` (medalha) | sim |
+| `title` | string 1–120 (o que o painel mostra) | sim |
+| `body` | string 1–300 | sim |
+| `taskId` | string 1–128. **Obrigatório** com `dueSoon` e `overdue`; proibido nos outros tipos | conforme o tipo |
+| `planId` + `day` | string 1–128 + `AAAA-MM-DD`. **Obrigatórios** com `dailyGoal`; proibidos nos outros tipos | conforme o tipo |
+| `achievementId` | string 1–128. **Obrigatório** com `achievement`; proibido nos outros tipos | conforme o tipo |
+| `createdAt` | serverTimestamp no create; **nunca muda** (base do TTL de 30 dias) | sim |
+| `readAt` | **null no create**; no update vira a hora do servidor, uma vez, e não volta para null | sim (null até ler) |
+
+- **Id fixo por evento, começando pelo tipo**, até 200 caracteres: `dueSoon_{taskId}_{AAAA-MM-DD}`, `overdue_{taskId}`, `dailyGoal_{planId}_{AAAA-MM-DD}`, `achievement_{achievementId}`. As regras exigem o prefixo `{type}_`.
+- **Gravar de novo o mesmo aviso é negado:** reiniciaria o `createdAt` e o TTL. O app só cria se o documento ainda não existe (ler antes ou usar transação).
+- **Lido:** tocar num aviso grava `readAt` (decisão do usuário de 13/11/2026); o ícone do painel marca todos num lote. No update, só `readAt` muda.
+- **Ler, criar e marcar:** só o dono com e-mail verificado. **Apagar:** o dono, sempre (dado efêmero; inclui a exclusão de conta). Decisão desta sessão: o delete não exige `userDeleting()`, porque não há histórico a proteger e evita uma leitura a mais.
+- **Sem campo de expiração** (decisão de 04/11/2026): o TTL usa `createdAt` + 30 dias.
+- **Sem índice composto:** a lista do sino filtra e ordena pelo mesmo campo (`createdAt >= agora − 30 dias`, `orderBy createdAt desc`), que usa o índice automático de campo único [C].
+- As regras não conferem se a tarefa, o plano ou a medalha existem: o aviso pode sobreviver ao item apagado, e o app trata isso ao abrir.
+
 ### Conteúdo do app (carregado pelo console)
 
 - `achievementsCatalog/{id}`: medalhas. Leitura com login; sem escrita pelo app. **Catálogo do MVP (decidido pelo usuário em 24/10/2026, 9 medalhas):**
@@ -332,6 +356,7 @@ Publicados em 25/10/2026 junto com as regras v0.6. Filtros simples são indexado
 | Objetivo do plano | **Continua opcional**, no máximo um por plano | 07/11 |
 | Preferências do Perfil | Tema, "Não perturbe ao focar" e "Reduzir transparência" **só no aparelho** | 07/11 |
 | Campos antigos (v0.9) | `reminder`, `topicId` e `reminderMinutesBefore`: create negado; o update pode só **remover** (decisão desta sessão; não há dados reais) | 07/11 |
+| Histórico do sino (`notifications`, v0.10) | Tocar num aviso o marca como lido (usuário). Contrato: tipo + item ligado coerentes, id começando pelo tipo, `createdAt` do servidor e imutável, `readAt` uma vez, sem gravar de novo o mesmo aviso; o dono apaga sempre (decisões desta sessão) | 13/11 |
 | Frequência "× por semana" | **Cota semanal:** todo dia é dia de estudo até cumprir X dias na semana (domingo a sábado); depois, os demais dias são folga. Dia sem estudo não vira "não cumprido". A sequência quebra quando a semana fecha abaixo da cota. Regra do app (seção 4, planos) | 05/11 |
 
 Itens do Perfil aprovados (22/10): editar nome, nível e conquistas, privacidade e dados (Termos, Política, pedir cópia dos dados, contato), alterar senha (só e-mail e senha), Sobre (versão e licenças), sair, excluir conta.
@@ -397,13 +422,16 @@ O Flutter e o design estão pausados até o fim da configuração do Firebase (d
 
 Painel aberto pelo sino no topo das abas, com os avisos dos últimos 30 dias. O design é da sessão de prototipação; os itens abaixo ficam para quando o app ligar o Firestore.
 
-1. **Regras (sessão das regras):** coleção nova `users/{uid}/notifications`, só do dono com e-mail verificado.
-   - Contrato a definir. Proposta: `type` (`dueSoon`, `overdue`, `dailyGoal`, `achievement`), o item ligado (`taskId`, `planId` + `day` ou `achievementId`), `createdAt` (servidor) e `readAt` (servidor ou null).
-   - **Sem campo de expiração próprio** (decisão do usuário de 04/11/2026: "opção a, createdAt + 30 dias"). O TTL usa o próprio `createdAt` com deslocamento de 30 dias. Por isso as regras devem exigir `createdAt` **obrigatório e igual a `request.time`** (data/hora do servidor) no create, e imutável no update: documento sem esse campo, ou com outro tipo, nunca expira.
-   - No update, só `readAt` muda. Testes no `firestore_tests/` e índice por `createdAt` decrescente.
-2. **Quem grava:** o app, sem Cloud Function. O aviso entra no histórico quando o app detecta o evento, ou seja, quando é aberto; a notificação local continua saindo na hora certa. Id fixo por evento (ex.: tarefa + tipo) para não duplicar.
-3. **Leitura:** um ícone no painel marca todos os avisos como lidos. Abrir o painel não marca nada. Ainda falta decidir se tocar num aviso o marca como lido.
-4. **Excluir conta (item 12 da lista do nexo-flutter):** incluir `notifications` na limpeza, e nas regras liberar o delete com `userDeleting()` ou sempre para o dono.
+1. **Regras:** **feitas na v0.10** (13/11/2026). Contrato na seção 4, `notifications`. Sem campo de expiração (TTL em `createdAt` + 30 dias, decisão de 04/11/2026); sem índice composto.
+2. **Quem grava:** o app, sem Cloud Function. O aviso entra no histórico quando o app detecta o evento, ou seja, quando é aberto; a notificação local continua saindo na hora certa. Id fixo por evento, começando pelo tipo; criar só se ainda não existir.
+3. **Leitura:** abrir o painel não marca nada. **Tocar num aviso o marca como lido** (decisão do usuário de 13/11/2026); um ícone no painel marca todos num lote.
+4. **Excluir conta (item 12 da lista do nexo-flutter):** incluir `notifications` na limpeza. As regras deixam o dono apagar sempre.
+   **Flutter: feito na feat/notificacoes-sino-criada (13/11/2026).** O app grava os itens 2 a 4 (`FirestoreNotificationsRepository` e `notificationHistoryAt`):
+   - um aviso por gravação, só o que ainda não existe;
+   - o título é cortado em 120 caracteres;
+   - nada é gravado durante a exclusão da conta;
+   - o painel filtra os 30 dias pela hora atual.
+   Depende da publicação da v0.10.
 5. **Guarda de 30 dias:** apagar sozinho pelo TTL do Firestore (`firebase-setup.md` §11, A13–A15). Política criada pelo usuário no console: collection group `notifications`, campo `createdAt`, deslocamento de 30 dias. O TTL apaga com atraso (não no minuto exato): o app filtra os avisos com mais de 30 dias ao exibir [NC: prazo de remoção do TTL].
 6. **LGPD:** nova categoria no inventário e na Política (`docs/legal/pendencias.md`, B13).
 

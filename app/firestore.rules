@@ -645,6 +645,61 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isVerifiedOwner(uid) && userDeleting();
       }
+
+      // ----- Histórico de notificações (sino), v0.10 -----
+      // O app grava o aviso quando detecta o evento; a notificação local
+      // continua saindo na hora certa. Id fixo por evento, começando pelo
+      // tipo (ex.: dueSoon_{taskId}_{AAAA-MM-DD}), para não duplicar.
+      // createdAt (servidor) é a base do TTL de 30 dias: nunca muda, e
+      // gravar de novo o mesmo aviso é negado. Tocar no aviso grava readAt
+      // (servidor) uma vez; não volta para null.
+      match /notifications/{notificationId} {
+        function notificationFields() {
+          return ['type', 'title', 'body', 'taskId', 'planId', 'day',
+                  'achievementId', 'createdAt', 'readAt'];
+        }
+
+        // Item ligado conforme o tipo, sem itens de outro tipo.
+        function validLinkedItem(d) {
+          return ((d.type == 'dueSoon' || d.type == 'overdue')
+                  && d.keys().hasAll(['taskId'])
+                  && !d.keys().hasAny(['planId', 'day', 'achievementId'])
+                  && isText(d.taskId, 1, 128))
+            || (d.type == 'dailyGoal'
+                && d.keys().hasAll(['planId', 'day'])
+                && !d.keys().hasAny(['taskId', 'achievementId'])
+                && isText(d.planId, 1, 128)
+                && isDate(d.day))
+            || (d.type == 'achievement'
+                && d.keys().hasAll(['achievementId'])
+                && !d.keys().hasAny(['taskId', 'planId', 'day'])
+                && isText(d.achievementId, 1, 128));
+        }
+
+        function validNotification(d) {
+          return d.keys().hasOnly(notificationFields())
+            && d.keys().hasAll(['type', 'title', 'body', 'createdAt', 'readAt'])
+            && d.type in ['dueSoon', 'overdue', 'dailyGoal', 'achievement']
+            && notificationId.size() <= 200
+            && notificationId.matches('^' + d.type + '_.+$')
+            && isText(d.title, 1, 120)
+            && isText(d.body, 1, 300)
+            && validLinkedItem(d);
+        }
+
+        allow read: if isVerifiedOwner(uid);
+        allow create: if isVerifiedOwner(uid)
+          && validNotification(incoming())
+          && incoming().createdAt == request.time
+          && incoming().readAt == null;
+        allow update: if isVerifiedOwner(uid)
+          && changedKeys().hasOnly(['readAt'])
+          && resource.data.readAt == null
+          && incoming().readAt == request.time;
+        // Dado efêmero do próprio usuário: o dono apaga quando quiser
+        // (exclusão de conta incluída); o TTL apaga os de mais de 30 dias.
+        allow delete: if isVerifiedOwner(uid);
+      }
     }
 
     // ---------- Conteúdo do app (sem dado pessoal) ----------

@@ -1035,6 +1035,107 @@ describe('achievementsCatalog e legalDocuments (somente leitura)', () => {
   });
 });
 
+// ---------- notifications (histórico do sino, v0.10) ----------
+
+describe('users/{uid}/notifications', () => {
+  const NOTIF = `${USER}/notifications`;
+  const ref = (id, uid = ALICE, opts) => doc(db(uid, opts), `${NOTIF}/${id}`);
+  const dueSoon = (extra = {}) => ({
+    type: 'dueSoon',
+    title: 'Entrega amanhã',
+    body: 'Entregar resumo · amanhã às 18:00',
+    taskId: 't1',
+    createdAt: serverTimestamp(),
+    readAt: null,
+    ...extra,
+  });
+  const stored = (data) => ({ ...data, createdAt: ago(HOUR) });
+
+  test('os quatro tipos, cada um com o seu item ligado', async () => {
+    await assertSucceeds(setDoc(ref(`dueSoon_t1_${isoDate(1)}`), dueSoon()));
+    await assertSucceeds(setDoc(ref('overdue_t1'), dueSoon({ type: 'overdue', title: 'Tarefa atrasada' })));
+    const meta = dueSoon({ type: 'dailyGoal', title: 'Meta do dia', planId: 'p1', day: isoDate(0) });
+    delete meta.taskId;
+    await assertSucceeds(setDoc(ref(`dailyGoal_p1_${isoDate(0)}`), meta));
+    const medalha = dueSoon({ type: 'achievement', title: 'Nova medalha', achievementId: 'sete-dias' });
+    delete medalha.taskId;
+    await assertSucceeds(setDoc(ref('achievement_sete-dias'), medalha));
+  });
+
+  test('item ligado incoerente com o tipo é negado', async () => {
+    const semTarefa = dueSoon();
+    delete semTarefa.taskId;
+    await assertFails(setDoc(ref('dueSoon_x'), semTarefa));
+    await assertFails(setDoc(ref('dueSoon_y'), dueSoon({ planId: 'p1' })));
+    const metaSemDia = dueSoon({ type: 'dailyGoal', planId: 'p1' });
+    delete metaSemDia.taskId;
+    await assertFails(setDoc(ref('dailyGoal_p1'), metaSemDia));
+    const metaDiaRuim = dueSoon({ type: 'dailyGoal', planId: 'p1', day: '13/11/2026' });
+    delete metaDiaRuim.taskId;
+    await assertFails(setDoc(ref('dailyGoal_p1_x'), metaDiaRuim));
+    await assertFails(setDoc(ref('achievement_x'), dueSoon({ type: 'achievement', achievementId: 'x' })));
+  });
+
+  test('id começa pelo tipo', async () => {
+    await assertFails(setDoc(ref('overdue_t1'), dueSoon()));
+    await assertFails(setDoc(ref('t1'), dueSoon()));
+    await assertFails(setDoc(ref('dueSoon_'), dueSoon()));
+  });
+
+  test('tipo, textos, carimbos e campos fora do contrato são negados', async () => {
+    await assertFails(setDoc(ref('reminder_t1'), dueSoon({ type: 'reminder' })));
+    await assertFails(setDoc(ref('dueSoon_a'), dueSoon({ title: '' })));
+    await assertFails(setDoc(ref('dueSoon_b'), dueSoon({ title: 'a'.repeat(121) })));
+    await assertFails(setDoc(ref('dueSoon_c'), dueSoon({ body: 'a'.repeat(301) })));
+    await assertFails(setDoc(ref('dueSoon_d'), dueSoon({ createdAt: ago(HOUR) })));
+    await assertFails(setDoc(ref('dueSoon_e'), dueSoon({ readAt: serverTimestamp() })));
+    const semLido = dueSoon();
+    delete semLido.readAt;
+    await assertFails(setDoc(ref('dueSoon_f'), semLido));
+    await assertFails(setDoc(ref('dueSoon_g'), dueSoon({ expireAt: later(HOUR) })));
+  });
+
+  test('o mesmo aviso não é gravado de novo (não reinicia o TTL)', async () => {
+    await seed(`${NOTIF}/dueSoon_t1`, stored(dueSoon()));
+    await assertFails(setDoc(ref('dueSoon_t1'), dueSoon()));
+  });
+
+  test('tocar marca como lido uma vez, com a hora do servidor', async () => {
+    await seed(`${NOTIF}/dueSoon_t1`, stored(dueSoon()));
+    await assertFails(updateDoc(ref('dueSoon_t1'), { readAt: ago(1000) }));
+    await assertFails(updateDoc(ref('dueSoon_t1'), { readAt: serverTimestamp(), title: 'outro' }));
+    await assertSucceeds(updateDoc(ref('dueSoon_t1'), { readAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref('dueSoon_t1'), { readAt: null }));
+    await assertFails(updateDoc(ref('dueSoon_t1'), { readAt: serverTimestamp() }));
+  });
+
+  test('createdAt não muda', async () => {
+    await seed(`${NOTIF}/dueSoon_t1`, stored(dueSoon()));
+    await assertFails(updateDoc(ref('dueSoon_t1'), { createdAt: serverTimestamp(), readAt: serverTimestamp() }));
+  });
+
+  test('marcar todos como lidos num lote', async () => {
+    await seed(`${NOTIF}/dueSoon_t1`, stored(dueSoon()));
+    await seed(`${NOTIF}/overdue_t2`, stored(dueSoon({ type: 'overdue', taskId: 't2' })));
+    const d = db(ALICE);
+    const batch = writeBatch(d);
+    batch.update(doc(d, `${NOTIF}/dueSoon_t1`), { readAt: serverTimestamp() });
+    batch.update(doc(d, `${NOTIF}/overdue_t2`), { readAt: serverTimestamp() });
+    await assertSucceeds(batch.commit());
+  });
+
+  test('só o dono com e-mail verificado lê, grava e apaga', async () => {
+    await seed(`${NOTIF}/dueSoon_t1`, stored(dueSoon()));
+    await assertSucceeds(getDocs(collection(db(ALICE), NOTIF)));
+    await assertFails(getDocs(collection(db(BOB), NOTIF)));
+    await assertFails(getDoc(ref('dueSoon_t1', ALICE, { verified: false })));
+    await assertFails(setDoc(ref('dueSoon_t9', BOB), dueSoon()));
+    await assertFails(setDoc(ref('dueSoon_t9', ALICE, { verified: false }), dueSoon()));
+    await assertFails(deleteDoc(ref('dueSoon_t1', BOB)));
+    await assertSucceeds(deleteDoc(ref('dueSoon_t1')));
+  });
+});
+
 describe('fora do mapa', () => {
   test('coleções não previstas (inclusive devices e notificationLog) são negadas', async () => {
     await assertFails(setDoc(doc(db(ALICE), 'plans/p1'), { name: 'x' }));
