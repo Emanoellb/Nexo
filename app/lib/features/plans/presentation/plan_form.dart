@@ -361,7 +361,7 @@ class PlanRhythmFields extends StatelessWidget {
     this.goalHelper =
         'Passos de 15 min. Mudar depois vale a partir do dia seguinte.',
     this.reminderHelper =
-        'O aviso da manhã, com o resumo do dia, fica no Perfil.',
+        'O Resumo do dia, com o resumo do dia, fica no Perfil.',
     this.weekdaysError,
   });
 

@@ -9,7 +9,7 @@ import 'auth_repository.dart';
 /// - o Cadastro e a 03b criam o documento com o aceite e esperam o
 ///   servidor;
 /// - os ajustes do dia a dia (tutorial, pontos, plano principal, nome,
-///   limite de tarefas, aviso da manhã) não esperam ([FirestoreAccess.send]);
+///   limite de tarefas, Resumo do dia) não esperam ([FirestoreAccess.send]);
 /// - toda gravação renova `updatedAt` com o carimbo do servidor, como as
 ///   regras pedem.
 ///
@@ -102,7 +102,7 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
 }
 
 /// O documento que o Cadastro e a 03b criam. Só os campos de criação das
-/// regras (`userCreateFields`): o limite de tarefas e o aviso da manhã
+/// regras (`userCreateFields`): o limite de tarefas e o Resumo do dia
 /// ficam vazios (o app usa o padrão) até a pessoa mudar no Perfil.
 Map<String, Object?> newUserProfileToFirestore(NewUserProfile profile) => {
   'displayName': profile.displayName,

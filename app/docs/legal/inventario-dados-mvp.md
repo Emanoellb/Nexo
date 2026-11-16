@@ -74,7 +74,7 @@ U1 data de nascimento · U2 nada da Apple, só Android · U3 idioma não guardad
 | `tutorialSeen` | C | gerado | não |
 | `primaryPlanId` (plano principal) | C | usuário | não |
 | `overloadThreshold` (limite de "sobrecarregado", tarefas por dia) | C | usuário | não (padrão 5 no app) |
-| `morningSummary {enabled, time}` (aviso da manhã) | C (v0.9) | usuário | não (padrão ligado, 08:00) |
+| `morningSummary {enabled, time}` (Resumo do dia) | C (v0.9) | usuário | não (padrão ligado, 08:00) |
 | `points` | C (o app soma e subtrai) | gerado pelo app | não |
 | Foto de perfil, idioma | **Não guardados** | — | — |
 
@@ -198,7 +198,7 @@ U1 data de nascimento · U2 nada da Apple, só Android · U3 idioma não guardad
 **Avisos agendados no aparelho** (sem servidor, sem token):
 
 - aviso antes do horário do plano (`studyTime` − `reminderBefore`);
-- aviso da manhã (`morningSummary`);
+- Resumo do dia (`morningSummary`);
 - aviso às 21h se a meta do dia não estiver completa;
 - aviso 7 dias antes do fim do plano;
 - avisos de entrega da tarefa (até 3 por tarefa);

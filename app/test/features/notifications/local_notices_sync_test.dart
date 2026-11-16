@@ -33,7 +33,7 @@ void main() {
     await container.read(authStateProvider.future);
     await _waitSync();
 
-    // Sem planos nem tarefas: só o aviso da manhã, que sem nada no dia não
+    // Sem planos nem tarefas: só o Resumo do dia, que sem nada no dia não
     // sai.
     expect(spy.scheduled.last, isEmpty);
 
@@ -59,7 +59,7 @@ void main() {
     expect(spy.clears, greaterThan(0));
   });
 
-  test('sem permissão, o Aviso da manhã não é agendado', () async {
+  test('sem permissão, o Resumo do dia não é agendado', () async {
     final spy = SpyLocalNotices(allowed: false);
     final container = ProviderContainer(
       overrides: [

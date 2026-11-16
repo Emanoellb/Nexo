@@ -146,7 +146,7 @@ service cloud.firestore {
 
       // birthDate entra só na criação: o app não altera (correção pelo
       // canal de contato). points é mantido pelo app (sem Function no MVP).
-      // morningSummary: aviso da manhã do Perfil (notificação local).
+      // morningSummary: Resumo do dia do Perfil (notificação local).
       // Tema, "Não perturbe ao focar" e "Reduzir transparência" ficam só no
       // aparelho (decisão de 07/11/2026).
       function userEditableFields() {
@@ -161,7 +161,7 @@ service cloud.firestore {
                 'createdAt', 'updatedAt'];
       }
 
-      // Aviso da manhã: {enabled, time "HH:mm"}. Sem o campo, o app usa o
+      // Resumo do dia: {enabled, time "HH:mm"}. Sem o campo, o app usa o
       // padrão {true, "08:00"}.
       function validMorningSummary(m) {
         return m is map

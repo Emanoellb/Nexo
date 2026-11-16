@@ -72,7 +72,7 @@ abstract interface class UserProfileRepository {
   /// Perfil: limite de tarefas por dia (1 a 20).
   Future<void> setOverloadThreshold(String uid, int threshold);
 
-  /// Perfil: Aviso da manhã.
+  /// Perfil: Resumo do dia.
   Future<void> setMorningSummary(String uid, MorningSummary summary);
 
   /// Excluir conta, passo 3: grava `deletionRequestedAt` (carimbo do

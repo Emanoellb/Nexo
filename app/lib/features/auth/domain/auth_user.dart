@@ -91,7 +91,7 @@ class UserProfile {
   /// Limite de tarefas por dia (editado no Perfil, bloco 11).
   final int overloadThreshold;
 
-  /// `users.morningSummary` (Perfil: Aviso da manhã). Vazio = ligado às
+  /// `users.morningSummary` (Perfil: Resumo do dia). Vazio = ligado às
   /// 08:00.
   final MorningSummary morningSummary;
 

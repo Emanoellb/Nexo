@@ -181,7 +181,7 @@ void main() {
     expect(find.byType(NexoAchievement), findsNWidgets(9));
     expect(find.text('Tema'), findsOneWidget);
     // Volta com os avisos agendados (Etapa 5).
-    expect(find.text('Aviso da manhã'), findsOneWidget);
+    expect(find.text('Resumo do dia'), findsOneWidget);
     expect(find.text('5 tarefas'), findsOneWidget);
     // O rótulo visível acima do ajuste (bug de 10/11/2026: só havia o do
     // leitor de tela).
@@ -203,16 +203,16 @@ void main() {
     expect(find.text('Excluir conta'), findsOneWidget);
   });
 
-  group('Aviso da manhã e a permissão de notificações', () {
+  group('Resumo do dia e a permissão de notificações', () {
     Future<Finder> toggle(WidgetTester tester) async {
-      final finder = find.widgetWithText(NexoSwitch, 'Aviso da manhã');
+      final finder = find.widgetWithText(NexoSwitch, 'Resumo do dia');
       await tester.ensureVisible(finder);
       await tester.pumpAndSettle();
       return finder;
     }
 
     bool isOn(WidgetTester tester) => tester
-        .widget<NexoSwitch>(find.widgetWithText(NexoSwitch, 'Aviso da manhã'))
+        .widget<NexoSwitch>(find.widgetWithText(NexoSwitch, 'Resumo do dia'))
         .value;
 
     testWidgets('a entrada pede; permitido, liga e desliga', (tester) async {
@@ -269,7 +269,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(isOn(tester), isTrue);
       expect(
-        find.text('Não foi possível salvar o Aviso da manhã. Tente de novo.'),
+        find.text('Não foi possível salvar o Resumo do dia. Tente de novo.'),
         findsOneWidget,
       );
     });
@@ -653,7 +653,7 @@ class _SlowSignOutAuth extends FakeAuthRepository {
   }
 }
 
-/// O servidor recusa o Aviso da manhã (as regras, no aparelho).
+/// O servidor recusa o Resumo do dia (as regras, no aparelho).
 class _RejectingMorningProfiles extends FakeUserProfileRepository {
   _RejectingMorningProfiles()
     : super(

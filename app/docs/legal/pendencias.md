@@ -56,7 +56,7 @@ Cada nota está como comentário HTML no próprio documento, logo abaixo do trec
 Pedido do usuário pela sessão principal ("pode seguir com o legal"), depois das regras do Firestore v0.9. Detalhes no inventário, tabela "Atualizações de 07/11" (V1–V11).
 
 1. **Política:**
-   - campos da v0.9: até 3 avisos por tarefa, horário do plano e aviso antes do horário, aviso da manhã, até 3 tópicos por sessão;
+   - campos da v0.9: até 3 avisos por tarefa, horário do plano e aviso antes do horário, Resumo do dia, até 3 tópicos por sessão;
    - tópicos do plano, pontos, plano principal, dias (minutos e finalização), conquistas e pedido de exclusão;
    - **histórico de avisos por 30 dias** (B13);
    - preferências que ficam **só no aparelho**;

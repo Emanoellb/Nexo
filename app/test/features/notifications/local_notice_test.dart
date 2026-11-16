@@ -146,7 +146,7 @@ void main() {
     });
   });
 
-  group('aviso da manhã', () {
+  group('Resumo do dia', () {
     const morning = MorningSummary(enabled: true, time: '08:00');
 
     NexoTask task(String id, DateTime due, {bool completed = false}) =>

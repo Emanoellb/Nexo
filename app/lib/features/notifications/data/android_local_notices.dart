@@ -34,7 +34,7 @@ class AndroidLocalNotices implements LocalNotices {
     NoticeChannel.daySummary: AndroidNotificationChannel(
       'day_summary',
       'Resumo do dia',
-      description: 'O aviso da manhã, com os planos e as entregas do dia.',
+      description: 'O Resumo do dia, com os planos e as entregas do dia.',
     ),
     NoticeChannel.plans: AndroidNotificationChannel(
       'plans',

@@ -37,7 +37,7 @@ Ela vale para quem usa o aplicativo Nexo para Android. O Nexo é destinado a pes
 
 - Nome ou como você quer ser chamado.
 - Fuso horário do aparelho, usado para fechar os seus dias e agendar os avisos no horário certo.
-- Preferências: tutorial visto, plano principal, limite de tarefas por dia para o dia "sobrecarregado" e o aviso da manhã (ligado ou não e o horário).
+- Preferências: tutorial visto, plano principal, limite de tarefas por dia para o dia "sobrecarregado" e o Resumo do dia (ligado ou não e o horário).
 - Seus pontos acumulados.
 
 ### 3.3 Conteúdo que você cria
@@ -180,7 +180,7 @@ Você também pode apresentar reclamação à ANPD (www.gov.br/anpd).
 **Avisos.** O Nexo mostra notificações para os avisos que você mantém ligados:
 
 - aviso antes do horário do plano;
-- aviso da manhã, com o resumo do dia;
+- Resumo do dia, com o resumo do dia;
 - aviso à noite (21h) se a meta do dia não estiver completa;
 - aviso 7 dias antes do fim do plano;
 - avisos antes do prazo de uma tarefa (até 3 por tarefa).

@@ -286,7 +286,7 @@ describe('users/{uid}: uso', () => {
     await assertSucceeds(updateDoc(ref, { displayName: 'Ana Paula', updatedAt: serverTimestamp() }));
   });
 
-  test('aviso da manhã no cadastro e no Perfil (v0.9)', async () => {
+  test('Resumo do dia no cadastro e no Perfil (v0.9)', async () => {
     const criar = doc(db(ALICE), USER);
     await assertFails(setDoc(criar, newUser({ morningSummary: { enabled: true, time: '8h' } })));
     await assertFails(setDoc(criar, newUser({ morningSummary: { enabled: true } })));

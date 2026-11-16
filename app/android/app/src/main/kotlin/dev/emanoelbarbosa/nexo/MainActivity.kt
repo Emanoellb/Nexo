@@ -85,7 +85,7 @@ class MainActivity : FlutterActivity() {
                     "openDialer" -> result.success(
                         open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${call.arguments}")))
                     )
-                    // Configurações de notificação do app (Aviso da manhã
+                    // Configurações de notificação do app (Resumo do dia
                     // negado: depois de duas recusas, o Android não pergunta
                     // mais). Sem permissão.
                     "openNotificationSettings" -> result.success(

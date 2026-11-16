@@ -56,7 +56,7 @@ const planEndNoticeHour = 9;
 const maxScheduledNotices = 400;
 
 /// Os avisos dos próximos [horizonDays] dias, em ordem de horário:
-/// - **Resumo do dia** (aviso da manhã, `users.morningSummary`): os planos
+/// - **Resumo do dia** (Resumo do dia, `users.morningSummary`): os planos
 ///   com estudo e as entregas do dia; sem nada no dia, não avisa;
 /// - **antes do horário do plano** (`reminderBefore`, ligado), nos dias de
 ///   estudo com a meta ainda aberta;

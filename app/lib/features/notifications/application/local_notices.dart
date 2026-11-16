@@ -71,7 +71,7 @@ final localNoticesProvider = Provider<LocalNotices>(
   (ref) => const NoLocalNotices(),
 );
 
-/// As notificações estão permitidas. O Aviso da manhã só vale com elas
+/// As notificações estão permitidas. O Resumo do dia só vale com elas
 /// (decisão do usuário, 12/11/2026): sem permissão, aparece e fica
 /// desligado. Relido ao voltar ao app (ex.: das configurações).
 final notificationsAllowedProvider =
@@ -142,7 +142,7 @@ final localNoticesSyncProvider = Provider<void>((ref) {
   final now = ref.read(clockProvider)();
   final planned = planLocalNotices(
     now: now,
-    // Sem permissão, o Aviso da manhã fica desligado.
+    // Sem permissão, o Resumo do dia fica desligado.
     morningSummary: allowed
         ? profile.morningSummary
         : profile.morningSummary.copyWith(enabled: false),

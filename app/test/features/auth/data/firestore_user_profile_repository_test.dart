@@ -194,7 +194,7 @@ void main() {
       expect((await data())['primaryPlanId'], isNull);
     });
 
-    test('nome (sem espaços nas pontas), limite e aviso da manhã', () async {
+    test('nome (sem espaços nas pontas), limite e Resumo do dia', () async {
       await expectValidUpdate(
         () => repository.updateDisplayName(_uid, ' Ana '),
       );

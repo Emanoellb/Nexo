@@ -60,7 +60,7 @@ class ProfileActions {
         );
   }
 
-  /// Aviso da manhã: liga, desliga ou muda o horário ("HH:mm"). O
+  /// Resumo do dia: liga, desliga ou muda o horário ("HH:mm"). O
   /// agendamento da notificação entra com a frente dos avisos.
   Future<void> setMorningSummary(MorningSummary summary) async {
     final uid = _uid;

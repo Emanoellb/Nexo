@@ -179,7 +179,7 @@ class _EditPlanPageState extends ConsumerState<EditPlanPage>
               PlanRhythmFields(
                 draft: _draft,
                 goalHelper: 'Passos de 15 min.',
-                reminderHelper: 'O aviso da manhã fica no Perfil.',
+                reminderHelper: 'O Resumo do dia fica no Perfil.',
                 weekdaysError: _showErrors && _draft.weekdays.isEmpty
                     ? 'Escolha pelo menos um dia.'
                     : null,

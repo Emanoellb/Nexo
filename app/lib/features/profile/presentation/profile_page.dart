@@ -24,7 +24,7 @@ import '../application/profile_actions.dart';
 import 'about_sheet.dart';
 import 'achievement_sheet.dart';
 
-/// O Aviso da manhã ficou escondido até o agendamento existir (decisão do
+/// O Resumo do dia ficou escondido até o agendamento existir (decisão do
 /// usuário, 10/11/2026). Com os avisos agendados (Etapa 5), volta.
 const morningSummaryVisible = true;
 
@@ -75,7 +75,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
   }
 
-  /// Grava o Aviso da manhã. Se o servidor recusar, a tela volta ao que
+  /// Grava o Resumo do dia. Se o servidor recusar, a tela volta ao que
   /// está salvo e a Snackbar avisa (antes, voltava em silêncio).
   Future<void> _saveMorningSummary(MorningSummary summary) async {
     try {
@@ -85,8 +85,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       showNexoSnackbar(
         context,
         message: failure.code == DataFailureCode.network
-            ? 'Sem conexão. O Aviso da manhã não foi salvo.'
-            : 'Não foi possível salvar o Aviso da manhã. Tente de novo.',
+            ? 'Sem conexão. O Resumo do dia não foi salvo.'
+            : 'Não foi possível salvar o Resumo do dia. Tente de novo.',
       );
     }
   }
@@ -99,7 +99,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         hour: int.parse(parts[0]),
         minute: int.parse(parts[1]),
       ),
-      helpText: 'Horário do aviso da manhã',
+      helpText: 'Horário do Resumo do dia',
     );
     if (picked == null || !mounted) return;
     final time =
@@ -437,7 +437,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   if (morningSummaryVisible) divider(),
                   if (morningSummaryVisible)
                     NexoSwitch(
-                      label: 'Aviso da manhã',
+                      label: 'Resumo do dia',
                       helper: morningOn
                           ? 'Todo dia às ${summary.time}, com os planos e tarefas '
                                 'do dia.'
