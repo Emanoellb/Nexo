@@ -182,6 +182,20 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('prazo: o calendário começa hoje, sem dias no passado', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await _pump(tester);
+    await _openNew(tester);
+    await _tap(tester, _field('Prazo'));
+    final picker = tester.widget<CalendarDatePicker>(
+      find.byType(CalendarDatePicker),
+    );
+    expect(picker.firstDate, DateTime(2026, 11, 4));
+    handle.dispose();
+  });
+
   testWidgets('tirar o prazo tira os avisos', (tester) async {
     final handle = tester.ensureSemantics();
     await _pump(tester);

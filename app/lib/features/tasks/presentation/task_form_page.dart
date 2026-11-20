@@ -256,7 +256,9 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage>
       label: 'Prazo',
       clearLabel: 'Sem prazo',
       current: _values.day,
-      firstDate: DateTime(now.year - 1),
+      // Sem prazo no passado (decisão do usuário, 19/11/2026). A tarefa já
+      // atrasada mantém o dia dela: o calendário começa nele.
+      firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 5, 12, 31),
       fallbackInitial: DateTime(now.year, now.month, now.day),
     );
