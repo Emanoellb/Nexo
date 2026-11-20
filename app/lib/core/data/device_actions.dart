@@ -18,6 +18,10 @@ abstract interface class DeviceActions {
 
   /// Fuso IANA do aparelho ("America/Sao_Paulo"). `null` se não der para ler.
   Future<String?> timeZone();
+
+  /// Versão do Android ("14"), para o Feedback. Só a versão, sem o modelo
+  /// do aparelho (decisão do usuário, 19/11/2026). `null` se não der.
+  Future<String?> androidVersion();
 }
 
 class AndroidDeviceActions implements DeviceActions {
@@ -47,6 +51,10 @@ class AndroidDeviceActions implements DeviceActions {
 
   @override
   Future<String?> timeZone() => _channel.invokeMethod<String>('timeZone');
+
+  @override
+  Future<String?> androidVersion() =>
+      _channel.invokeMethod<String>('androidVersion');
 }
 
 /// Sem parte nativa (testes e fora do Android): nada abre.
@@ -68,6 +76,9 @@ class NoopDeviceActions implements DeviceActions {
 
   @override
   Future<String?> timeZone() async => null;
+
+  @override
+  Future<String?> androidVersion() async => null;
 }
 
 /// Sobrescrito no `main.dart` pelo [AndroidDeviceActions] no Android.

@@ -64,6 +64,9 @@ class _FakeDevice implements DeviceActions {
 
   @override
   Future<String?> timeZone() async => 'America/Sao_Paulo';
+
+  @override
+  Future<String?> androidVersion() async => '14';
 }
 
 class _Ctx {
@@ -361,6 +364,36 @@ void main() {
       find.textContaining('Nenhum app de e-mail encontrado'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Enviar feedback: Bug, mensagem e o e-mail preenchido', (
+    tester,
+  ) async {
+    final ctx = await _pump(tester);
+    await _tap(tester, find.text('Enviar feedback'));
+    // Sem mensagem, não segue.
+    await _tap(tester, _button('Continuar no e-mail'));
+    expect(find.text('Escreva a mensagem.'), findsOneWidget);
+    expect(ctx.device.emails, isEmpty);
+
+    await tester.enterText(find.byType(TextField).last, '  O foco travou.  ');
+    await _tap(tester, _button('Continuar no e-mail'));
+    final email = ctx.device.emails.single;
+    expect(email.address, NexoSupport.email);
+    expect(email.subject, 'Nexo · bug');
+    expect(email.body, 'O foco travou.\n\n---\nNexo 1.0.0 · Android 14');
+  });
+
+  testWidgets('Enviar feedback: Sugestão; sem app de e-mail, avisa', (
+    tester,
+  ) async {
+    final ctx = await _pump(tester, deviceOpens: false);
+    await _tap(tester, find.text('Enviar feedback'));
+    await _tap(tester, find.text('Sugestão'));
+    await tester.enterText(find.byType(TextField).last, 'Modo foco longo.');
+    await _tap(tester, _button('Continuar no e-mail'));
+    expect(ctx.device.emails.single.subject, 'Nexo · sugestão');
+    expect(find.textContaining('Nexo · sugestão'), findsOneWidget);
   });
 
   testWidgets('bloco Conta: ordem, chevron nos documentos e Pedir cópia', (

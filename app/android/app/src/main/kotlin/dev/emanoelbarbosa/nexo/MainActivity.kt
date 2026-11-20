@@ -105,6 +105,8 @@ class MainActivity : FlutterActivity() {
                     )
                     // Fuso IANA do aparelho (users.timeZone).
                     "timeZone" -> result.success(java.util.TimeZone.getDefault().id)
+                    // Feedback: só a versão do Android, sem o modelo.
+                    "androidVersion" -> result.success(android.os.Build.VERSION.RELEASE)
                     "appVersion" -> result.success(
                         packageManager.getPackageInfo(packageName, 0).versionName
                     )

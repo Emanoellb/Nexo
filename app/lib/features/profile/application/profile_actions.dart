@@ -26,7 +26,31 @@ abstract final class NexoSupport {
   static const dataCopySubject = 'Nexo · cópia dos meus dados';
   static const dataCopyBody =
       'Olá! Quero receber uma cópia dos meus dados do Nexo.';
+
+  /// "Enviar feedback" (decisão do usuário, 19/11/2026): pelo app de
+  /// e-mail, com a versão do Nexo e só a versão do Android.
+  static const feedbackMaxLength = 1000;
+
+  static String feedbackSubject(FeedbackKind kind) => switch (kind) {
+    FeedbackKind.bug => 'Nexo · bug',
+    FeedbackKind.suggestion => 'Nexo · sugestão',
+  };
+
+  static String feedbackBody(
+    String message, {
+    String? appVersion,
+    String? androidVersion,
+  }) {
+    final info = [
+      'Nexo ${appVersion ?? '?'}',
+      if (androidVersion != null) 'Android $androidVersion',
+    ].join(' · ');
+    return '${message.trim()}\n\n---\n$info';
+  }
 }
+
+/// O tipo do feedback.
+enum FeedbackKind { bug, suggestion }
 
 /// O que o Perfil grava em `users/{uid}`.
 class ProfileActions {

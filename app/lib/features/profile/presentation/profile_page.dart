@@ -23,6 +23,7 @@ import '../../progress/domain/level.dart';
 import '../application/profile_actions.dart';
 import 'about_sheet.dart';
 import 'achievement_sheet.dart';
+import 'feedback_sheet.dart';
 
 /// O Resumo do dia ficou escondido até o agendamento existir (decisão do
 /// usuário, 10/11/2026). Com os avisos agendados (Etapa 5), volta.
@@ -160,6 +161,33 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       message:
           'Nenhum app de e-mail encontrado. Escreva para ${NexoSupport.email} '
           'com o assunto “${NexoSupport.dataCopySubject}”.',
+      tone: NexoSnackbarTone.info,
+    );
+  }
+
+  /// "Enviar feedback": a folha com Bug ou Sugestão e a mensagem; depois,
+  /// o app de e-mail com tudo preenchido, a versão do Nexo e só a do
+  /// Android. O Nexo não envia nada sozinho nem guarda o texto.
+  Future<void> _sendFeedback() async {
+    final draft = await showFeedbackSheet(context);
+    if (draft == null || !mounted) return;
+    final device = ref.read(deviceActionsProvider);
+    final subject = NexoSupport.feedbackSubject(draft.kind);
+    final opened = await device.openEmail(
+      NexoSupport.email,
+      subject: subject,
+      body: NexoSupport.feedbackBody(
+        draft.message,
+        appVersion: await device.appVersion(),
+        androidVersion: await device.androidVersion(),
+      ),
+    );
+    if (opened || !mounted) return;
+    showNexoSnackbar(
+      context,
+      message:
+          'Nenhum app de e-mail encontrado. Escreva para ${NexoSupport.email} '
+          'com o assunto “$subject”.',
       tone: NexoSnackbarTone.info,
     );
   }
@@ -536,6 +564,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ),
                     onTap: () => _contact(email: false),
                   ),
+                NexoListItem(
+                  icon: LucideIcons.messageSquare,
+                  title: 'Enviar feedback',
+                  supporting: 'Conte um bug ou dê uma sugestão.',
+                  onTap: _sendFeedback,
+                ),
               ],
             ),
             note(
