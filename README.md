@@ -30,13 +30,13 @@ As imagens saem das telas reais do app, com dados fictícios.
 
 | Entrar | Início |
 |:---:|:---:|
-| <img src=".github/readme/login-claro.png" width="200" alt="Login, tema claro"> <img src=".github/readme/login-escuro.png" width="200" alt="Login, tema escuro"> | <img src=".github/readme/inicio-claro.png" width="200" alt="Início, tema claro"> <img src=".github/readme/inicio-escuro.png" width="200" alt="Início, tema escuro"> |
+| <img src="docs/readme/login-claro.png" width="200" alt="Login, tema claro"> <img src="docs/readme/login-escuro.png" width="200" alt="Login, tema escuro"> | <img src="docs/readme/inicio-claro.png" width="200" alt="Início, tema claro"> <img src="docs/readme/inicio-escuro.png" width="200" alt="Início, tema escuro"> |
 | **Tarefas** | **Agenda** |
-| <img src=".github/readme/tarefas-claro.png" width="200" alt="Tarefas, tema claro"> <img src=".github/readme/tarefas-escuro.png" width="200" alt="Tarefas, tema escuro"> | <img src=".github/readme/agenda-claro.png" width="200" alt="Agenda, tema claro"> <img src=".github/readme/agenda-escuro.png" width="200" alt="Agenda, tema escuro"> |
+| <img src="docs/readme/tarefas-claro.png" width="200" alt="Tarefas, tema claro"> <img src="docs/readme/tarefas-escuro.png" width="200" alt="Tarefas, tema escuro"> | <img src="docs/readme/agenda-claro.png" width="200" alt="Agenda, tema claro"> <img src="docs/readme/agenda-escuro.png" width="200" alt="Agenda, tema escuro"> |
 | **Plano de ação** | **Foco** |
-| <img src=".github/readme/plano-claro.png" width="200" alt="Plano de ação, tema claro"> <img src=".github/readme/plano-escuro.png" width="200" alt="Plano de ação, tema escuro"> | <img src=".github/readme/foco-claro.png" width="200" alt="Foco, tema claro"> <img src=".github/readme/foco-escuro.png" width="200" alt="Foco, tema escuro"> |
+| <img src="docs/readme/plano-claro.png" width="200" alt="Plano de ação, tema claro"> <img src="docs/readme/plano-escuro.png" width="200" alt="Plano de ação, tema escuro"> | <img src="docs/readme/foco-claro.png" width="200" alt="Foco, tema claro"> <img src="docs/readme/foco-escuro.png" width="200" alt="Foco, tema escuro"> |
 | **Perfil e progresso** | |
-| <img src=".github/readme/perfil-claro.png" width="200" alt="Perfil, tema claro"> <img src=".github/readme/perfil-escuro.png" width="200" alt="Perfil, tema escuro"> | |
+| <img src="docs/readme/perfil-claro.png" width="200" alt="Perfil, tema claro"> <img src="docs/readme/perfil-escuro.png" width="200" alt="Perfil, tema escuro"> | |
 
 ---
 

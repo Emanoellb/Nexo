@@ -1,13 +1,12 @@
 # O repositório guarda só o projeto Flutter (app/, com a marca em
-# app/assets/brand/) e a documentação (docs/). Qualquer outra coisa na raiz,
-# como pen.dev/ (os arquivos de design do Pencil), fica fora do git.
+# app/assets/brand/), a documentação (docs/), o README e o AGENTS.md.
+# Qualquer outra coisa na raiz (pen.dev/, marketing/, CLAUDE.md, .github/)
+# fica fora do git.
 /*
 !/.gitignore
 !/app/
 !/docs/
 !/README.md
 !/AGENTS.md
-!/CLAUDE.md
-!/.github/
 !.env
 
