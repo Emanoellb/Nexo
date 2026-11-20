@@ -55,7 +55,7 @@ void main() {
     expect(_path(c), AppRoutes.taskDetailOf(task.id));
   });
 
-  testWidgets('item excluído: Início com "Isso não está mais no Nexo."', (
+  testWidgets('plano excluído: Início com "Plano já foi excluído."', (
     tester,
   ) async {
     final spy = SpyLocalNotices();
@@ -66,7 +66,7 @@ void main() {
     spy.tapController.add(NoticeTarget.plan('nao-existe'));
     await tester.pumpAndSettle();
     expect(_path(c), AppRoutes.home);
-    expect(find.text('Isso não está mais no Nexo.'), findsOneWidget);
+    expect(find.text('Plano já foi excluído.'), findsOneWidget);
   });
 
   testWidgets('app aberto pelo aviso: as abas levam ao destino', (

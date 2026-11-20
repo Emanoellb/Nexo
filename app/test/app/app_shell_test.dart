@@ -162,7 +162,7 @@ void main() {
     await tester.tap(find.text('Apagada'));
     await tester.pumpAndSettle();
     expect(c.read(routerProvider).state.uri.path, AppRoutes.home);
-    expect(find.text('Isso não está mais no Nexo.'), findsOneWidget);
+    expect(find.text('Tarefa já foi excluída.'), findsOneWidget);
   });
 
   testWidgets('sino: aviso já lido só abre (sem gravar lido de novo)', (

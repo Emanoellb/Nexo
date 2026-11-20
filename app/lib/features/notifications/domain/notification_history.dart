@@ -110,6 +110,11 @@ const noticeTitleMaxLength = 120;
 
 /// O título no limite das regras: o título da tarefa vai até 200, e um
 /// título maior faria o servidor recusar o aviso.
-String noticeTitle(String text) => text.length <= noticeTitleMaxLength
-    ? text
-    : '${text.substring(0, noticeTitleMaxLength - 1).trimRight()}…';
+String noticeTitle(String text) {
+  if (text.length <= noticeTitleMaxLength) return text;
+  var end = noticeTitleMaxLength - 1;
+  // Não parte um emoji (par UTF-16): o corte recua um.
+  final last = text.codeUnitAt(end - 1);
+  if (last >= 0xD800 && last <= 0xDBFF) end--;
+  return '${text.substring(0, end).trimRight()}…';
+}

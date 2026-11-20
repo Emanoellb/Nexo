@@ -127,4 +127,13 @@ void main() {
     expect(items.single.title.length, noticeTitleMaxLength);
     expect(items.single.title, endsWith('…'));
   });
+
+  test('título longo: o corte não parte um emoji', () {
+    // O emoji (2 unidades UTF-16) começa bem no ponto do corte.
+    final title = '${'x' * (noticeTitleMaxLength - 2)}😀${'y' * 10}';
+    final cut = noticeTitle(title);
+    expect(cut, '${'x' * (noticeTitleMaxLength - 2)}…');
+    // Válido: sem metade de par solta.
+    expect(cut.runes.every((r) => r < 0xD800 || r > 0xDFFF), isTrue);
+  });
 }

@@ -140,7 +140,8 @@ class _NexoShellState extends ConsumerState<NexoShell> {
 
   /// Leva ao destino do aviso (foco-especificacao.md, notificações do
   /// celular): o Início, o detalhe do plano ou o da tarefa. Item que não
-  /// existe mais: o Início com "Isso não está mais no Nexo.".
+  /// existe mais: o Início com "Tarefa já foi excluída." (ou
+  /// "Plano já foi excluído.").
   Future<void> _openNotice(String payload) async {
     if (!mounted) return;
     final router = GoRouter.of(context);
@@ -162,7 +163,12 @@ class _NexoShellState extends ConsumerState<NexoShell> {
     if (!mounted) return;
     if (location == null) {
       router.go(AppRoutes.home);
-      showNexoSnackbar(context, message: 'Isso não está mais no Nexo.');
+      showNexoSnackbar(
+        context,
+        message: kind == 'plan'
+            ? 'Plano já foi excluído.'
+            : 'Tarefa já foi excluída.',
+      );
     } else if (location == AppRoutes.home) {
       router.go(AppRoutes.home);
     } else {
@@ -218,7 +224,7 @@ class _NexoShellState extends ConsumerState<NexoShell> {
   }
 
   /// Aviso do sino: leva ao detalhe da tarefa ou do plano, como os avisos
-  /// do celular (item apagado: o Início com "Isso não está mais no Nexo."),
+  /// do celular (item apagado: o Início com "Tarefa já foi excluída."),
   /// e a medalha ao Perfil.
   Future<void> _openHistoryItem(NexoNotification item) async {
     final taskId = item.taskId;
