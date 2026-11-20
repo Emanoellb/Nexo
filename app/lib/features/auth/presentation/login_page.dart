@@ -200,6 +200,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           loading: state.googleLoading,
           onPressed: state.submitting ? null : controller.signInWithGoogle,
         ),
+        GoogleConsentNote(
+          onOpenTerms: () => context.push(AppRoutes.terms),
+          onOpenPrivacy: () => context.push(AppRoutes.privacy),
+        ),
         SizedBox(height: spacing.xl),
         AuthFooterLink(
           question: 'Ainda não tem conta?',

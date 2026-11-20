@@ -204,6 +204,10 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           loading: state.googleLoading,
           onPressed: state.submitting ? null : controller.signInWithGoogle,
         ),
+        GoogleConsentNote(
+          onOpenTerms: () => context.push(AppRoutes.terms),
+          onOpenPrivacy: () => context.push(AppRoutes.privacy),
+        ),
         SizedBox(height: spacing.xl),
         AuthFooterLink(
           question: 'Já tem conta?',

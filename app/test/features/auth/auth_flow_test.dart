@@ -267,7 +267,15 @@ void main() {
     ) async {
       await _pumpApp(tester);
       await openSignUp(tester);
-      await _tap(tester, find.widgetWithText(NexoButton, 'Termos de Uso'));
+      // O do aceite (o aviso do Google, embaixo, tem o mesmo link).
+      expect(
+        find.widgetWithText(NexoButton, 'Termos de Uso'),
+        findsNWidgets(2),
+      );
+      await _tap(
+        tester,
+        find.widgetWithText(NexoButton, 'Termos de Uso').first,
+      );
       // O texto dos Termos, com a versão do documento (o id técnico fica
       // para o aceite).
       expect(find.byType(LegalDocumentPage), findsOneWidget);
@@ -279,6 +287,24 @@ void main() {
       await _tap(tester, find.byTooltip('Voltar'));
       expect(find.text('Crie sua conta'), findsOneWidget);
     });
+  });
+
+  testWidgets('Login: aviso do Google abre a Política e volta', (tester) async {
+    await _pumpApp(tester);
+    expect(
+      find.text(
+        'Ao continuar com o Google, você concorda com os Termos de Uso e a '
+        'Política de Privacidade.',
+      ),
+      findsOneWidget,
+    );
+    await _tap(
+      tester,
+      find.widgetWithText(NexoButton, 'Política de Privacidade'),
+    );
+    expect(find.byType(LegalDocumentPage), findsOneWidget);
+    await _tap(tester, find.byTooltip('Voltar'));
+    expect(find.byType(NexoGoogleButton), findsOneWidget);
   });
 
   group('05 Verifique seu e-mail', () {

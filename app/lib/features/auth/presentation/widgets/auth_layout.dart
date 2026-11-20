@@ -289,6 +289,55 @@ class LegalConsentField extends StatelessWidget {
   }
 }
 
+/// Aviso abaixo do "Continuar com o Google" (Login e Cadastro, decisão do
+/// usuário, 19/11/2026), com os dois documentos do app como links. O
+/// aceite registrado continua sendo o da 03b.
+class GoogleConsentNote extends StatelessWidget {
+  const GoogleConsentNote({
+    super.key,
+    required this.onOpenTerms,
+    required this.onOpenPrivacy,
+  });
+
+  final VoidCallback onOpenTerms;
+  final VoidCallback onOpenPrivacy;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall!
+        .copyWith(color: context.nexoColors.onSurfaceVariant);
+    return Padding(
+      padding: EdgeInsets.only(top: context.spacing.sm),
+      child: Column(
+        children: [
+          Text(
+            'Ao continuar com o Google, você concorda com os Termos de Uso e '
+            'a Política de Privacidade.',
+            textAlign: TextAlign.center,
+            style: style,
+          ),
+          // Quebra em duas linhas com fonte ampliada ou tela estreita.
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              NexoButton.tertiary(
+                label: 'Termos de Uso',
+                onPressed: onOpenTerms,
+              ),
+              ExcludeSemantics(child: Text('·', style: style)),
+              NexoButton.tertiary(
+                label: 'Política de Privacidade',
+                onPressed: onOpenPrivacy,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// "Reenviar" com a contagem regressiva ("Reenviar em 0:45").
 class ResendButton extends StatelessWidget {
   const ResendButton({
