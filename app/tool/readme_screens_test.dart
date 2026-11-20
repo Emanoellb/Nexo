@@ -100,7 +100,7 @@ Future<void> _shot(WidgetTester tester, String name) async {
   await tester.pumpAndSettle();
   await expectLater(
     find.byType(NexoApp),
-    matchesGoldenFile('../../.github/readme/$name.png'),
+    matchesGoldenFile('../../docs/readme/$name.png'),
   );
 }
 
